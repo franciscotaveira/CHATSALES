@@ -757,13 +757,18 @@ export const workspaceRoutes: FastifyPluginAsync = async (app) => {
         const newWs = wsRes.rows[0]!;
 
         // 4. Provision or Update Target Owner User
+        const existingCheck = await client.query<{ id: string; name: string }>(
+          "SELECT id, name FROM users WHERE email = $1",
+          [cleanEmail]
+        );
+        const isExistingUser = existingCheck.rows.length > 0;
+
         const passwordHash = hashPassword(tempPassword);
         const userRes = await client.query<{ id: string; name: string; email: string }>(
           `INSERT INTO users (id, email, name, password_hash, created_at, updated_at)
            VALUES (gen_random_uuid(), $1, $2, $3, clock_timestamp(), clock_timestamp())
            ON CONFLICT (email) DO UPDATE SET
              name = COALESCE(users.name, EXCLUDED.name),
-             password_hash = COALESCE(users.password_hash, EXCLUDED.password_hash),
              updated_at = clock_timestamp()
            RETURNING id, name, email`,
           [cleanEmail, cleanOwnerName, passwordHash]
@@ -790,7 +795,13 @@ export const workspaceRoutes: FastifyPluginAsync = async (app) => {
 
         await client.query("COMMIT");
 
-        const welcomeMessage = `🚀 Olá, ${cleanOwnerName}! Seu acesso ao Chat Sales V3 (${cleanName}) está liberado.\n\n🔗 Painel: https://crm.iaparavendas.tech\n👤 E-mail: ${cleanEmail}\n🔑 Senha: ${tempPassword}\n\nFaça login para conectar seu WhatsApp e cadastrar seus produtos!`;
+        const passwordLine = isExistingUser
+          ? "🔑 Senha: [Sua senha de acesso atual]"
+          : `🔑 Senha: ${tempPassword}`;
+
+        const welcomeMessage = isExistingUser
+          ? `🚀 Olá, ${cleanOwnerName}! Seu acesso à nova empresa ${cleanName} no Chat Sales V3 foi vinculado à sua conta existente.\n\n🔗 Painel: https://crm.iaparavendas.tech\n👤 E-mail: ${cleanEmail}\n${passwordLine}\n\nFaça login para alternar para a nova empresa e conectar o WhatsApp!`
+          : `🚀 Olá, ${cleanOwnerName}! Seu acesso ao Chat Sales V3 (${cleanName}) está liberado.\n\n🔗 Painel: https://crm.iaparavendas.tech\n👤 E-mail: ${cleanEmail}\n${passwordLine}\n\nFaça login para conectar seu WhatsApp e cadastrar seus produtos!`;
 
         return reply.status(201).send({
           success: true,
@@ -803,7 +814,8 @@ export const workspaceRoutes: FastifyPluginAsync = async (app) => {
             id: ownerUser.id,
             name: ownerUser.name,
             email: ownerUser.email,
-            tempPassword,
+            isExistingUser,
+            tempPassword: isExistingUser ? null : tempPassword,
           },
           welcomeMessage,
         });

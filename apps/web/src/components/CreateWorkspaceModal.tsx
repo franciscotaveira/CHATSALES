@@ -24,7 +24,7 @@ export const CreateWorkspaceModal: FC<CreateWorkspaceModalProps> = ({
 
   const [createdResult, setCreatedResult] = useState<{
     workspace: { id: string; name: string; slug: string };
-    owner: { name: string; email: string; tempPassword?: string };
+    owner: { name: string; email: string; tempPassword?: string | null; isExistingUser?: boolean };
     welcomeMessage: string;
   } | null>(null);
 
@@ -166,7 +166,7 @@ export const CreateWorkspaceModal: FC<CreateWorkspaceModalProps> = ({
               <strong>Proprietário:</strong> {createdResult.owner.name} ({createdResult.owner.email})
             </div>
             <div style={{ fontSize: "0.875rem", color: "var(--text-secondary, #475569)" }}>
-              <strong>Senha Provisória:</strong>{" "}
+              <strong>{createdResult.owner.isExistingUser ? "Acesso:" : "Senha Provisória:"}</strong>{" "}
               <code
                 style={{
                   fontFamily: "var(--font-mono, monospace)",
@@ -175,7 +175,7 @@ export const CreateWorkspaceModal: FC<CreateWorkspaceModalProps> = ({
                   borderRadius: "4px",
                 }}
               >
-                {createdResult.owner.tempPassword}
+                {createdResult.owner.tempPassword || "Conta existente (senha atual mantida)"}
               </code>
             </div>
           </div>

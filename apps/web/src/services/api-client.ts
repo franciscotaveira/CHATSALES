@@ -1312,13 +1312,13 @@ export class ApiClient {
   ): Promise<{
     success: boolean;
     workspace: { id: string; name: string; slug: string };
-    owner: { id: string; name: string; email: string; tempPassword?: string };
+    owner: { id: string; name: string; email: string; tempPassword?: string | null; isExistingUser?: boolean };
     welcomeMessage: string;
   }> {
     return this.request<{
       success: boolean;
       workspace: { id: string; name: string; slug: string };
-      owner: { id: string; name: string; email: string; tempPassword?: string };
+      owner: { id: string; name: string; email: string; tempPassword?: string | null; isExistingUser?: boolean };
       welcomeMessage: string;
     }>("/v1/workspaces", {
       ...options,
