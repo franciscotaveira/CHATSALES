@@ -459,5 +459,22 @@ A infraestrutura de automações externas da MCT LTDA está centralizada em um d
     - **Filtros Rápidos do Cockpit:** Atalhos para "Aguardando Humano", "Não Lidas" e "Novos Leads".
   - Testes unitários com renderização e acessibilidade em `packages/ui/src/__tests__/command-palette.test.tsx`.
 
+### 13.5 Onboarding Concierge & Provisionamento 1-Clique de Novas Empresas (`POST /v1/workspaces` & `CreateWorkspaceModal.tsx`)
+- **Endpoint Transacional de Provisionamento (`POST /v1/workspaces`):**
+  - Protegido por autenticação JWT e verificação de privilégio RBAC (`role: 'owner'`).
+  - Execução transacional atômica no PostgreSQL 16:
+    - Criação de organização com slug derivado e saneado.
+    - Criação de workspace com fuso horário `America/Sao_Paulo`, moeda `BRL` e isolamento RLS ativo.
+    - Hashing de senha forte via `hashPassword()` (scrypt nativo com salt criptográfico).
+    - Criação/vínculo do novo usuário proprietário (`role: 'owner'`).
+    - Vínculo automático do operador administrador (Francisco) também como `owner` na nova empresa, permitindo alternância instantânea de contexto no cockpit para suporte operacional concierge.
+- **Interface Visual de Provisionamento (`CreateWorkspaceModal.tsx`):**
+  - Modal integrado ao `AppShell` da interface web, disparado pelo botão `+ Criar Nova Empresa` no seletor de organizações do header e pelo atalho do Command Palette (`⌘K`).
+  - Formulário com campos: Nome da Empresa, Nome do Responsável, E-mail do Administrador e Senha Inicial (com gerador de senha aleatória segura em 1 clique).
+  - Tela de sucesso com:
+    - Bloco de mensagem de boas-vindas pré-formatada para WhatsApp pronta para envio em 1 clique com URL de acesso, login e senha.
+    - Botão de comutação imediata ("Entrar nesta Empresa Agora"), trocando o workspace ativo no `localStorage` e recarregando o cockpit.
+  - Cobertura de testes unitários em `apps/web/src/__tests__/create-workspace-modal.test.tsx`.
+
 
 
