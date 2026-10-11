@@ -5,8 +5,16 @@ import type { ReactNode } from "react";
  * into native React elements WITHOUT using dangerouslySetInnerHTML.
  */
 
-export const renderWhatsappMarkdown = (text?: string | null): ReactNode => {
+export const renderWhatsappMarkdown = (
+  text?: string | null,
+  options?: { singleLine?: boolean }
+): ReactNode => {
   if (!text) return null;
+
+  if (options?.singleLine) {
+    const singleLineText = text.replace(/[\r\n\t]+/g, " ").replace(/\s+/g, " ").trim();
+    return parseFormattedSpan(singleLineText, "sl");
+  }
 
   // Split lines to preserve intentional line breaks
   const lines = text.split("\n");

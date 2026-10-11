@@ -57,6 +57,7 @@ export const ListItem: FC<ListItemProps> = ({
         boxSizing: "border-box",
         width: "100%",
         gap: "var(--space-3, 12px)",
+        overflow: "hidden",
         ...style,
       }}
     >
@@ -76,6 +77,7 @@ export const ListItem: FC<ListItemProps> = ({
           flexDirection: "column",
           justifyContent: "center",
           gap: "2px",
+          overflow: "hidden",
         }}
       >
         <div

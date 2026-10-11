@@ -1857,6 +1857,79 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
         authHeaders["X-Api-Key"] = creds.api_key;
       }
 
+      // 0. Verify Session Status in WAHA before attempting sync
+      let sessionStatus = "UNKNOWN";
+      try {
+        const sessionResp = await safeFetchWithSsrfGuard(
+          `${validatedBaseUrl}/api/sessions/${effectiveSession}`,
+          { headers: authHeaders },
+          { timeoutMs: 8000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
+        );
+        if (sessionResp.ok) {
+          const sData = (await sessionResp.json()) as { status?: string };
+          sessionStatus = sData.status || "UNKNOWN";
+        }
+      } catch {
+        // Non-blocking fallback
+      }
+
+      if (sessionStatus === "STOPPED" || sessionStatus === "FAILED") {
+        // Try starting session
+        try {
+          await safeFetchWithSsrfGuard(
+            `${validatedBaseUrl}/api/sessions/${effectiveSession}/start`,
+            {
+              method: "POST",
+              headers: { ...authHeaders, "Content-Type": "application/json" },
+            },
+            { timeoutMs: 6000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
+          );
+          await new Promise((r) => setTimeout(r, 1200));
+          const retryResp = await safeFetchWithSsrfGuard(
+            `${validatedBaseUrl}/api/sessions/${effectiveSession}`,
+            { headers: authHeaders },
+            { timeoutMs: 5000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
+          );
+          if (retryResp.ok) {
+            const retryData = (await retryResp.json()) as { status?: string };
+            sessionStatus = retryData.status || sessionStatus;
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      if (sessionStatus !== "WORKING") {
+        await withTenantTransaction(workspaceId, async (client) => {
+          await client.query(
+            `UPDATE public.channel_instances
+             SET status = 'pairing', updated_at = clock_timestamp()
+             WHERE id = $1 AND workspace_id = $2;`,
+            [channelId, workspaceId]
+          );
+        });
+
+        return reply.status(200).send({
+          success: false,
+          status: "NEEDS_QR_CODE",
+          syncedChatsCount: 0,
+          syncedMessagesCount: 0,
+          message: "A sessão do WhatsApp precisa de autenticação. Clique no botão 'QR Code' para conectar seu celular.",
+        });
+      }
+
+      // Ensure channel instance is marked connected
+      if (channel.status !== "connected") {
+        await withTenantTransaction(workspaceId, async (client) => {
+          await client.query(
+            `UPDATE public.channel_instances
+             SET status = 'connected', is_active = true, updated_at = clock_timestamp()
+             WHERE id = $1 AND workspace_id = $2;`,
+            [channelId, workspaceId]
+          );
+        });
+      }
+
       // 1. Fetch Chats from WAHA
       let chatsResp = await safeFetchWithSsrfGuard(
         `${validatedBaseUrl}/api/${effectiveSession}/chats`,
@@ -2061,11 +2134,15 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
         }
       }
 
+      const msgDetail = syncedMessagesCount > 0
+        ? `${syncedMessagesCount} novas mensagens importadas`
+        : "mensagens já estavam em dia";
+
       return reply.status(200).send({
         success: true,
         syncedChatsCount,
         syncedMessagesCount,
-        message: `${syncedChatsCount} conversas e ${syncedMessagesCount} mensagens sincronizadas do WhatsApp.`,
+        message: `${syncedChatsCount} conversas sincronizadas com sucesso (${msgDetail}).`,
       });
     }
   );

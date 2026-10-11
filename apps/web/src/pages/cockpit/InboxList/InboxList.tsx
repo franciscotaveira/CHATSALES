@@ -18,6 +18,9 @@ interface InboxListProps {
   searchQuery: string;
   onSearchQueryChange: (query: string) => void;
   activeChannel: ChannelSummary | null;
+  channels?: ChannelSummary[];
+  selectedChannelId?: string | "all";
+  onSelectChannelId?: (channelId: string | "all") => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   isMobile?: boolean;
@@ -34,6 +37,9 @@ export const InboxList: FC<InboxListProps> = ({
   searchQuery,
   onSearchQueryChange,
   activeChannel,
+  channels,
+  selectedChannelId,
+  onSelectChannelId,
   isCollapsed,
   onToggleCollapse,
   isMobile: isMobileProp,
@@ -180,11 +186,36 @@ export const InboxList: FC<InboxListProps> = ({
               Inbox
             </h1>
             <Badge variant="action">{threads.length}</Badge>
-            {activeChannel && (
+            {channels && channels.length > 1 && onSelectChannelId ? (
+              <select
+                value={selectedChannelId || "all"}
+                onChange={(e) => onSelectChannelId(e.target.value)}
+                aria-label="Filtrar por canal"
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 500,
+                  padding: "2px 6px",
+                  borderRadius: "6px",
+                  border: "1px solid var(--border-default)",
+                  backgroundColor: "var(--bg-surface)",
+                  color: "var(--text-secondary)",
+                  cursor: "pointer",
+                  maxWidth: "130px",
+                  outline: "none",
+                }}
+              >
+                <option value="all">Todos ({channels.length})</option>
+                {channels.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.displayName || c.phoneNumberE164 || c.provider}
+                  </option>
+                ))}
+              </select>
+            ) : activeChannel ? (
               <Badge variant="neutral">
                 {(activeChannel.provider || "WhatsApp").toUpperCase()}
               </Badge>
-            )}
+            ) : null}
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>

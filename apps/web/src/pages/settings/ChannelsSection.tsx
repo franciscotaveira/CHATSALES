@@ -140,76 +140,111 @@ export const ChannelsSection: FC<ChannelsSectionProps> = ({
                 key={ch.id}
                 className="sos-card-interactive"
                 style={{
-                  padding: "12px 14px",
+                  padding: "16px 18px",
                   backgroundColor: "var(--bg-canvas)",
-                  borderRadius: "var(--radius-md)",
+                  borderRadius: "var(--radius-lg, 12px)",
                   border: "1px solid var(--border-default)",
                   display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
+                  flexDirection: "column",
                   gap: "12px",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <div
-                    style={{
-                      width: "32px",
-                      height: "32px",
-                      borderRadius: "50%",
-                      backgroundColor: "var(--color-operational-subtle)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "var(--color-operational)",
-                    }}
-                  >
-                    <Smartphone size={16} />
+                {/* Top Row: Icon + Channel Info + Primary Badges */}
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0, flex: 1 }}>
+                    <div
+                      style={{
+                        width: "38px",
+                        height: "38px",
+                        minWidth: "38px",
+                        minHeight: "38px",
+                        borderRadius: "10px",
+                        backgroundColor: isWaha ? "rgba(16, 185, 129, 0.12)" : "rgba(59, 130, 246, 0.12)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: isWaha ? "#059669" : "#2563eb",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Smartphone size={18} />
+                    </div>
+
+                    <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: "3px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                        <span style={{ fontSize: "var(--font-size-sm, 14px)", fontWeight: 600, color: "var(--text-primary)" }}>
+                          {ch.displayName || "Linha WhatsApp"}
+                        </span>
+                        {getStatusBadge(ch.status)}
+                      </div>
+                      <div style={{ fontSize: "var(--font-size-xs, 12px)", color: "var(--text-secondary)", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px" }}>
+                        <span style={{ fontWeight: 500 }}>{ch.provider.toUpperCase()}</span>
+                        {ch.phoneNumberE164 && <span>· {ch.phoneNumberE164}</span>}
+                        {ch.phoneNumberE164 && (
+                          <button
+                            type="button"
+                            onClick={() => handleCopyWaMe(ch.phoneNumberE164!, ch.id)}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "3px",
+                              background: "none",
+                              border: "none",
+                              padding: "1px 6px",
+                              cursor: "pointer",
+                              borderRadius: "4px",
+                              fontSize: "11px",
+                              color: copiedChannelId === ch.id ? "#10b981" : "var(--color-action)",
+                              backgroundColor: "var(--color-action-subtle)",
+                            }}
+                            title="Copiar link wa.me"
+                          >
+                            {copiedChannelId === ch.id ? <Check size={11} /> : <Link2 size={11} />}
+                            {copiedChannelId === ch.id ? "Copiado!" : "wa.me"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <span style={{ fontSize: "var(--font-size-sm)", fontWeight: 500, color: "var(--text-primary)" }}>
-                        {ch.displayName || "Linha WhatsApp"}
+
+                  {/* Badges / Tags */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                    {ch.provider === "meta_waba" ? (
+                      <span style={{ fontSize: "0.72rem", padding: "2px 8px", borderRadius: "6px", backgroundColor: "rgba(59, 130, 246, 0.12)", color: "#2563eb", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                        ☁️ Nuvem Meta (Sem QR Code)
                       </span>
-                      {getStatusBadge(ch.status)}
-                    </div>
-                    <div style={{ fontSize: "var(--font-size-xs)", color: "var(--text-secondary)", marginTop: "3px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px" }}>
-                      <span>{ch.provider.toUpperCase()} {ch.phoneNumberE164 ? `· ${ch.phoneNumberE164}` : ""}</span>
-                      {ch.provider === "meta_waba" ? (
-                        <span style={{ fontSize: "0.68rem", padding: "1px 6px", borderRadius: "4px", backgroundColor: "rgba(59, 130, 246, 0.12)", color: "#2563eb", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "3px" }}>
-                          ☁️ Nuvem Meta (Sem QR Code)
+                    ) : isWaha ? (
+                      <span style={{ fontSize: "0.72rem", padding: "2px 8px", borderRadius: "6px", backgroundColor: "rgba(16, 185, 129, 0.12)", color: "#059669", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                        📱 WhatsApp Web (Via QR Code)
+                      </span>
+                    ) : null}
+
+                    {ch.provider === "meta_waba" && (
+                      ch.metaBillingConfigured ? (
+                        <span style={{ fontSize: "0.72rem", padding: "2px 8px", borderRadius: "6px", backgroundColor: "rgba(16, 185, 129, 0.15)", color: "#10b981", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                          <ShieldCheck size={12} /> Cartão Meta Ativo
                         </span>
-                      ) : ch.provider === "waha" ? (
-                        <span style={{ fontSize: "0.68rem", padding: "1px 6px", borderRadius: "4px", backgroundColor: "rgba(16, 185, 129, 0.12)", color: "#059669", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "3px" }}>
-                          📱 WhatsApp Web (Via QR Code)
+                      ) : (
+                        <span style={{ fontSize: "0.72rem", padding: "2px 8px", borderRadius: "6px", backgroundColor: "rgba(239, 68, 68, 0.15)", color: "#ef4444", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                          <ShieldAlert size={12} /> Sem Cartão Meta (Disparos Travados)
                         </span>
-                      ) : null}
-                      {ch.provider === "meta_waba" && (
-                        ch.metaBillingConfigured ? (
-                          <span style={{ fontSize: "0.68rem", padding: "1px 6px", borderRadius: "4px", backgroundColor: "rgba(16, 185, 129, 0.15)", color: "#10b981", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "3px" }}>
-                            <ShieldCheck size={11} /> Cartão Meta Ativo (Disparos Liberados)
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: "0.68rem", padding: "1px 6px", borderRadius: "4px", backgroundColor: "rgba(239, 68, 68, 0.15)", color: "#ef4444", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "3px" }}>
-                            <ShieldAlert size={11} /> Sem Cartão Meta (Disparo Travado)
-                          </span>
-                        )
-                      )}
-                    </div>
+                      )
+                    )}
                   </div>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  {ch.phoneNumberE164 && (
-                    <Button
-                      size="xs"
-                      variant="ghost"
-                      prefixIcon={copiedChannelId === ch.id ? <Check size={12} color="#10b981" /> : <Link2 size={12} />}
-                      onClick={() => handleCopyWaMe(ch.phoneNumberE164!, ch.id)}
-                      title={`Copiar link direto https://wa.me/${ch.phoneNumberE164.replace(/\D/g, "")}`}
-                    >
-                      {copiedChannelId === ch.id ? "Copiado!" : "wa.me"}
-                    </Button>
-                  )}
+                {/* Bottom Row: Actions Bar */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "flex-end",
+                    gap: "8px",
+                    flexWrap: "wrap",
+                    paddingTop: "10px",
+                    borderTop: "1px solid var(--border-default)",
+                  }}
+                >
                   {ch.provider === "meta_waba" && onToggleBilling && (
                     <Button
                       size="xs"
@@ -231,7 +266,7 @@ export const ChannelsSection: FC<ChannelsSectionProps> = ({
                       QR Code
                     </Button>
                   )}
-                  {isWaha && ch.status === "connected" && onSync && (
+                  {isWaha && onSync && (
                     <Button
                       size="xs"
                       variant="primary"

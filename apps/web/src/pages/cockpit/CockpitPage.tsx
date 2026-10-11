@@ -299,6 +299,9 @@ export const CockpitPage: FC<CockpitPageProps> = ({ session: propSession }) => {
           isCollapsed={layout.isLeftCollapsed}
           onToggleCollapse={layout.toggleLeft}
           activeChannel={inbox.activeChannel}
+          channels={inbox.channels}
+          selectedChannelId={inbox.selectedChannelId}
+          onSelectChannelId={inbox.setSelectedChannelId}
           isMobile={isMobile}
           onSync={() => inbox.syncActiveChannel()}
           isSyncing={inbox.isSyncing}

@@ -79,9 +79,10 @@ export const ConversationRow: FC<ConversationRowProps> = ({
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
+            lineHeight: 1.4,
           }}
         >
-          {renderWhatsappMarkdown(rawSnippet)}
+          {renderWhatsappMarkdown(rawSnippet, { singleLine: true })}
         </span>
       }
       meta={formattedTime}
