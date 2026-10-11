@@ -1,6 +1,6 @@
 import type { FC } from "react";
-import { Badge, IconButton, Input, SegmentedControl, EmptyState, useBreakpoint } from "@sos-sales/ui";
-import { PanelLeftClose, PanelLeftOpen, Search, MessageSquare } from "lucide-react";
+import { Badge, Button, IconButton, Input, SegmentedControl, EmptyState, useBreakpoint } from "@sos-sales/ui";
+import { PanelLeftClose, PanelLeftOpen, Search, MessageSquare, RefreshCw } from "lucide-react";
 import { Avatar } from "@sos-sales/ui";
 import type { CommercialThreadSummary, ChannelSummary } from "../../../services/api-client";
 import { ConversationRow } from "./ConversationRow";
@@ -21,6 +21,8 @@ interface InboxListProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   isMobile?: boolean;
+  onSync?: () => void;
+  isSyncing?: boolean;
 }
 
 export const InboxList: FC<InboxListProps> = ({
@@ -35,6 +37,8 @@ export const InboxList: FC<InboxListProps> = ({
   isCollapsed,
   onToggleCollapse,
   isMobile: isMobileProp,
+  onSync,
+  isSyncing,
 }) => {
   const { isMobile: hookMobile } = useBreakpoint();
   const isMobile = isMobileProp ?? hookMobile;
@@ -183,16 +187,29 @@ export const InboxList: FC<InboxListProps> = ({
             )}
           </div>
 
-          {!isMobile && (
-            <IconButton
-              aria-label="Recolher Fila de Conversas"
-              icon={<PanelLeftClose size={16} />}
-              size="sm"
-              variant="ghost"
-              onClick={onToggleCollapse}
-              tooltip="Recolher Fila (58px)"
-            />
-          )}
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            {onSync && (
+              <IconButton
+                aria-label="Sincronizar conversas do WhatsApp"
+                icon={<RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} />}
+                size="sm"
+                variant="ghost"
+                onClick={onSync}
+                disabled={isSyncing}
+                tooltip={isSyncing ? "Sincronizando conversas..." : "Sincronizar conversas do WhatsApp"}
+              />
+            )}
+            {!isMobile && (
+              <IconButton
+                aria-label="Recolher Fila de Conversas"
+                icon={<PanelLeftClose size={16} />}
+                size="sm"
+                variant="ghost"
+                onClick={onToggleCollapse}
+                tooltip="Recolher Fila (58px)"
+              />
+            )}
+          </div>
         </div>
 
         {/* Search Bar */}
@@ -224,7 +241,7 @@ export const InboxList: FC<InboxListProps> = ({
         }}
       >
         {threads.length === 0 ? (
-          <div style={{ padding: "var(--space-8) var(--space-4)", textAlign: "center" }}>
+          <div style={{ padding: "var(--space-8) var(--space-4)", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "14px" }}>
             <EmptyState
               icon={<MessageSquare size={36} color="var(--text-muted)" />}
               title="Nenhuma conversa ativa"
@@ -234,6 +251,17 @@ export const InboxList: FC<InboxListProps> = ({
                   : "Aguardando novos leads e mensagens no canal."
               }
             />
+            {onSync && !searchQuery && (
+              <Button
+                size="sm"
+                variant="primary"
+                prefixIcon={<RefreshCw size={13} className={isSyncing ? "animate-spin" : ""} />}
+                onClick={onSync}
+                disabled={isSyncing}
+              >
+                {isSyncing ? "Sincronizando Conversas..." : "Sincronizar Conversas do WhatsApp"}
+              </Button>
+            )}
           </div>
         ) : (
           threads.map((thread) => (

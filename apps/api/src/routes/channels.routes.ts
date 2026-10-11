@@ -1674,4 +1674,400 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
       }
     }
   );
+
+  // 6. Sync Conversations & Contacts from Provider (WAHA)
+  app.post(
+    "/v1/workspaces/:workspaceId/channels/:channelId/sync",
+    {
+      preHandler: [
+        app.authenticate,
+        app.requireWorkspaceContext,
+        app.requirePermission("cockpit:access"),
+      ],
+    },
+    async (request, reply) => {
+      const parsedParams = channelParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        return reply.status(400).send({
+          type: "https://sos-sales.mct.br/errors/bad-request",
+          title: "Bad Request",
+          status: 400,
+          detail: "Invalid workspaceId or channelId parameter",
+          instance: request.url,
+          correlationId: request.id,
+        });
+      }
+
+      const { workspaceId, channelId } = parsedParams.data;
+
+      const channel = await withTenantTransaction(workspaceId, async (client) => {
+        const res = await client.query<{
+          id: string;
+          provider: string;
+          display_name: string;
+          is_active: boolean;
+          status: string;
+          credential_id: string | null;
+          phone_number_e164: string | null;
+        }>(
+          `SELECT id, provider, display_name, is_active, status, credential_id, phone_number_e164
+           FROM public.channel_instances
+           WHERE id = $1 AND workspace_id = $2;`,
+          [channelId, workspaceId]
+        );
+        return res.rows[0] || null;
+      });
+
+      if (!channel) {
+        return reply.status(404).send({
+          type: "https://sos-sales.mct.br/errors/not-found",
+          title: "Not Found",
+          status: 404,
+          detail: `Channel ${channelId} not found in workspace`,
+          instance: request.url,
+          correlationId: request.id,
+        });
+      }
+
+      if (channel.provider !== "waha") {
+        return reply.status(200).send({
+          success: true,
+          syncedChatsCount: 0,
+          syncedMessagesCount: 0,
+          message: `Sincronização histórica ativa suportada via WAHA (WhatsApp Web). O canal ${channel.provider} opera via webhooks em tempo real.`,
+        });
+      }
+
+      if (channel.status === "revoked" || !channel.credential_id) {
+        return reply.status(400).send({
+          type: "https://sos-sales.mct.br/errors/bad-request",
+          title: "Bad Request",
+          status: 400,
+          detail: "Canal revogado ou sem credenciais associadas.",
+          instance: request.url,
+          correlationId: request.id,
+        });
+      }
+
+      const credRow = await withTenantTransaction(workspaceId, async (client) => {
+        const res = await client.query<{
+          encrypted_payload: string;
+          iv: string;
+          auth_tag: string;
+          key_version: string;
+        }>(
+          `SELECT encrypted_payload, iv, auth_tag, key_version
+           FROM public.provider_credentials
+           WHERE id = $1 AND workspace_id = $2;`,
+          [channel.credential_id, workspaceId]
+        );
+        return res.rows[0] || null;
+      });
+
+      if (!credRow) {
+        return reply.status(404).send({
+          type: "https://sos-sales.mct.br/errors/not-found",
+          title: "Not Found",
+          status: 404,
+          detail: "Credenciais do canal não encontradas",
+          instance: request.url,
+          correlationId: request.id,
+        });
+      }
+
+      const envKeyring = parseKeyringFromEnv();
+      let keyringOrKey: string | Record<string, string> | undefined = envKeyring?.keyring;
+      if (!keyringOrKey) {
+        const rawKey =
+          process.env.MCT_CREDENTIALS_MASTER_KEY ||
+          process.env.APP_MASTER_KEY ||
+          process.env.MASTER_ENCRYPTION_KEY;
+        if (rawKey && /^[0-9a-fA-F]{64}$/.test(rawKey)) {
+          keyringOrKey = rawKey;
+        } else if (process.env.NODE_ENV === "test" || process.env.VITEST) {
+          keyringOrKey = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+        }
+      }
+
+      if (!keyringOrKey) {
+        return reply.status(500).send({
+          type: "https://sos-sales.mct.br/errors/internal",
+          title: "Internal Error",
+          status: 500,
+          detail: "Master encryption key unavailable",
+          instance: request.url,
+          correlationId: request.id,
+        });
+      }
+
+      let creds: { api_key?: string; base_url?: string; session?: string };
+      try {
+        const decryptedJson = decryptPayload(
+          credRow.encrypted_payload,
+          credRow.iv,
+          credRow.auth_tag,
+          keyringOrKey,
+          { keyVersion: credRow.key_version }
+        );
+        creds = JSON.parse(decryptedJson);
+      } catch {
+        return reply.status(500).send({
+          type: "https://sos-sales.mct.br/errors/internal",
+          title: "Decryption Failed",
+          status: 500,
+          detail: "Falha ao decifrar credenciais do canal",
+          instance: request.url,
+          correlationId: request.id,
+        });
+      }
+
+      if (!creds.base_url) {
+        return reply.status(400).send({
+          type: "https://sos-sales.mct.br/errors/bad-request",
+          title: "Bad Request",
+          status: 400,
+          detail: "Base URL ausente nas credenciais",
+          instance: request.url,
+          correlationId: request.id,
+        });
+      }
+
+      const allowLocal =
+        process.env.NODE_ENV === "development" ||
+        process.env.NODE_ENV === "test" ||
+        process.env.MCT_ALLOW_LOCAL_WAHA === "true";
+
+      let validatedBaseUrl: string;
+      try {
+        validatedBaseUrl = validateWahaBaseUrl(creds.base_url, allowLocal);
+      } catch (err: unknown) {
+        return reply.status(400).send({
+          type: "https://sos-sales.mct.br/errors/bad-request",
+          title: "SSRF Violation",
+          status: 400,
+          detail: err instanceof Error ? err.message : "Invalid WAHA Base URL",
+          instance: request.url,
+          correlationId: request.id,
+        });
+      }
+
+      const effectiveSession = creds.session || "default";
+      const authHeaders: Record<string, string> = {};
+      if (creds.api_key) {
+        authHeaders["X-Api-Key"] = creds.api_key;
+      }
+
+      // 1. Fetch Chats from WAHA
+      let chatsResp = await safeFetchWithSsrfGuard(
+        `${validatedBaseUrl}/api/${effectiveSession}/chats`,
+        { headers: authHeaders },
+        { timeoutMs: 15000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
+      );
+
+      if (chatsResp.status === 404) {
+        chatsResp = await safeFetchWithSsrfGuard(
+          `${validatedBaseUrl}/api/sessions/${effectiveSession}/chats`,
+          { headers: authHeaders },
+          { timeoutMs: 15000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
+        );
+      }
+
+      if (!chatsResp.ok) {
+        const errText = await chatsResp.text().catch(() => "");
+        return reply.status(502).send({
+          type: "https://sos-sales.mct.br/errors/bad-gateway",
+          title: "Bad Gateway",
+          status: 502,
+          detail: `Falha ao obter conversas do WhatsApp (WAHA): ${chatsResp.status} ${errText}`,
+          instance: request.url,
+          correlationId: request.id,
+        });
+      }
+
+      const rawChats = (await chatsResp.json()) as Array<{
+        id: string;
+        name?: string;
+        pushName?: string;
+        conversationTimestamp?: number;
+      }>;
+
+      // Filter direct commercial chats (@c.us only, ignore groups / newsletters)
+      const customerChats = (Array.isArray(rawChats) ? rawChats : [])
+        .filter((c) => typeof c?.id === "string" && c.id.endsWith("@c.us"))
+        .sort((a, b) => (b.conversationTimestamp || 0) - (a.conversationTimestamp || 0))
+        .slice(0, 100);
+
+      let syncedChatsCount = 0;
+      let syncedMessagesCount = 0;
+
+      const syncedChatEntries: Array<{
+        chatId: string;
+        threadId: string;
+        phoneE164: string;
+      }> = [];
+
+      // 2. Upsert Contacts & Commercial Threads & Journeys
+      await withTenantTransaction(workspaceId, async (client) => {
+        for (const chat of customerChats) {
+          const rawDigits = chat.id.replace(/@.*$/, "").replace(/\D/g, "");
+          if (rawDigits.length < 8 || rawDigits.length > 15) continue;
+          const phoneE164 = `+${rawDigits}`;
+          if (!/^\+[1-9][0-9]{6,14}$/.test(phoneE164)) continue;
+
+          const contactName = chat.name?.trim() || chat.pushName?.trim() || phoneE164;
+          const rawTs = chat.conversationTimestamp;
+          const lastMsgDate = rawTs ? new Date(rawTs * (rawTs < 1e11 ? 1000 : 1)) : new Date();
+
+          // Upsert contact
+          const contactRes = await client.query<{ id: string }>(
+            `INSERT INTO public.contacts (workspace_id, phone_e164, name, metadata)
+             VALUES ($1, $2, $3, '{}'::jsonb)
+             ON CONFLICT (workspace_id, phone_e164) DO UPDATE SET
+               name = CASE
+                 WHEN contacts.name IS NULL OR contacts.name = contacts.phone_e164 THEN EXCLUDED.name
+                 ELSE contacts.name
+               END,
+               updated_at = clock_timestamp()
+             RETURNING id;`,
+            [workspaceId, phoneE164, contactName]
+          );
+          const contactId = contactRes.rows[0]?.id;
+          if (!contactId) continue;
+
+          // Upsert commercial thread
+          const threadRes = await client.query<{ id: string }>(
+            `INSERT INTO public.commercial_threads (
+               workspace_id, channel_instance_id, contact_id, status, last_message_at
+             ) VALUES (
+               $1, $2, $3, 'active', $4
+             )
+             ON CONFLICT (workspace_id, channel_instance_id, contact_id) DO UPDATE SET
+               last_message_at = GREATEST(commercial_threads.last_message_at, EXCLUDED.last_message_at),
+               updated_at = clock_timestamp()
+             RETURNING id;`,
+            [workspaceId, channelId, contactId, lastMsgDate]
+          );
+          const threadId = threadRes.rows[0]?.id;
+          if (!threadId) continue;
+
+          // Ensure commercial journey exists
+          await client.query(
+            `INSERT INTO public.commercial_journeys (
+               workspace_id, contact_id, thread_id, title, stage, status, attribution_source, created_at, updated_at
+             )
+             SELECT $1, $2, $3, 'Oportunidade WhatsApp', 'lead', 'open', 'organic_whatsapp', $4, clock_timestamp()
+             WHERE NOT EXISTS (
+               SELECT 1 FROM public.commercial_journeys WHERE workspace_id = $1 AND contact_id = $2
+             );`,
+            [workspaceId, contactId, threadId, lastMsgDate]
+          );
+
+          syncedChatsCount++;
+          syncedChatEntries.push({ chatId: chat.id, threadId, phoneE164 });
+        }
+      });
+
+      // 3. For the top 35 active chats, fetch recent messages and import
+      const activeSubset = syncedChatEntries.slice(0, 35);
+      for (const entry of activeSubset) {
+        try {
+          const msgsResp = await safeFetchWithSsrfGuard(
+            `${validatedBaseUrl}/api/${effectiveSession}/chats/${encodeURIComponent(entry.chatId)}/messages?limit=15`,
+            { headers: authHeaders },
+            { timeoutMs: 8000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
+          );
+
+          if (!msgsResp.ok) continue;
+
+          const rawMsgs = (await msgsResp.json()) as Array<{
+            id?: string;
+            body?: string;
+            fromMe?: boolean;
+            timestamp?: number;
+            hasMedia?: boolean;
+            media?: { url?: string; mimetype?: string };
+          }>;
+
+          if (!Array.isArray(rawMsgs) || rawMsgs.length === 0) continue;
+
+          await withTenantTransaction(workspaceId, async (client) => {
+            for (const m of rawMsgs) {
+              if (!m?.id) continue;
+              const isOutbound = Boolean(m.fromMe);
+              const direction = isOutbound ? "outbound" : "inbound";
+              const senderE164 = isOutbound
+                ? channel.phone_number_e164 || "+554988370054"
+                : entry.phoneE164;
+              const recipientE164 = isOutbound
+                ? entry.phoneE164
+                : channel.phone_number_e164 || "+554988370054";
+
+              const rawTime = m.timestamp;
+              const msgDate = rawTime
+                ? new Date(rawTime * (rawTime < 1e11 ? 1000 : 1))
+                : new Date();
+
+              const contentType = m.hasMedia
+                ? m.media?.mimetype?.startsWith("image")
+                  ? "image"
+                  : m.media?.mimetype?.startsWith("audio")
+                  ? "audio"
+                  : "document"
+                : "text";
+
+              const body = m.body || (m.hasMedia ? "[Mídia]" : "");
+              const mediaUrl = m.media?.url || null;
+              const metadata = JSON.stringify({ waha_synced: true, fromMe: isOutbound });
+              const deliveryStatus = isOutbound ? "delivered" : "read";
+              const statusRank = isOutbound ? 10 : 20;
+
+              const inserted = await client.query(
+                `INSERT INTO public.messages (
+                   workspace_id, channel_instance_id, thread_id, provider, direction,
+                   sender_e164, recipient_e164, content_type, body, media_url,
+                   metadata, provider_message_id, delivery_status, status_rank, created_at, updated_at
+                 ) VALUES (
+                   $1, $2, $3, 'waha', $4,
+                   $5, $6, $7, $8, $9,
+                   $10::jsonb, $11, $12, $13, $14, $14
+                 )
+                 ON CONFLICT (channel_instance_id, provider_message_id) DO NOTHING
+                 RETURNING id;`,
+                [
+                  workspaceId,
+                  channelId,
+                  entry.threadId,
+                  direction,
+                  senderE164,
+                  recipientE164,
+                  contentType,
+                  body,
+                  mediaUrl,
+                  metadata,
+                  String(m.id),
+                  deliveryStatus,
+                  statusRank,
+                  msgDate,
+                ]
+              );
+
+              if ((inserted.rowCount ?? 0) > 0) {
+                syncedMessagesCount++;
+              }
+            }
+          });
+        } catch {
+          // Non-blocking per chat failure
+        }
+      }
+
+      return reply.status(200).send({
+        success: true,
+        syncedChatsCount,
+        syncedMessagesCount,
+        message: `${syncedChatsCount} conversas e ${syncedMessagesCount} mensagens sincronizadas do WhatsApp.`,
+      });
+    }
+  );
 };
+

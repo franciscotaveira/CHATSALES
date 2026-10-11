@@ -1268,6 +1268,26 @@ export class ApiClient {
     );
   }
 
+  async syncChannelChats(
+    workspaceId: string,
+    channelId: string,
+    options?: RequestOptions
+  ): Promise<{
+    success: boolean;
+    syncedChatsCount: number;
+    syncedMessagesCount: number;
+    message: string;
+  }> {
+    return this.request(
+      `/v1/workspaces/${workspaceId}/channels/${channelId}/sync`,
+      {
+        ...options,
+        workspaceId,
+        method: "POST",
+      }
+    );
+  }
+
   async updateChannelBilling(
     workspaceId: string,
     channelId: string,

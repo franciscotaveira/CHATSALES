@@ -1,6 +1,6 @@
 import { useState, type FC } from "react";
 import { Badge, Button, EmptyState } from "@sos-sales/ui";
-import { Radio, Plus, QrCode, Trash2, Smartphone, CreditCard, ShieldCheck, ShieldAlert, Link2, Check } from "lucide-react";
+import { Radio, Plus, QrCode, Trash2, Smartphone, CreditCard, ShieldCheck, ShieldAlert, Link2, Check, RefreshCw } from "lucide-react";
 import type { ChannelSummary } from "../../services/api-client";
 
 interface ChannelsSectionProps {
@@ -13,6 +13,8 @@ interface ChannelsSectionProps {
   onDelete?: (channelId: string, channelName: string) => void;
   deletingId?: string | null;
   onToggleBilling?: (channelId: string, currentConfigured: boolean) => void;
+  onSync?: (channelId: string, channelName: string) => void;
+  syncingId?: string | null;
 }
 
 export const ChannelsSection: FC<ChannelsSectionProps> = ({
@@ -25,6 +27,8 @@ export const ChannelsSection: FC<ChannelsSectionProps> = ({
   onDelete,
   deletingId,
   onToggleBilling,
+  onSync,
+  syncingId,
 }) => {
   const [copiedChannelId, setCopiedChannelId] = useState<string | null>(null);
 
@@ -225,6 +229,18 @@ export const ChannelsSection: FC<ChannelsSectionProps> = ({
                       onClick={() => onOpenQr(ch.id, ch.displayName || "WAHA")}
                     >
                       QR Code
+                    </Button>
+                  )}
+                  {isWaha && ch.status === "connected" && onSync && (
+                    <Button
+                      size="xs"
+                      variant="primary"
+                      prefixIcon={<RefreshCw size={12} className={syncingId === ch.id ? "animate-spin" : ""} />}
+                      onClick={() => onSync(ch.id, ch.displayName || "WAHA")}
+                      disabled={syncingId === ch.id || isRevoking || isDeleting}
+                      title="Importar conversas e contatos do WhatsApp Web para o Cockpit e Kanban"
+                    >
+                      {syncingId === ch.id ? "Sincronizando..." : "Sincronizar Conversas"}
                     </Button>
                   )}
                   {ch.status === "connected" && (

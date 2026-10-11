@@ -82,12 +82,31 @@ export const useInbox = (session: UseSessionReturn) => {
 
   const activeChannel = channels.find((c) => c.status === "connected") || channels[0] || null;
 
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
+  const syncActiveChannel = useCallback(async (channelId?: string) => {
+    if (!activeWorkspace?.id || !token) return;
+    const targetChannelId = channelId || activeChannel?.id;
+    if (!targetChannelId) return;
+
+    setIsSyncing(true);
+    try {
+      const res = await apiClient.syncChannelChats(activeWorkspace.id, targetChannelId, { token });
+      await loadThreads();
+      return res;
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [activeWorkspace?.id, token, activeChannel?.id, loadThreads]);
+
   return {
     threads,
     filteredThreads,
     channels,
     activeChannel,
     isLoadingThreads,
+    isSyncing,
+    syncActiveChannel,
     queueFilter,
     setQueueFilter,
     searchQuery,
@@ -95,3 +114,4 @@ export const useInbox = (session: UseSessionReturn) => {
     refreshThreads: loadThreads,
   };
 };
+

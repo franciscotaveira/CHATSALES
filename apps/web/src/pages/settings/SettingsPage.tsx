@@ -272,6 +272,22 @@ export const SettingsPage: FC<{ session: UseSessionReturn }> = ({ session }) => 
     }
   };
 
+  const [syncingChannelId, setSyncingChannelId] = useState<string | null>(null);
+
+  const handleSyncChannel = async (channelId: string, _channelName?: string) => {
+    if (!activeWorkspace || !token) return;
+    setSyncingChannelId(channelId);
+    try {
+      const res = await apiClient.syncChannelChats(activeWorkspace.id, channelId, { token });
+      await loadChannels();
+      alert(`✅ ${res.message || "Conversas sincronizadas com sucesso!"}`);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Erro ao sincronizar conversas.");
+    } finally {
+      setSyncingChannelId(null);
+    }
+  };
+
   const tabs: Array<{ id: SettingsTab; label: string; icon: LucideIcon }> = [
     { id: "canais", label: "Canais WhatsApp", icon: Radio },
     { id: "equipe", label: "Equipe & Acessos", icon: Users },
@@ -382,6 +398,8 @@ export const SettingsPage: FC<{ session: UseSessionReturn }> = ({ session }) => 
                 onDelete={handleDelete}
                 deletingId={deletingId}
                 onToggleBilling={handleToggleBilling}
+                onSync={handleSyncChannel}
+                syncingId={syncingChannelId}
               />
             )}
             {activeTab === "equipe" && <TeamSection session={session} />}
