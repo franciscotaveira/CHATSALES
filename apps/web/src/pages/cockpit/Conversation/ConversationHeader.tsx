@@ -49,14 +49,17 @@ export const ConversationHeader: FC<ConversationHeaderProps> = ({
         style={{
           height: "var(--topbar-h, 56px)",
           minHeight: "var(--topbar-h, 56px)",
-          backgroundColor: "var(--bg-surface-elevated)",
-          borderBottom: "2px solid var(--border-strong)",
+          backgroundColor: "rgba(255, 255, 255, 0.92)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          borderBottom: "1px solid var(--border-default)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           padding: "0 var(--space-4, 16px)",
           boxSizing: "border-box",
           gap: "12px",
+          zIndex: 10,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>

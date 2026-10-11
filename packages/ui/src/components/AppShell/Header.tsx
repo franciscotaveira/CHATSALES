@@ -86,7 +86,9 @@ export const Header: FC<HeaderProps> = ({
       className="sos-app-header"
       style={{
         height: "var(--topbar-h, 56px)",
-        backgroundColor: "var(--bg-surface, #FFFFFF)",
+        backgroundColor: "rgba(255, 255, 255, 0.90)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
         borderBottom: "1px solid var(--border-default, #E2E8F0)",
         display: "flex",
         alignItems: "center",

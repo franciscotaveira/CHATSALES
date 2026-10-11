@@ -120,7 +120,7 @@ export const LoginPage: FC<LoginPageProps> = ({ onLoginSuccess, initialError }) 
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "var(--bg-canvas)",
+        background: "radial-gradient(ellipse at 50% 0%, rgba(0, 128, 105, 0.09) 0%, rgba(37, 99, 235, 0.03) 40%, var(--bg-canvas) 80%)",
         padding: "var(--space-4, 16px)",
         boxSizing: "border-box",
       }}
@@ -129,12 +129,14 @@ export const LoginPage: FC<LoginPageProps> = ({ onLoginSuccess, initialError }) 
         style={{
           width: "100%",
           maxWidth: "420px",
-          backgroundColor: "var(--bg-surface)",
-          border: "1px solid var(--border-default)",
+          backgroundColor: "rgba(255, 255, 255, 0.95)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          border: "1px solid rgba(226, 232, 240, 0.9)",
           borderRadius: "var(--radius-xl, 16px)",
           boxShadow:
-            "var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.05))",
-          padding: "32px 28px",
+            "0 20px 40px -15px rgba(15, 23, 42, 0.08), 0 1px 3px 0 rgba(15, 23, 42, 0.05)",
+          padding: "36px 30px",
           display: "flex",
           flexDirection: "column",
           gap: "24px",
@@ -148,23 +150,23 @@ export const LoginPage: FC<LoginPageProps> = ({ onLoginSuccess, initialError }) 
             flexDirection: "column",
             alignItems: "center",
             textAlign: "center",
-            gap: "8px",
+            gap: "10px",
           }}
         >
           <div
             style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "var(--radius-lg, 12px)",
+              width: "52px",
+              height: "52px",
+              borderRadius: "14px",
               backgroundColor: "var(--color-action)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "var(--color-action-fg)",
-              boxShadow: "0 4px 12px rgba(0, 128, 105, 0.35)",
+              color: "#FFFFFF",
+              boxShadow: "0 8px 24px -2px rgba(0, 128, 105, 0.38), 0 0 0 1px rgba(255, 255, 255, 0.25) inset",
             }}
           >
-            <MessageSquareText size={26} />
+            <MessageSquareText size={28} />
           </div>
           <div>
             <h1

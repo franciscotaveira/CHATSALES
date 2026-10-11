@@ -38,9 +38,37 @@ export const ConversationRow: FC<ConversationRowProps> = ({
         />
       }
       title={
-        <span style={{ fontSize: "var(--font-size-sm)", fontWeight: 500 }}>
-          {displayName}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", overflow: "hidden" }}>
+          <span
+            style={{
+              fontSize: "var(--font-size-sm)",
+              fontWeight: selected || isUnread ? 600 : 500,
+              color: "var(--text-primary)",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {displayName}
+          </span>
+          {thread.journeyStage && (
+            <span
+              style={{
+                fontSize: "9.5px",
+                padding: "1px 5px",
+                borderRadius: "4px",
+                backgroundColor: "var(--bg-surface-elevated)",
+                color: "var(--text-secondary)",
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.02em",
+                flexShrink: 0,
+              }}
+            >
+              {thread.journeyStage}
+            </span>
+          )}
+        </div>
       }
       subtitle={
         <span
@@ -58,7 +86,25 @@ export const ConversationRow: FC<ConversationRowProps> = ({
       }
       meta={formattedTime}
       trailing={
-        isUnread ? (
+        thread.status === "waiting_human" ? (
+          <span
+            title="Transbordo Solicitado pela IA"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "3px",
+              padding: "2px 6px",
+              borderRadius: "10px",
+              backgroundColor: "rgba(245, 158, 11, 0.15)",
+              color: "#d97706",
+              fontSize: "10px",
+              fontWeight: 700,
+              flexShrink: 0,
+            }}
+          >
+            IA ⚠️
+          </span>
+        ) : isUnread ? (
           <span
             style={{
               width: "8px",
@@ -66,6 +112,7 @@ export const ConversationRow: FC<ConversationRowProps> = ({
               borderRadius: "50%",
               backgroundColor: "var(--color-action)",
               display: "inline-block",
+              flexShrink: 0,
             }}
             aria-label="Aguardando atendimento"
           />

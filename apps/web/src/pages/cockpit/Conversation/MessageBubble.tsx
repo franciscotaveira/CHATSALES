@@ -318,6 +318,7 @@ export const MessageBubble: FC<MessageBubbleProps> = ({ message }) => {
       }}
     >
       <div
+        className="sos-message-bubble"
         style={{
           maxWidth: "min(640px, 85%)",
           backgroundColor: isPixConfirmation
