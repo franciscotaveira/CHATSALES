@@ -416,4 +416,48 @@ A infraestrutura de automações externas da MCT LTDA está centralizada em um d
 - **Cobertura de Testes Automatizados:**
   - 35/35 testes unitários validados no Vitest (`phone-and-spreadsheet-sanitizer.test.ts`), cobrindo sanitização telefônica brasileira, parsing de planilhas e integridade de variáveis.
 
+---
+
+## 13. HARDENING ANTI-BAN, INTEGRAÇÕES EXTERNAS & COMMAND PALETTE (ITERATION 2.7)
+
+### 13.1 Interceptador Anti-Ban de Opt-Out (`InboxProcessor`)
+- **Conformidade Estrita com LGPD e Políticas Meta WhatsApp:**
+  - Detecção nativa em `apps/worker/src/processors/inbox-processor.ts` de intenções de cancelamento ou saída através de regex normalizado: `\b(sair|pare|parar|stop|cancelar|descadastrar|remover|nao quero|não quero)\b`.
+  - Ao detectar o opt-out:
+    - O contato é imediatamente marcado com `opt_out = true` no banco.
+    - Comandos de saída pendentes ou agendados para este contato no outbox são abortados.
+    - A IA recepcionista e os disparos em lote (`broadcasts`) ignoram o lead estritamente, prevenindo denúncias de spam ou bloqueios de chip/WABA.
+  - Cobertura de testes unitários herméticos em `apps/worker/src/__tests__/opt-out-detection.test.ts`.
+
+### 13.2 Adaptador de Webhook PSP Cakto (`cakto-webhook.routes.ts`)
+- **Baixa Automática e Conciliação Multicanal:**
+  - Endpoint público autenticado `/v1/webhooks/cakto` no Fastify Ingress (`apps/api/src/routes/cakto-webhook.routes.ts`).
+  - Suporte a eventos de status: `purchase_approved`, `pix_generated`, `refund_approved`, `chargeback`.
+  - Tratamento transacional sob RLS com idempotência por `transaction_id`:
+    - Baixa automática de propostas comerciais (`commercial_proposals`) associadas ao lead.
+    - Atualização do estágio na jornada comercial para `WON` e transição do funil.
+    - Notificação em tempo real no WhatsApp com confirmação do pagamento e envio de recibo.
+
+### 13.3 Pipeline de Transcrição Whisper STT (`whisper-transcriber.ts`)
+- **Ingestão Transparente de Áudios de WhatsApp:**
+  - Módulo soberano em `apps/worker/src/services/whisper-transcriber.ts`.
+  - Ao receber mensagem com `mediaType === 'audio'` ou `ptt === true` (áudio de voz do WhatsApp via WAHA ou Meta WABA):
+    - O worker faz o download seguro via SSRF-shield.
+    - Transcreve o áudio para texto em português via OpenAI Whisper API (`model: whisper-1`).
+    - O texto transcrito é injetado no corpo da mensagem da conversa e repassado ao `AiReceptionistProcessor`.
+    - A IA responde contextualizada com o áudio falado pelo lead sem qualquer fricção operacional.
+
+### 13.4 Command Palette Global Soberana (`⌘K` / `Ctrl+K`)
+- **Navegação & Busca Unificada em Tempo Real (`CommandPalette.tsx`):**
+  - Componente de design system em `packages/ui/src/components/CommandPalette/CommandPalette.tsx`.
+  - Atalho global `⌘K` (Mac) e `Ctrl+K` (Linux/Windows) integrado no `AppShell` e `Header.tsx`.
+  - Busca federada no cliente com indexação de:
+    - **Contatos & Conversas Recentes:** Busca por nome, telefone e última mensagem.
+    - **Campanhas de Disparo:** Acesso imediato às métricas e histórico.
+    - **Catálogo de Produtos & Ofertas:** Busca instantânea por título e preço formatado.
+    - **Navegação Rápida:** Troca entre módulos (Cockpit, Broadcasts, Catálogo, Radar, Configurações).
+    - **Filtros Rápidos do Cockpit:** Atalhos para "Aguardando Humano", "Não Lidas" e "Novos Leads".
+  - Testes unitários com renderização e acessibilidade em `packages/ui/src/__tests__/command-palette.test.tsx`.
+
+
 
