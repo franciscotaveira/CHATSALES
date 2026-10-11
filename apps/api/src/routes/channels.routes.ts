@@ -1478,6 +1478,34 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
             if (matchedSession.status === "WORKING") {
               isAlreadyWorking = true;
               sessionMe = matchedSession.me || null;
+            } else if (matchedSession.status === "FAILED" || matchedSession.status === "STOPPED") {
+              // Auto-heal: restart stuck session in WAHA
+              try {
+                await safeFetchWithSsrfGuard(
+                  `${validatedBaseUrl}/api/sessions/${effectiveSession}/stop`,
+                  {
+                    method: "POST",
+                    headers: { ...authHeaders, "Content-Type": "application/json" },
+                  },
+                  { timeoutMs: 5000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
+                );
+              } catch {
+                // non-fatal
+              }
+              try {
+                await safeFetchWithSsrfGuard(
+                  `${validatedBaseUrl}/api/sessions/${effectiveSession}/start`,
+                  {
+                    method: "POST",
+                    headers: { ...authHeaders, "Content-Type": "application/json" },
+                    body: JSON.stringify({ name: effectiveSession }),
+                  },
+                  { timeoutMs: 6000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
+                );
+                await new Promise((r) => setTimeout(r, 1000));
+              } catch {
+                // non-fatal
+              }
             }
           }
         }
@@ -1514,7 +1542,7 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
             headers: { ...authHeaders, "Content-Type": "application/json" },
             body: JSON.stringify({ name: effectiveSession }),
           },
-          { timeoutMs: 4000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
+          { timeoutMs: 5000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
         );
       } catch {
         // non-fatal
@@ -1525,14 +1553,14 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
         let resp = await safeFetchWithSsrfGuard(
           `${validatedBaseUrl}/api/${effectiveSession}/auth/qr`,
           { headers: authHeaders },
-          { timeoutMs: 8000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
+          { timeoutMs: 12000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
         );
 
         if (resp.status === 404) {
           resp = await safeFetchWithSsrfGuard(
             `${validatedBaseUrl}/api/sessions/${effectiveSession}/auth/qr`,
             { headers: authHeaders },
-            { timeoutMs: 8000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
+            { timeoutMs: 12000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
           );
         }
 
