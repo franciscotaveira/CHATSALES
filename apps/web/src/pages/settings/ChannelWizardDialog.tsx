@@ -151,33 +151,33 @@ function sanitizePhoneE164(raw: string): string | undefined {
     setIsEmbeddedLoading(true);
     setErrorMsg(null);
 
-    const initAndLogin = () => {
+    // Timeout guard so button never gets permanently stuck
+    const safetyTimer = window.setTimeout(() => {
+      setIsEmbeddedLoading(false);
+      setErrorMsg("O pop-up da Meta não concluiu ou foi bloqueado pelo navegador. Verifique se há um aviso de 'Pop-up bloqueado' na barra de endereços.");
+    }, 45000);
+
+    const messageListener = (event: MessageEvent) => {
+      if (event.origin !== "https://www.facebook.com" && event.origin !== "https://web.facebook.com") return;
       try {
-        (window as any).FB.init({
-          appId: "2294262161340902",
-          autoLogAppEvents: true,
-          xfbml: true,
-          version: "v21.0",
-        });
+        const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+        if (data.type === "WA_EMBEDDED_SIGNUP" && data.data) {
+          if (data.data.phone_number_id) setPhoneNumberId(data.data.phone_number_id);
+          if (data.data.waba_id) setWabaAccountId(data.data.waba_id);
+        }
+      } catch {}
+    };
+    window.addEventListener("message", messageListener);
 
-        const messageListener = (event: MessageEvent) => {
-          if (event.origin !== "https://www.facebook.com" && event.origin !== "https://web.facebook.com") return;
-          try {
-            const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-            if (data.type === "WA_EMBEDDED_SIGNUP" && data.data) {
-              if (data.data.phone_number_id) setPhoneNumberId(data.data.phone_number_id);
-              if (data.data.waba_id) setWabaAccountId(data.data.waba_id);
-            }
-          } catch {}
-        };
-        window.addEventListener("message", messageListener);
-
+    const executeLogin = () => {
+      try {
         (window as any).FB.login(
           async (response: any) => {
+            window.clearTimeout(safetyTimer);
             setIsEmbeddedLoading(false);
             window.removeEventListener("message", messageListener);
 
-            if (response.authResponse?.code || response.authResponse?.accessToken) {
+            if (response?.authResponse?.code || response?.authResponse?.accessToken) {
               setIsSubmitting(true);
               try {
                 const res = await apiClient.metaEmbeddedSignup(
@@ -204,7 +204,7 @@ function sanitizePhoneE164(raw: string): string | undefined {
                 setIsSubmitting(false);
               }
             } else {
-              setErrorMsg("Login da Meta cancelado ou não autorizado.");
+              setErrorMsg("Autenticação da Meta cancelada pelo usuário ou janela fechada.");
             }
           },
           {
@@ -217,26 +217,44 @@ function sanitizePhoneE164(raw: string): string | undefined {
             },
           }
         );
-      } catch {
+      } catch (err) {
+        window.clearTimeout(safetyTimer);
         setIsEmbeddedLoading(false);
-        setErrorMsg("Não foi possível iniciar o login da Meta. Use a opção de credenciais manuais.");
+        window.removeEventListener("message", messageListener);
+        setErrorMsg("Erro ao abrir janela de login da Meta: " + (err instanceof Error ? err.message : String(err)));
       }
     };
 
-    if (!(window as any).FB) {
+    if ((window as any).FB) {
+      executeLogin();
+    } else {
+      // Dynamic fallback
       const script = document.createElement("script");
       script.src = "https://connect.facebook.net/pt_BR/sdk.js";
       script.async = true;
       script.defer = true;
       script.crossOrigin = "anonymous";
-      script.onload = initAndLogin;
+      script.onload = () => {
+        try {
+          (window as any).FB.init({
+            appId: "2294262161340902",
+            autoLogAppEvents: true,
+            xfbml: true,
+            version: "v21.0",
+          });
+          executeLogin();
+        } catch {
+          window.clearTimeout(safetyTimer);
+          setIsEmbeddedLoading(false);
+          setErrorMsg("Falha ao inicializar o SDK da Meta. Verifique se extensões de adblock estão ativas.");
+        }
+      };
       script.onerror = () => {
+        window.clearTimeout(safetyTimer);
         setIsEmbeddedLoading(false);
-        setErrorMsg("Falha ao carregar SDK da Meta. Verifique se bloqueadores de pop-up ou adblock estão ativos.");
+        setErrorMsg("Bloqueador de conteúdo detectado. Desative o adblock nesta página para carregar o login oficial da Meta.");
       };
       document.body.appendChild(script);
-    } else {
-      initAndLogin();
     }
   };
 
@@ -395,24 +413,39 @@ function sanitizePhoneE164(raw: string): string | undefined {
                       <div><strong>Permissões Solicitadas:</strong> <code>whatsapp_business_management</code>, <code>whatsapp_business_messaging</code></div>
                     </div>
 
-                    <Button
-                      size="md"
-                      variant="primary"
-                      style={{
-                        backgroundColor: "#1877F2",
-                        borderColor: "#1877F2",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "8px",
-                        fontWeight: 600,
-                        color: "#fff",
-                      }}
-                      onClick={handleLaunchFacebookLogin}
-                      disabled={isEmbeddedLoading || isSubmitting}
-                    >
-                      {isEmbeddedLoading ? "Iniciando Login Meta..." : "Conectar com Facebook (Embedded Signup)"}
-                    </Button>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <Button
+                        size="md"
+                        variant="primary"
+                        style={{
+                          backgroundColor: "#1877F2",
+                          borderColor: "#1877F2",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "8px",
+                          fontWeight: 600,
+                          color: "#fff",
+                          flex: 1,
+                        }}
+                        onClick={handleLaunchFacebookLogin}
+                        disabled={isEmbeddedLoading || isSubmitting}
+                      >
+                        {isEmbeddedLoading ? "Iniciando Login Meta..." : "Conectar com Facebook (Embedded Signup)"}
+                      </Button>
+                      {isEmbeddedLoading && (
+                        <Button
+                          size="md"
+                          variant="secondary"
+                          onClick={() => {
+                            setIsEmbeddedLoading(false);
+                            setErrorMsg(null);
+                          }}
+                        >
+                          Cancelar
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <>
@@ -528,13 +561,21 @@ function sanitizePhoneE164(raw: string): string | undefined {
               <Button size="sm" variant="ghost" prefixIcon={<ArrowLeft size={14} />} onClick={() => setStep(1)}>
                 Voltar
               </Button>
-              <div style={{ display: "flex", gap: "8px" }}>
-                <Button size="sm" variant="secondary" onClick={handleTestConnection} disabled={isTesting}>
-                  {isTesting ? "Testando..." : "Testar Conexão"}
-                </Button>
-                <Button size="sm" variant="primary" onClick={handleCreateChannel} disabled={isSubmitting}>
-                  {isSubmitting ? "Salvando..." : "Salvar Canal"}
-                </Button>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                {!(provider === "meta_waba" && wabaMode === "embedded") ? (
+                  <>
+                    <Button size="sm" variant="secondary" onClick={handleTestConnection} disabled={isTesting}>
+                      {isTesting ? "Testando..." : "Testar Conexão"}
+                    </Button>
+                    <Button size="sm" variant="primary" onClick={handleCreateChannel} disabled={isSubmitting}>
+                      {isSubmitting ? "Salvando..." : "Salvar Canal"}
+                    </Button>
+                  </>
+                ) : (
+                  <span style={{ fontSize: "11px", color: "var(--text-tertiary)" }}>
+                    {isEmbeddedLoading ? "Aguardando janela da Meta..." : "Autorização pelo botão acima"}
+                  </span>
+                )}
               </div>
             </div>
           </>

@@ -18,6 +18,19 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      window.fbAsyncInit = function() {
+        if (window.FB) {
+          window.FB.init({
+            appId: '2294262161340902',
+            autoLogAppEvents: true,
+            xfbml: true,
+            version: 'v21.0'
+          });
+        }
+      };
+    </script>
+    <script async defer crossorigin="anonymous" src="https://connect.facebook.net/pt_BR/sdk.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
