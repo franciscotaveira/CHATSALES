@@ -27,6 +27,7 @@ export interface AppShellProps {
   activeWorkspace?: WorkspaceItem | null;
   onWorkspaceSelect?: (workspace: WorkspaceItem) => void;
   isLoadingWorkspaces?: boolean;
+  onCreateWorkspaceClick?: () => void;
 
   // User & Status
   userEmail?: string;

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, type FC, type ReactNode } from "react";
-import { Building2, ChevronDown, Check, Menu, Search, LogOut } from "lucide-react";
+import { Building2, ChevronDown, Check, Menu, Search, LogOut, Plus } from "lucide-react";
 import type { WorkspaceItem } from "./AppShell.types";
 
 interface HeaderProps {
@@ -7,6 +7,7 @@ interface HeaderProps {
   activeWorkspace?: WorkspaceItem | null;
   onWorkspaceSelect?: (workspace: WorkspaceItem) => void;
   isLoadingWorkspaces?: boolean;
+  onCreateWorkspaceClick?: () => void;
   userEmail?: string;
   userRole?: string;
   onLogout?: () => void;
@@ -27,6 +28,7 @@ export const Header: FC<HeaderProps> = ({
   activeWorkspace,
   onWorkspaceSelect,
   isLoadingWorkspaces = false,
+  onCreateWorkspaceClick,
   userEmail,
   userRole = "owner",
   onLogout,
@@ -260,6 +262,40 @@ export const Header: FC<HeaderProps> = ({
                     </button>
                   );
                 })
+              )}
+
+              {onCreateWorkspaceClick && (
+                <div style={{ borderTop: "1px solid var(--border-default, #E2E8F0)", marginTop: "4px", paddingTop: "4px" }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsWorkspaceDropdownOpen(false);
+                      onCreateWorkspaceClick();
+                    }}
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "8px 10px",
+                      borderRadius: "var(--radius-sm, 6px)",
+                      border: "none",
+                      backgroundColor: "transparent",
+                      color: "var(--color-action, #008069)",
+                      fontSize: "var(--font-size-sm, 0.875rem)",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      textAlign: "left",
+                      transition: "background-color 150ms ease",
+                      boxSizing: "border-box",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-action-subtle, #E6F4F1)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                  >
+                    <Plus size={15} style={{ flexShrink: 0 }} />
+                    <span>Criar Nova Empresa</span>
+                  </button>
+                </div>
               )}
             </div>
           )}

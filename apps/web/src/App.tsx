@@ -20,6 +20,7 @@ import { SettingsPage } from "./pages/SettingsPage";
 import { CatalogPage } from "./pages/CatalogPage";
 import { OpportunitiesPage } from "./pages/opportunities/OpportunitiesPage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { CreateWorkspaceModal } from "./components/CreateWorkspaceModal";
 import {
   MessageSquare,
   Users,
@@ -149,6 +150,7 @@ export const App: FC = () => {
   });
   const [isOfflineSimulated, setIsOfflineSimulated] = useState<boolean>(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState<boolean>(false);
+  const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState<boolean>(false);
 
   // Global ⌘K / Ctrl+K keyboard shortcut listener
   useEffect(() => {
@@ -368,6 +370,14 @@ export const App: FC = () => {
         onSelect: () => handleNavigate("settings"),
       },
       {
+        id: "act-create-workspace",
+        title: "Criar Nova Empresa / Negócio",
+        subtitle: "Cadastrar nova empresa e liberar acesso ao cliente",
+        category: "actions",
+        icon: <Building2 size={16} />,
+        onSelect: () => setIsCreateWorkspaceOpen(true),
+      },
+      {
         id: "act-sync-session",
         title: "Sincronizar Sessão e Conectividade",
         subtitle: "Recarregar dados do workspace ativo e testar API",
@@ -483,6 +493,7 @@ export const App: FC = () => {
           activeWorkspace={session.activeWorkspace}
           onWorkspaceSelect={(ws) => session.selectWorkspace(ws.id)}
           isLoadingWorkspaces={session.isLoadingMe}
+          onCreateWorkspaceClick={() => setIsCreateWorkspaceOpen(true)}
           userEmail={session.user?.email || undefined}
           userRole={session.user?.activeRole || undefined}
           onLogout={() => {
@@ -519,6 +530,16 @@ export const App: FC = () => {
           onClose={() => setIsCommandPaletteOpen(false)}
           items={commandItems}
           activeWorkspaceName={session.activeWorkspace?.name}
+        />
+
+        {/* Create Workspace Modal */}
+        <CreateWorkspaceModal
+          isOpen={isCreateWorkspaceOpen}
+          onClose={() => setIsCreateWorkspaceOpen(false)}
+          onCreated={async (newWsId) => {
+            await session.refreshSession();
+            await session.selectWorkspace(newWsId);
+          }}
         />
       </div>
     </ErrorBoundary>

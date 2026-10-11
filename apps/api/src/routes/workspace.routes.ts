@@ -1,8 +1,27 @@
 import type { FastifyPluginAsync } from "fastify";
 import crypto from "node:crypto";
-import { withTenantTransaction } from "@sos-sales/database";
+import { withTenantTransaction, getDatabasePool } from "@sos-sales/database";
 import { hashPassword } from "@sos-sales/auth";
 import { z } from "zod";
+
+function slugify(text: string): string {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+const createWorkspaceSchema = z.object({
+  name: z.string().min(2, "O nome da empresa deve ter pelo menos 2 caracteres").max(100),
+  ownerName: z.string().min(2, "O nome do proprietário deve ter pelo menos 2 caracteres").max(100),
+  ownerEmail: z.string().email("E-mail inválido"),
+  initialPassword: z.string().min(6, "A senha deve ter pelo menos 6 caracteres").max(100).optional(),
+});
 
 const updateWorkspaceSchema = z.object({
   name: z.string().min(2).max(100).optional(),
@@ -654,6 +673,147 @@ export const workspaceRoutes: FastifyPluginAsync = async (app) => {
         success: true,
         message: "Membro removido da empresa com sucesso",
       });
+    }
+  );
+
+  // POST /v1/workspaces — create new workspace/company (requires owner privileges)
+  app.post(
+    "/v1/workspaces",
+    {
+      preHandler: [app.authenticate],
+    },
+    async (request, reply) => {
+      // Security check: Only authenticated users with 'owner' role in at least one workspace can provision new companies
+      const isOwner =
+        (request.memberships || []).some((m) => m.role === "owner") ||
+        request.activeRole === "owner" ||
+        request.user?.role === "owner";
+
+      if (!isOwner) {
+        return reply.status(403).send({
+          type: "https://sos-sales.mct.br/errors/forbidden",
+          title: "Forbidden",
+          status: 403,
+          detail: "Apenas proprietários (owners) têm permissão para criar novas empresas.",
+          instance: request.url,
+          correlationId: request.id,
+        });
+      }
+
+      const parseResult = createWorkspaceSchema.safeParse(request.body);
+      if (!parseResult.success) {
+        return reply.status(400).send({
+          type: "https://sos-sales.mct.br/errors/bad-request",
+          title: "Bad Request",
+          status: 400,
+          detail: parseResult.error.issues.map((i) => i.message).join(", "),
+          instance: request.url,
+          correlationId: request.id,
+        });
+      }
+
+      const { name, ownerName, ownerEmail, initialPassword } = parseResult.data;
+      const cleanEmail = ownerEmail.trim().toLowerCase();
+      const cleanName = name.trim();
+      const cleanOwnerName = ownerName.trim();
+      const tempPassword = initialPassword?.trim() || "MctSoberana2026!";
+
+      const baseSlug = slugify(cleanName);
+      let targetSlug = baseSlug || `empresa-${Date.now().toString(36)}`;
+
+      const pool = getDatabasePool();
+      const client = await pool.connect();
+
+      try {
+        await client.query("BEGIN");
+
+        // 1. Resolve unique slug
+        const slugCheck = await client.query("SELECT id FROM workspaces WHERE slug = $1", [targetSlug]);
+        if (slugCheck.rows.length > 0) {
+          targetSlug = `${targetSlug}-${Date.now().toString(36).slice(-4)}`;
+        }
+
+        // 2. Organization
+        const orgSlug = `${targetSlug}-org`;
+        const orgRes = await client.query<{ id: string; name: string }>(
+          `INSERT INTO organizations (id, name, slug, created_at, updated_at)
+           VALUES (gen_random_uuid(), $1, $2, clock_timestamp(), clock_timestamp())
+           RETURNING id, name`,
+          [cleanName, orgSlug]
+        );
+        const orgId = orgRes.rows[0]!.id;
+
+        // 3. Workspace
+        const wsRes = await client.query<{ id: string; name: string; slug: string }>(
+          `INSERT INTO workspaces (
+             id, organization_id, name, slug, timezone, currency, is_active, radar_enabled, created_at, updated_at
+           )
+           VALUES (
+             gen_random_uuid(), $1, $2, $3, 'America/Sao_Paulo', 'BRL', TRUE, TRUE, clock_timestamp(), clock_timestamp()
+           )
+           RETURNING id, name, slug`,
+          [orgId, cleanName, targetSlug]
+        );
+        const newWs = wsRes.rows[0]!;
+
+        // 4. Provision or Update Target Owner User
+        const passwordHash = hashPassword(tempPassword);
+        const userRes = await client.query<{ id: string; name: string; email: string }>(
+          `INSERT INTO users (id, email, name, password_hash, created_at, updated_at)
+           VALUES (gen_random_uuid(), $1, $2, $3, clock_timestamp(), clock_timestamp())
+           ON CONFLICT (email) DO UPDATE SET
+             name = COALESCE(users.name, EXCLUDED.name),
+             password_hash = COALESCE(users.password_hash, EXCLUDED.password_hash),
+             updated_at = clock_timestamp()
+           RETURNING id, name, email`,
+          [cleanEmail, cleanOwnerName, passwordHash]
+        );
+        const ownerUser = userRes.rows[0]!;
+
+        // 5. Link Target User as Owner
+        await client.query(
+          `INSERT INTO workspace_memberships (workspace_id, user_id, role, created_at)
+           VALUES ($1, $2, 'owner', clock_timestamp())
+           ON CONFLICT (workspace_id, user_id) DO UPDATE SET role = 'owner'`,
+          [newWs.id, ownerUser.id]
+        );
+
+        // 6. ALSO Link current authenticated creator (Francisco) as Owner
+        if (request.user.id !== ownerUser.id) {
+          await client.query(
+            `INSERT INTO workspace_memberships (workspace_id, user_id, role, created_at)
+             VALUES ($1, $2, 'owner', clock_timestamp())
+             ON CONFLICT (workspace_id, user_id) DO NOTHING`,
+            [newWs.id, request.user.id]
+          );
+        }
+
+        await client.query("COMMIT");
+
+        const welcomeMessage = `🚀 Olá, ${cleanOwnerName}! Seu acesso ao Chat Sales V3 (${cleanName}) está liberado.\n\n🔗 Painel: https://crm.iaparavendas.tech\n👤 E-mail: ${cleanEmail}\n🔑 Senha: ${tempPassword}\n\nFaça login para conectar seu WhatsApp e cadastrar seus produtos!`;
+
+        return reply.status(201).send({
+          success: true,
+          workspace: {
+            id: newWs.id,
+            name: newWs.name,
+            slug: newWs.slug,
+          },
+          owner: {
+            id: ownerUser.id,
+            name: ownerUser.name,
+            email: ownerUser.email,
+            tempPassword,
+          },
+          welcomeMessage,
+        });
+      } catch (err) {
+        await client.query("ROLLBACK");
+        request.log.error({ err }, "Erro ao criar novo workspace");
+        throw err;
+      } finally {
+        client.release();
+      }
     }
   );
 };

@@ -14,6 +14,7 @@ export const AppShell: FC<AppShellProps> = ({
   activeWorkspace,
   onWorkspaceSelect,
   isLoadingWorkspaces,
+  onCreateWorkspaceClick,
   userEmail,
   userRole,
   onLogout,
@@ -164,6 +165,7 @@ export const AppShell: FC<AppShellProps> = ({
           activeWorkspace={activeWorkspace}
           onWorkspaceSelect={onWorkspaceSelect}
           isLoadingWorkspaces={isLoadingWorkspaces}
+          onCreateWorkspaceClick={onCreateWorkspaceClick}
           userEmail={userEmail}
           userRole={userRole}
           onLogout={onLogout}

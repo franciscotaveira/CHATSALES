@@ -1301,6 +1301,32 @@ export class ApiClient {
     );
   }
 
+  async createWorkspace(
+    payload: {
+      name: string;
+      ownerName: string;
+      ownerEmail: string;
+      initialPassword?: string;
+    },
+    options?: RequestOptions
+  ): Promise<{
+    success: boolean;
+    workspace: { id: string; name: string; slug: string };
+    owner: { id: string; name: string; email: string; tempPassword?: string };
+    welcomeMessage: string;
+  }> {
+    return this.request<{
+      success: boolean;
+      workspace: { id: string; name: string; slug: string };
+      owner: { id: string; name: string; email: string; tempPassword?: string };
+      welcomeMessage: string;
+    }>("/v1/workspaces", {
+      ...options,
+      method: "POST",
+      body: payload,
+    });
+  }
+
   async getContacts(
     workspaceId: string,
     query?: { search?: string; limit?: number; offset?: number; status?: "active" | "inactive" | "all" },
