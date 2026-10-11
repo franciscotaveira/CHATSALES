@@ -33,6 +33,8 @@ export const SettingsPage: FC<{ session: UseSessionReturn }> = ({ session }) => 
     channelName: string;
     qrDataUri?: string;
     isLoading: boolean;
+    isStarting?: boolean;
+    isRefreshing?: boolean;
     alreadyConnected?: boolean;
     error?: string;
   } | null>(null);
@@ -54,40 +56,83 @@ export const SettingsPage: FC<{ session: UseSessionReturn }> = ({ session }) => 
     loadChannels();
   }, [activeWorkspace?.id, token]);
 
-  // Auto-poll QR status while dialog is open and not yet connected
+  // Sequential, non-overlapping auto-poll while dialog is open and not yet connected
   useEffect(() => {
     if (!qrModal || qrModal.alreadyConnected || !activeWorkspace?.id || !token) return;
 
-    const interval = setInterval(async () => {
+    let isMounted = true;
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const poll = async () => {
+      if (!isMounted || !qrModal?.channelId || qrModal.alreadyConnected) return;
       try {
         const res = await apiClient.getChannelQrCode(activeWorkspace.id, qrModal.channelId, { token });
+        if (!isMounted) return;
+
         if (res.success) {
           if (res.alreadyConnected) {
             setQrModal((prev) =>
-              prev ? { ...prev, isLoading: false, alreadyConnected: true, qrDataUri: undefined } : null
+              prev
+                ? {
+                    ...prev,
+                    isLoading: false,
+                    isStarting: false,
+                    isRefreshing: false,
+                    alreadyConnected: true,
+                    qrDataUri: undefined,
+                    error: undefined,
+                  }
+                : null
             );
             loadChannels();
+            return;
+          } else if (res.status === "STARTING") {
+            setQrModal((prev) =>
+              prev ? { ...prev, isLoading: false, isStarting: true, error: undefined } : null
+            );
           } else if (res.qrDataUri && res.qrDataUri !== qrModal.qrDataUri) {
-            setQrModal((prev) => (prev ? { ...prev, qrDataUri: res.qrDataUri, isLoading: false } : null));
+            setQrModal((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    qrDataUri: res.qrDataUri,
+                    isLoading: false,
+                    isStarting: false,
+                    isRefreshing: false,
+                    error: undefined,
+                  }
+                : null
+            );
           }
         }
       } catch {
-        // Silently continue polling
+        // Silently wait for next sequential poll
       }
-    }, 3500);
 
-    return () => clearInterval(interval);
-  }, [qrModal?.channelId, qrModal?.alreadyConnected, qrModal?.qrDataUri, activeWorkspace?.id, token]);
+      if (isMounted) {
+        timeoutId = setTimeout(poll, 3500);
+      }
+    };
+
+    timeoutId = setTimeout(poll, 3500);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+    };
+  }, [qrModal?.channelId, qrModal?.alreadyConnected, activeWorkspace?.id, token]);
 
   const handleOpenQr = async (channelId: string, channelName: string) => {
     if (!activeWorkspace || !token) return;
-    setQrModal({ channelId, channelName, isLoading: true });
+    setQrModal({ channelId, channelName, isLoading: true, isStarting: false, isRefreshing: false });
     try {
       const res = await apiClient.getChannelQrCode(activeWorkspace.id, channelId, { token });
       if (res.success) {
         if (res.alreadyConnected) {
           setQrModal({ channelId, channelName, isLoading: false, alreadyConnected: true });
           await loadChannels();
+        } else if (res.status === "STARTING") {
+          setQrModal({ channelId, channelName, isLoading: false, isStarting: true });
         } else {
           setQrModal({ channelId, channelName, qrDataUri: res.qrDataUri, isLoading: false });
         }
@@ -95,7 +140,80 @@ export const SettingsPage: FC<{ session: UseSessionReturn }> = ({ session }) => 
         setQrModal({ channelId, channelName, isLoading: false, error: res.error || "QR Code indisponível." });
       }
     } catch (err: unknown) {
-      setQrModal({ channelId, channelName, isLoading: false, error: err instanceof Error ? err.message : "Erro ao carregar QR Code." });
+      setQrModal({
+        channelId,
+        channelName,
+        isLoading: false,
+        error: err instanceof Error ? err.message : "Erro ao carregar QR Code.",
+      });
+    }
+  };
+
+  const handleRefreshQr = async () => {
+    if (!activeWorkspace || !token || !qrModal?.channelId) return;
+    setQrModal((prev) => (prev ? { ...prev, isRefreshing: true, error: undefined } : null));
+    try {
+      const res = await apiClient.getChannelQrCode(activeWorkspace.id, qrModal.channelId, {
+        token,
+        force: true,
+      });
+      if (res.success) {
+        if (res.alreadyConnected) {
+          setQrModal((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  isRefreshing: false,
+                  isLoading: false,
+                  isStarting: false,
+                  alreadyConnected: true,
+                  qrDataUri: undefined,
+                }
+              : null
+          );
+          await loadChannels();
+        } else if (res.status === "STARTING") {
+          setQrModal((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  isRefreshing: false,
+                  isLoading: false,
+                  isStarting: true,
+                  qrDataUri: undefined,
+                  error: undefined,
+                }
+              : null
+          );
+        } else {
+          setQrModal((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  isRefreshing: false,
+                  isLoading: false,
+                  isStarting: false,
+                  qrDataUri: res.qrDataUri,
+                  error: undefined,
+                }
+              : null
+          );
+        }
+      } else {
+        setQrModal((prev) =>
+          prev ? { ...prev, isRefreshing: false, error: res.error || "Falha ao renovar QR Code." } : null
+        );
+      }
+    } catch (err: unknown) {
+      setQrModal((prev) =>
+        prev
+          ? {
+              ...prev,
+              isRefreshing: false,
+              error: err instanceof Error ? err.message : "Erro ao renovar QR Code.",
+            }
+          : null
+      );
     }
   };
 
@@ -292,8 +410,11 @@ export const SettingsPage: FC<{ session: UseSessionReturn }> = ({ session }) => 
         channelName={qrModal?.channelName || ""}
         qrDataUri={qrModal?.qrDataUri}
         isLoading={Boolean(qrModal?.isLoading)}
+        isStarting={Boolean(qrModal?.isStarting)}
+        isRefreshing={Boolean(qrModal?.isRefreshing)}
         alreadyConnected={qrModal?.alreadyConnected}
         error={qrModal?.error}
+        onRefresh={handleRefreshQr}
       />
     </div>
   );

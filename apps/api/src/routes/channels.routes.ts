@@ -1257,6 +1257,8 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const { workspaceId, channelId } = parsedParams.data;
+      const query = request.query as { force?: string } | undefined;
+      const isForceRestart = query?.force === "true";
 
       const channel = await withTenantTransaction(workspaceId, async (client) => {
         const res = await client.query<{
@@ -1449,17 +1451,20 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
         process.env.ALLOW_LOCAL_NETWORK_CHANNELS === "true";
 
       const authHeaders: Record<string, string> = creds.api_key ? { "X-Api-Key": creds.api_key } : {};
+      const webhookUrl = `${process.env.INTERNAL_API_URL || "http://chat-sales-api:4400"}/v1/webhooks/whatsapp/chan-${channel.id}`;
 
       // 1. First probe session status from WAHA to check if already authenticated
       let effectiveSession = sessionName;
       let isAlreadyWorking = false;
       let sessionMe: { id?: string; pushName?: string } | null = null;
+      let sessionExists = false;
+      let currentSessionStatus = "UNKNOWN";
 
       try {
         const sessionsListResp = await safeFetchWithSsrfGuard(
           `${validatedBaseUrl}/api/sessions`,
           { headers: authHeaders },
-          { timeoutMs: 4000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
+          { timeoutMs: 5000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
         );
         if (sessionsListResp.ok) {
           const sessions = (await sessionsListResp.json()) as Array<{
@@ -1474,46 +1479,20 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
             (sessions.length === 1 && sessions[0]?.status === "WORKING" ? sessions[0] : null);
 
           if (matchedSession) {
+            sessionExists = true;
             effectiveSession = matchedSession.name;
+            currentSessionStatus = matchedSession.status;
             if (matchedSession.status === "WORKING") {
               isAlreadyWorking = true;
               sessionMe = matchedSession.me || null;
-            } else if (matchedSession.status === "FAILED" || matchedSession.status === "STOPPED") {
-              // Auto-heal: restart stuck session in WAHA
-              try {
-                await safeFetchWithSsrfGuard(
-                  `${validatedBaseUrl}/api/sessions/${effectiveSession}/stop`,
-                  {
-                    method: "POST",
-                    headers: { ...authHeaders, "Content-Type": "application/json" },
-                  },
-                  { timeoutMs: 5000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
-                );
-              } catch {
-                // non-fatal
-              }
-              try {
-                await safeFetchWithSsrfGuard(
-                  `${validatedBaseUrl}/api/sessions/${effectiveSession}/start`,
-                  {
-                    method: "POST",
-                    headers: { ...authHeaders, "Content-Type": "application/json" },
-                    body: JSON.stringify({ name: effectiveSession }),
-                  },
-                  { timeoutMs: 6000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
-                );
-                await new Promise((r) => setTimeout(r, 1000));
-              } catch {
-                // non-fatal
-              }
             }
           }
         }
       } catch {
-        // Fallback to QR attempt
+        // Fallback to QR attempt / auto-heal
       }
 
-      if (isAlreadyWorking) {
+      if (isAlreadyWorking && !isForceRestart) {
         await withTenantTransaction(workspaceId, async (client) => {
           await client.query(
             `UPDATE public.channel_instances
@@ -1533,23 +1512,74 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
         });
       }
 
-      // If session does not exist, try to start it
+      // 2. Auto-Provision or Heal Session in WAHA
       try {
-        await safeFetchWithSsrfGuard(
-          `${validatedBaseUrl}/api/sessions/start`,
-          {
-            method: "POST",
-            headers: { ...authHeaders, "Content-Type": "application/json" },
-            body: JSON.stringify({ name: effectiveSession }),
-          },
-          { timeoutMs: 5000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
-        );
+        if (!sessionExists) {
+          // Provision session with automated webhook registration
+          await safeFetchWithSsrfGuard(
+            `${validatedBaseUrl}/api/sessions`,
+            {
+              method: "POST",
+              headers: { ...authHeaders, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: effectiveSession,
+                config: {
+                  webhooks: [
+                    {
+                      url: webhookUrl,
+                      events: ["message", "message.any", "session.status"],
+                      customHeaders: creds.api_key ? [{ name: "x-api-key", value: creds.api_key }] : [],
+                    },
+                  ],
+                },
+              }),
+            },
+            { timeoutMs: 6000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
+          );
+
+          await safeFetchWithSsrfGuard(
+            `${validatedBaseUrl}/api/sessions/${effectiveSession}/start`,
+            {
+              method: "POST",
+              headers: { ...authHeaders, "Content-Type": "application/json" },
+              body: JSON.stringify({ name: effectiveSession }),
+            },
+            { timeoutMs: 6000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
+          );
+          await new Promise((r) => setTimeout(r, 1200));
+        } else if (isForceRestart || currentSessionStatus === "FAILED" || currentSessionStatus === "STOPPED") {
+          // Clean stop first to reset any hung websocket
+          try {
+            await safeFetchWithSsrfGuard(
+              `${validatedBaseUrl}/api/sessions/${effectiveSession}/stop`,
+              {
+                method: "POST",
+                headers: { ...authHeaders, "Content-Type": "application/json" },
+              },
+              { timeoutMs: 5000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
+            );
+          } catch {
+            // non-fatal
+          }
+          await new Promise((r) => setTimeout(r, 600));
+
+          await safeFetchWithSsrfGuard(
+            `${validatedBaseUrl}/api/sessions/${effectiveSession}/start`,
+            {
+              method: "POST",
+              headers: { ...authHeaders, "Content-Type": "application/json" },
+              body: JSON.stringify({ name: effectiveSession }),
+            },
+            { timeoutMs: 6000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
+          );
+          await new Promise((r) => setTimeout(r, 1200));
+        }
       } catch {
-        // non-fatal
+        // non-fatal: proceed to QR attempt
       }
 
-      try {
-        // 2. Try modern WAHA route /api/:session/auth/qr first, then fallback to /api/sessions/:session/auth/qr
+      // 3. Resilient QR Code Retrieval with Automatic Single Retry
+      const fetchQr = async () => {
         let resp = await safeFetchWithSsrfGuard(
           `${validatedBaseUrl}/api/${effectiveSession}/auth/qr`,
           { headers: authHeaders },
@@ -1562,6 +1592,17 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
             { headers: authHeaders },
             { timeoutMs: 12000, allowLocalTest: allowLocal, allowedProtocols: ["http:", "https:"] }
           );
+        }
+        return resp;
+      };
+
+      try {
+        let resp = await fetchQr();
+
+        // If not ready on first try (engine still bootstrapping), give a brief grace window
+        if (!resp.ok && (resp.status === 404 || resp.status === 500)) {
+          await new Promise((r) => setTimeout(r, 1500));
+          resp = await fetchQr();
         }
 
         if (!resp.ok) {
@@ -1584,10 +1625,11 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
             });
           }
 
+          // If still starting, inform frontend gracefully so it can auto-poll without an error alert
           return reply.status(200).send({
-            success: false,
-            status: "UNAVAILABLE",
-            error: `WAHA retornou HTTP ${resp.status}. O canal pode já estar conectado ou inicializando a sessão.`,
+            success: true,
+            status: "STARTING",
+            message: "Inicializando motor WhatsApp no servidor. O QR Code estará disponível em instantes.",
             isSimulated: false,
           });
         }
@@ -1625,9 +1667,8 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
         }
         return reply.status(200).send({
           success: false,
-          status: "UNREACHABLE",
-          error:
-            err instanceof Error ? err.message : "WAHA host unreachable",
+          status: "TIMEOUT",
+          error: "O WhatsApp demorou para responder. Clique em 'Gerar Novo QR Code' para tentar novamente.",
           isSimulated: false,
         });
       }

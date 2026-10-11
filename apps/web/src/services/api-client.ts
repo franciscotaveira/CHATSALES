@@ -1245,7 +1245,7 @@ export class ApiClient {
   async getChannelQrCode(
     workspaceId: string,
     channelId: string,
-    options?: RequestOptions
+    options?: RequestOptions & { force?: boolean }
   ): Promise<{
     success: boolean;
     status: string;
@@ -1257,8 +1257,9 @@ export class ApiClient {
     message?: string;
     error?: string;
   }> {
+    const query = options?.force ? "?force=true" : "";
     return this.request(
-      `/v1/workspaces/${workspaceId}/channels/${channelId}/qr-code`,
+      `/v1/workspaces/${workspaceId}/channels/${channelId}/qr-code${query}`,
       {
         ...options,
         workspaceId,
