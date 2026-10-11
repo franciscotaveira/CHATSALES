@@ -21,6 +21,7 @@ import { flowsRoutes } from "./routes/flows.routes";
 import { productsRoutes } from "./routes/products.routes";
 import { pixRoutes } from "./routes/pix.routes";
 import { pixWebhookRoutes } from "./routes/pix-webhook.routes";
+import { caktoWebhookRoutes } from "./routes/cakto-webhook.routes";
 import { mediaUploadRoutes } from "./routes/media-upload.routes";
 import type { MediaStorage } from "./services/media-storage";
 import { integrationRoutes } from "./routes/integration.routes";
@@ -305,6 +306,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(productsRoutes);
   await app.register(pixRoutes);
   await app.register(pixWebhookRoutes);
+  await app.register(caktoWebhookRoutes);
   await app.register(mediaUploadRoutes, { storage: options.mediaStorage });
   await app.register(integrationRoutes);
   await app.register(outboundWebhooksRoutes);

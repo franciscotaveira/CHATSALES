@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import type { Pool } from "pg";
 import {
   decryptPayload,
@@ -21,6 +22,85 @@ import {
   AiReceptionistProcessor,
   type AiReceptionistInboundEvent,
 } from "./ai-receptionist.processor";
+import { WhisperTranscriber } from "../services/whisper-transcriber";
+
+/**
+ * Normalizes and checks if an inbound message represents an opt-out / STOP request.
+ * Strictly compliant with Meta WhatsApp Business messaging policies.
+ */
+export function isOptOutMessage(body?: string | null): boolean {
+  if (!body || typeof body !== "string") return false;
+  const cleaned = body
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // strip diacritics (e.g. não -> nao)
+    .replace(/[.!?;:,\-_/]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!cleaned) return false;
+
+  const singleWordStopKeywords = [
+    "pare",
+    "parar",
+    "sair",
+    "stop",
+    "cancelar",
+    "cancela",
+    "descadastrar",
+    "desinscrever",
+    "fim",
+    "remover",
+    "remova",
+  ];
+
+  const compositeStopPhrases = [
+    "nao quero mais",
+    "descadastre me",
+    "descadastreme",
+    "desinscreva me",
+    "desinscrevame",
+    "parar de enviar",
+    "pare de enviar",
+    "cancelar cadastro",
+    "cancelar mensagens",
+    "remover meu numero",
+    "remova meu numero",
+  ];
+
+  // 1. Check composite phrases (can appear anywhere in the string)
+  for (const phrase of compositeStopPhrases) {
+    if (cleaned === phrase || cleaned.includes(phrase)) {
+      return true;
+    }
+  }
+
+  // 2. Check intent prefixes combined with stop verbs (e.g. "favor cancelar...", "quero sair...")
+  const stopVerbs = ["cancelar", "cancela", "descadastrar", "desinscrever", "sair", "parar", "remover"];
+  const intentPrefixes = ["favor ", "por favor ", "quero ", "gostaria de ", "solicito ", "peco para "];
+
+  for (const prefix of intentPrefixes) {
+    for (const verb of stopVerbs) {
+      if (cleaned.startsWith(prefix + verb) || cleaned.includes(" " + prefix + verb)) {
+        return true;
+      }
+    }
+  }
+
+  // 3. Check single-word commands: must be exact match or at boundaries (start/end of message)
+  for (const kw of singleWordStopKeywords) {
+    if (
+      cleaned === kw ||
+      cleaned.startsWith(kw + " ") ||
+      cleaned.endsWith(" " + kw)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 export interface ClaimedInboxItem {
   id: string;
@@ -41,6 +121,7 @@ export interface InboxProcessorOptions {
   readonly masterKeyHex?: string;
   readonly keyring?: Keyring;
   readonly aiReceptionistProcessor?: AiReceptionistProcessor;
+  readonly whisperTranscriber?: WhisperTranscriber;
 }
 
 function coerceWahaJid(value: unknown): string {
@@ -114,10 +195,13 @@ async function enrichWahaPayload(
 export class InboxProcessor {
   private readonly keyringOrKey: string | Keyring;
   private readonly aiReceptionistProcessor: AiReceptionistProcessor;
+  private readonly whisperTranscriber: WhisperTranscriber;
 
   constructor(options: InboxProcessorOptions = {}) {
     this.aiReceptionistProcessor =
       options.aiReceptionistProcessor || new AiReceptionistProcessor();
+    this.whisperTranscriber =
+      options.whisperTranscriber || new WhisperTranscriber();
 
     if (options.keyring && Object.keys(options.keyring).length > 0) {
       this.keyringOrKey = options.keyring;
@@ -455,6 +539,50 @@ export class InboxProcessor {
                 resolvedMediaUrl = `/v1/workspaces/${item.workspace_id}/media/proxy?mediaId=${encodeURIComponent(String(event.metadata.mediaId))}&channelInstanceId=${item.channel_instance_id}`;
               }
 
+              // Transcribe inbound voice notes if Whisper STT is configured
+              if (
+                direction === "inbound" &&
+                event.contentType === "audio" &&
+                event.mediaUrl &&
+                this.whisperTranscriber.isConfigured
+              ) {
+                try {
+                  let downloadUrl = event.mediaUrl;
+                  const reqHeaders: Record<string, string> = {};
+
+                  if (downloadUrl.includes("/api/files/")) {
+                    const baseUrl =
+                      process.env.WAHA_BASE_URL?.replace(/\/$/, "") ||
+                      process.env.WAHA_INTERNAL_URL ||
+                      "http://sos-sales-waha:3000";
+                    const wahaMatch = downloadUrl.match(/\/api\/files\/[a-zA-Z0-9_\-./]+/);
+                    if (wahaMatch) {
+                      downloadUrl = `${baseUrl}${wahaMatch[0]}`;
+                      const apiKey = process.env.WAHA_API_KEY;
+                      if (apiKey) {
+                        reqHeaders["X-Api-Key"] = apiKey;
+                      }
+                    }
+                  }
+
+                  const audioFetch = await fetch(downloadUrl, { headers: reqHeaders });
+                  if (audioFetch.ok) {
+                    const audioBuffer = Buffer.from(await audioFetch.arrayBuffer());
+                    const transcription = await this.whisperTranscriber.transcribeAudio(audioBuffer);
+                    if (transcription) {
+                      event.body = `[Áudio de Voz]: ${transcription}`;
+                      event.metadata = {
+                        ...(event.metadata || {}),
+                        transcription,
+                        isVoiceNote: true,
+                      };
+                    }
+                  }
+                } catch (audioErr) {
+                  logger.warn({ audioErr }, "Failed to fetch/transcribe voice note in inbox processor");
+                }
+              }
+
               // Insert message idempotently
               const msgInsertRes = await client.query<{ id: string }>(
                 `INSERT INTO public.messages (
@@ -552,17 +680,117 @@ export class InboxProcessor {
                 }
               }
 
-              if (direction === "inbound" && insertedMsgId && event.body?.trim()) {
-                pendingAiEvents.push({
-                  workspaceId: item.workspace_id,
-                  channelInstanceId: item.channel_instance_id,
-                  contactId,
-                  threadId,
-                  inboundMessageId: insertedMsgId,
-                  inboundBody: event.body.trim(),
-                  senderPhoneE164: event.senderPhoneE164,
-                  recipientPhoneE164: event.recipientPhoneE164,
-                });
+              // CH-ANTI-BAN: Intercept STOP / Opt-Out requests immediately
+              const isOptOut = direction === "inbound" && isOptOutMessage(event.body);
+
+              if (isOptOut) {
+                // 1. Immediately flag contact as opt_out
+                await client.query(
+                  `UPDATE public.contacts
+                   SET opt_out = true, updated_at = clock_timestamp()
+                   WHERE id = $1 AND workspace_id = $2;`,
+                  [contactId, item.workspace_id]
+                );
+
+                // 2. Pause AI agent on thread and record handoff
+                await client.query(
+                  `UPDATE public.commercial_threads
+                   SET status = 'waiting_human',
+                       handoff_reason = 'STOP / Opt-Out requested by contact',
+                       handoff_at = clock_timestamp(),
+                       updated_at = clock_timestamp()
+                   WHERE id = $1 AND workspace_id = $2;`,
+                  [threadId, item.workspace_id]
+                );
+
+                // 3. Enqueue polite transactional confirmation via outbox
+                const optOutConfirmationText =
+                  "Você foi descadastrado com sucesso de nossas comunicações. Caso queira voltar a conversar, basta nos enviar uma nova mensagem a qualquer momento.";
+                const optOutFingerprint = crypto
+                  .createHash("sha256")
+                  .update(optOutConfirmationText)
+                  .digest("hex");
+                const optOutIdempotencyKey = `optout-ack-${item.workspace_id}-${contactId}-${event.externalMessageId}`;
+
+                const optOutMsgRes = await client.query<{ id: string }>(
+                  `INSERT INTO public.messages (
+                     workspace_id, channel_instance_id, thread_id, provider, direction,
+                     sender_e164, recipient_e164, content_type, body, delivery_status, status_rank,
+                     metadata, created_at, updated_at
+                   ) VALUES (
+                     $1, $2, $3, $4, 'outbound',
+                     $5, $6, 'text', $7, 'pending', 0,
+                     jsonb_build_object('type', 'system_opt_out_acknowledgement'),
+                     clock_timestamp(), clock_timestamp()
+                   ) RETURNING id;`,
+                  [
+                    item.workspace_id,
+                    item.channel_instance_id,
+                    threadId,
+                    provider,
+                    event.recipientPhoneE164,
+                    event.senderPhoneE164,
+                    optOutConfirmationText,
+                  ]
+                );
+
+                const optOutMsgId = optOutMsgRes.rows[0]?.id;
+                if (optOutMsgId) {
+                  await client.query(
+                    `INSERT INTO public.outbound_commands (
+                       workspace_id, channel_instance_id, thread_id, message_id,
+                       recipient_e164, body, idempotency_key, payload_fingerprint,
+                       status, retry_count, max_retries, next_attempt_at
+                     ) VALUES (
+                       $1, $2, $3, $4,
+                       $5, $6, $7, $8,
+                       'pending', 0, 3, clock_timestamp()
+                     )
+                     ON CONFLICT (workspace_id, idempotency_key) DO NOTHING;`,
+                    [
+                      item.workspace_id,
+                      item.channel_instance_id,
+                      threadId,
+                      optOutMsgId,
+                      event.senderPhoneE164,
+                      optOutConfirmationText,
+                      optOutIdempotencyKey,
+                      optOutFingerprint,
+                    ]
+                  );
+                }
+
+                logger.info(
+                  {
+                    workspaceId: item.workspace_id,
+                    contactId,
+                    threadId,
+                    phone: event.senderPhoneE164,
+                    message: event.body,
+                  },
+                  "Contact opted out via STOP keyword: flagged opt_out, paused AI and sent acknowledgment"
+                );
+              }
+
+              if (direction === "inbound" && insertedMsgId && event.body?.trim() && !isOptOut) {
+                // Guard: verify contact is not already marked as opt_out
+                const contactCheck = await client.query<{ opt_out: boolean }>(
+                  `SELECT opt_out FROM public.contacts WHERE id = $1 AND workspace_id = $2;`,
+                  [contactId, item.workspace_id]
+                );
+
+                if (!contactCheck.rows[0]?.opt_out) {
+                  pendingAiEvents.push({
+                    workspaceId: item.workspace_id,
+                    channelInstanceId: item.channel_instance_id,
+                    contactId,
+                    threadId,
+                    inboundMessageId: insertedMsgId,
+                    inboundBody: event.body.trim(),
+                    senderPhoneE164: event.senderPhoneE164,
+                    recipientPhoneE164: event.recipientPhoneE164,
+                  });
+                }
               }
 
               // Reconcile if a delivery status event arrived BEFORE this message

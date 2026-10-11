@@ -115,8 +115,9 @@ export class AiReceptionistProcessor {
           contact_id: string | null;
           contact_name: string | null;
           phone_e164: string | null;
+          opt_out: boolean | null;
         }>(
-          `SELECT ct.status, ct.contact_id, c.name as contact_name, c.phone_e164
+          `SELECT ct.status, ct.contact_id, c.name as contact_name, c.phone_e164, c.opt_out
            FROM public.commercial_threads ct
            LEFT JOIN public.contacts c ON c.id = ct.contact_id
            WHERE ct.workspace_id = $1 AND ct.id = $2;`,
@@ -127,6 +128,15 @@ export class AiReceptionistProcessor {
         const contactId = threadRes.rows[0]?.contact_id || event.contactId;
         const contactName = threadRes.rows[0]?.contact_name || null;
         const contactPhone = threadRes.rows[0]?.phone_e164 || senderPhoneE164;
+        const isOptedOut = Boolean(threadRes.rows[0]?.opt_out);
+
+        if (isOptedOut) {
+          logger.info(
+            { workspaceId, threadId, contactId },
+            "AI Receptionist skipped: contact has opted out"
+          );
+          return { handled: false, reason: "contact_opted_out" };
+        }
 
         if (currentStatus === "waiting_human") {
           logger.info(
