@@ -19,6 +19,7 @@ interface HeaderProps {
   onOpenMobileMenu?: () => void;
   actions?: ReactNode;
   isMobile?: boolean;
+  onSearchClick?: () => void;
 }
 
 export const Header: FC<HeaderProps> = ({
@@ -33,6 +34,7 @@ export const Header: FC<HeaderProps> = ({
   onOpenMobileMenu,
   actions,
   isMobile = false,
+  onSearchClick,
 }) => {
   const [isWorkspaceDropdownOpen, setIsWorkspaceDropdownOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -267,9 +269,16 @@ export const Header: FC<HeaderProps> = ({
       {/* 2. Center Region: Global Search (Desktop/Tablet) */}
       {!isMobileView && (
         <div
-          role="search"
+          role="button"
           tabIndex={0}
           className="sos-search-trigger"
+          onClick={onSearchClick}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onSearchClick?.();
+            }
+          }}
           style={{
             flex: 1,
             maxWidth: "380px",
@@ -285,12 +294,25 @@ export const Header: FC<HeaderProps> = ({
             gap: "8px",
             cursor: "pointer",
           }}
-          title="Busca global em conversas, leads e produtos"
+          title="Busca global em conversas, leads e produtos (⌘K)"
         >
           <Search size={14} />
           <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            Buscar (⌘K)
+            Buscar no sistema...
           </span>
+          <kbd
+            style={{
+              fontSize: "0.6875rem",
+              padding: "1px 5px",
+              borderRadius: "var(--radius-sm, 4px)",
+              backgroundColor: "var(--bg-surface, #FFFFFF)",
+              border: "1px solid var(--border-default, #E2E8F0)",
+              color: "var(--text-muted, #64748B)",
+              fontWeight: 600,
+            }}
+          >
+            ⌘K
+          </kbd>
         </div>
       )}
 
@@ -303,6 +325,28 @@ export const Header: FC<HeaderProps> = ({
           flexShrink: 0,
         }}
       >
+        {isMobileView && onSearchClick && (
+          <button
+            type="button"
+            onClick={onSearchClick}
+            aria-label="Abrir busca global"
+            style={{
+              border: "none",
+              background: "none",
+              padding: "6px",
+              cursor: "pointer",
+              color: "var(--text-secondary, #475569)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "var(--radius-md, 8px)",
+            }}
+            title="Busca global (⌘K)"
+          >
+            <Search size={18} />
+          </button>
+        )}
+
         {actions}
 
         {/* System Connection Dot with xs text */}

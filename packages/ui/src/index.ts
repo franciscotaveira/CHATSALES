@@ -41,6 +41,9 @@ export * from "./components/Dialog/Dialog.types";
 export * from "./components/Drawer/Drawer";
 export * from "./components/Drawer/Drawer.types";
 
+export * from "./components/CommandPalette/CommandPalette";
+export * from "./components/CommandPalette/CommandPalette.types";
+
 export * from "./components/AppShell/AppShell";
 export * from "./components/AppShell/AppShell.types";
 export * from "./components/AppShell/Sidebar";

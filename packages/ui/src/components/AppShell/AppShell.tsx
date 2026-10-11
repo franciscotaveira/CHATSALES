@@ -22,6 +22,7 @@ export const AppShell: FC<AppShellProps> = ({
   headerActions,
   noPadding = false,
   hideMobileNav = false,
+  onSearchClick,
   sidebarCollapsed: controlledCollapsed,
   onSidebarCollapseToggle,
 }) => {
@@ -170,6 +171,7 @@ export const AppShell: FC<AppShellProps> = ({
           onOpenMobileMenu={isMobile ? () => setIsMobileMenuOpen(true) : undefined}
           actions={headerActions}
           isMobile={isMobile}
+          onSearchClick={onSearchClick}
         />
 
         <main

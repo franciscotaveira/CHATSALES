@@ -44,6 +44,7 @@ export interface AppShellProps {
   headerActions?: ReactNode;
   noPadding?: boolean;
   hideMobileNav?: boolean;
+  onSearchClick?: () => void;
 
   // Sidebar collapsible state
   sidebarCollapsed?: boolean;
