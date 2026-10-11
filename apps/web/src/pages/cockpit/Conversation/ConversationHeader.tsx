@@ -222,7 +222,7 @@ export const ConversationHeader: FC<ConversationHeaderProps> = ({
             fontSize: "var(--font-size-xs, 0.75rem)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "var(--text-primary)", flex: 1, minWidth: "260px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "var(--text-primary)", flex: 1, minWidth: "min(100%, 260px)" }}>
             <AlertTriangle size={18} style={{ color: "#d97706", flexShrink: 0 }} />
             <div>
               <div style={{ fontWeight: 700, color: "#d97706", display: "flex", alignItems: "center", gap: "6px" }}>
