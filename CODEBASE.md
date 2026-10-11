@@ -2,7 +2,7 @@
 
 > MCT OS v2.0 | Francisco Rios | MCT LTDA | Chapecó, BR  
 > Filosofia: Poder invisível, simplicidade visível. Truth in Data.  
-> Última atualização: 02 de outubro de 2026 (Curadoria de Workflows, Engenharia Reversa e Sanitização de Quarentena)
+> Última atualização: 11 de outubro de 2026 (Auto-Heal de Sessões WAHA, Resiliência de Layouts no Cockpit & Topologia Dual-Push Git)
 
 ---
 
@@ -476,5 +476,16 @@ A infraestrutura de automações externas da MCT LTDA está centralizada em um d
     - Botão de comutação imediata ("Entrar nesta Empresa Agora"), trocando o workspace ativo no `localStorage` e recarregando o cockpit.
   - Cobertura de testes unitários em `apps/web/src/__tests__/create-workspace-modal.test.tsx`.
 
-
-
+### 13.6 Auto-Heal de Sessões WAHA, Resiliência de Layouts no Cockpit & Topologia Dual-Push Git (11 de outubro de 2026)
+- **Auto-Heal e Pré-validação de Sessão WAHA (`channels.routes.ts`):**
+  - Rota `POST /v1/workspaces/:workspaceId/channels/:channelId/sync` aprimorada para verificar o estado da sessão no motor WAHA (`/api/sessions/:session`) antes de chamar a sincronização de conversas.
+  - Se a sessão estiver `STOPPED`, o backend dispara tentativa de inicialização automática (`/api/sessions/start`). Se a sessão demandar pareamento por QR Code (`SCAN_QR_CODE`), o canal é marcado como `pairing` e o backend retorna status amigável, prevenindo exceções brutas `502 Bad Gateway / 422 Unprocessable Entity`.
+  - Mapeamento das instâncias soberanas ativas no PostgreSQL 16:
+    - SOS Sales (`11111111-1111-1111-1111-111111111111`): Sessão `plx-documentos` (`+554988447562`, 216 threads, 7.141 mensagens).
+    - Haven Escovaria (`22222222-2222-2222-2222-222222222222`): Sessão `haven` (`+554988370054`, 671 threads, 9.527 mensagens).
+- **Contenção Estrita de Layout no Cockpit & Design System:**
+  - `ConversationRow` / `ListItem`: `renderWhatsappMarkdown` recebeu opção `{ singleLine: true }` convertendo quebras de linha (`\n`) em espaços contínuos no snippet, com `overflow: hidden` e `text-overflow: ellipsis`, eliminando encavalamento vertical de mensagens sobre contatos vizinhos no Inbox.
+  - `ChannelsSection`: Reestruturação completa do card de canais em layout de 2 linhas (topo: ícone fixo 38x38px com metadados do canal; rodapé: barra de ações com linha divisória sutil e `flex-wrap`), garantindo que até 5 botões de ação não espremam o título do canal.
+  - Seletor Multi-Canal no Inbox (`InboxList.tsx` / `useInbox.ts`): Filtro de canais dinâmico no cabeçalho do Inbox (`Todos os Canais` ou canal específico), eliminando a badge estática `META_WABA` quando conversas de instâncias WAHA estão sendo navegadas.
+- **Topologia de Repositórios Git (Dual-Push Soberano):**
+  - Configuração do controle de versão local com `git remote set-url --add --push origin` para atualizar simultaneamente `https://github.com/franciscotaveira/CHATSALES.git` e `https://github.com/franciscotaveira/SOS-SALES.git`.

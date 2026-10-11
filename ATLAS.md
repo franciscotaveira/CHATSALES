@@ -83,6 +83,20 @@
   - O `AiReceptionistProcessor` intercepta a tag, emite o código Pix Copia e Cola EMV oficial BACEN via `createPixCharge` do `@sos-sales/database` utilizando a chave Pix cadastrada no workspace e anexa a instrução de pagamento em bloco de código monoespaçado formatado para WhatsApp.
   - Zero risco de parada: se o workspace não tiver chave cadastrada, a IA envia a resposta conversacional normalmente sem interromper o atendimento.
 
+### 2.9 Resiliência Operacional WAHA & Cockpit Layout (Outubro/2026)
+- **Auto-Heal e Pré-validação de Sessão WAHA:**
+  - A rota `POST /v1/workspaces/:workspaceId/channels/:channelId/sync` agora inspeciona proativamente o estado da sessão no motor WAHA (`/api/sessions/:session`) antes de solicitar o histórico de conversas.
+  - Se a sessão estiver parada (`STOPPED`), dispara automaticamente tentativa de inicialização (`/api/sessions/start`). Se exigir leitura de QR Code (`SCAN_QR_CODE`), atualiza deterministicamente o status do canal para `pairing` e retorna JSON amigável ao usuário, eliminando respostas opacas `502 Bad Gateway / 422 Unprocessable Entity`.
+  - Mapeamento das sessões soberanas na VPS `179.197.72.221`:
+    - Workspace `11111111-1111-1111-1111-111111111111` (SOS Sales - Francisco Taveira `+554988447562`) -> Sessão WAHA `plx-documentos` (216 threads, 7.141 mensagens).
+    - Workspace `22222222-2222-2222-2222-222222222222` (Haven Escovaria `+554988370054`) -> Sessão WAHA `haven` (671 threads, 9.527 mensagens).
+- **Contenção Estrita de Layout no Cockpit & Design System:**
+  - `ConversationRow` / `ListItem`: Snippets de pré-visualização passam por `renderWhatsappMarkdown` com `{ singleLine: true }` para converter quebras de linha (`\n`) em espaços contínuos, impedindo que tags `<br />` causem vazamento vertical de texto sobre contatos adjacentes.
+  - `ChannelsSection`: Reestruturação dos cards de canal em dois blocos (informações no topo com ícone 38x38px de largura fixa e barra dedicada de ações com divisor no rodapé), eliminando colapso de nomes de canais.
+  - Filtro Multi-Canal no Inbox: Inclusão de seletor dinâmico no cabeçalho do Cockpit (`Todos os Canais` ou canal específico), garantindo que workspaces com canais híbridos (WABA Oficial + WAHA) alternem e visualizem os leads de forma transparente.
+- **Topologia de Repositórios Git (Dual-Push Soberano):**
+  - `origin` configurado com push simultâneo para `https://github.com/franciscotaveira/CHATSALES.git` e `https://github.com/franciscotaveira/SOS-SALES.git`.
+
 ---
 
 ## 3. Diretrizes de Segurança e Isolamento
