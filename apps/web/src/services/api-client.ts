@@ -1179,6 +1179,27 @@ export class ApiClient {
     });
   }
 
+  async metaEmbeddedSignup(
+    workspaceId: string,
+    payload: {
+      displayName: string;
+      wabaAccountId: string;
+      phoneNumberId: string;
+      code?: string;
+      accessToken?: string;
+    },
+    options?: RequestOptions
+  ): Promise<{
+    channel: ChannelSummary;
+  }> {
+    return this.request(`/v1/workspaces/${workspaceId}/channels/meta-embedded-signup`, {
+      ...options,
+      workspaceId,
+      method: "POST",
+      body: payload,
+    });
+  }
+
   async testChannelConnection(
     workspaceId: string,
     payload: {

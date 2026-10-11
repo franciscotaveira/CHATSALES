@@ -37,6 +37,8 @@ export const ChannelWizardDialog: FC<ChannelWizardDialogProps> = ({
 
   const [createdChannelId, setCreatedChannelId] = useState<string | null>(null);
   const [createdChannelName, setCreatedChannelName] = useState<string>("");
+  const [wabaMode, setWabaMode] = useState<"manual" | "embedded">("manual");
+  const [isEmbeddedLoading, setIsEmbeddedLoading] = useState(false);
 
   // Sync initialProvider when dialog opens
   useEffect(() => {
@@ -145,6 +147,99 @@ function sanitizePhoneE164(raw: string): string | undefined {
     }
   };
 
+  const handleLaunchFacebookLogin = () => {
+    setIsEmbeddedLoading(true);
+    setErrorMsg(null);
+
+    const initAndLogin = () => {
+      try {
+        (window as any).FB.init({
+          appId: "2294262161340902",
+          autoLogAppEvents: true,
+          xfbml: true,
+          version: "v21.0",
+        });
+
+        const messageListener = (event: MessageEvent) => {
+          if (event.origin !== "https://www.facebook.com" && event.origin !== "https://web.facebook.com") return;
+          try {
+            const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+            if (data.type === "WA_EMBEDDED_SIGNUP" && data.data) {
+              if (data.data.phone_number_id) setPhoneNumberId(data.data.phone_number_id);
+              if (data.data.waba_id) setWabaAccountId(data.data.waba_id);
+            }
+          } catch {}
+        };
+        window.addEventListener("message", messageListener);
+
+        (window as any).FB.login(
+          async (response: any) => {
+            setIsEmbeddedLoading(false);
+            window.removeEventListener("message", messageListener);
+
+            if (response.authResponse?.code || response.authResponse?.accessToken) {
+              setIsSubmitting(true);
+              try {
+                const res = await apiClient.metaEmbeddedSignup(
+                  workspaceId!,
+                  {
+                    displayName: displayName.trim(),
+                    code: response.authResponse?.code,
+                    accessToken: response.authResponse?.accessToken,
+                    wabaAccountId: wabaAccountId.trim() || response.authResponse?.waba_id || "",
+                    phoneNumberId: phoneNumberId.trim() || response.authResponse?.phone_number_id || "",
+                  },
+                  { token }
+                );
+
+                if (res?.channel?.id) {
+                  setCreatedChannelId(res.channel.id);
+                  setCreatedChannelName(res.channel.displayName);
+                }
+                setStep(3);
+                onChannelCreated();
+              } catch (err: unknown) {
+                setErrorMsg(err instanceof Error ? err.message : "Falha ao provisionar canal via Embedded Signup");
+              } finally {
+                setIsSubmitting(false);
+              }
+            } else {
+              setErrorMsg("Login da Meta cancelado ou não autorizado.");
+            }
+          },
+          {
+            scope: "whatsapp_business_management,whatsapp_business_messaging",
+            response_type: "code",
+            override_default_response_type: true,
+            extras: {
+              feature: "whatsapp_embedded_signup",
+              version: 2,
+            },
+          }
+        );
+      } catch {
+        setIsEmbeddedLoading(false);
+        setErrorMsg("Não foi possível iniciar o login da Meta. Use a opção de credenciais manuais.");
+      }
+    };
+
+    if (!(window as any).FB) {
+      const script = document.createElement("script");
+      script.src = "https://connect.facebook.net/pt_BR/sdk.js";
+      script.async = true;
+      script.defer = true;
+      script.crossOrigin = "anonymous";
+      script.onload = initAndLogin;
+      script.onerror = () => {
+        setIsEmbeddedLoading(false);
+        setErrorMsg("Falha ao carregar SDK da Meta. Verifique se bloqueadores de pop-up ou adblock estão ativos.");
+      };
+      document.body.appendChild(script);
+    } else {
+      initAndLogin();
+    }
+  };
+
   const handleClose = useCallback(() => {
     setStep(1);
     setDisplayName("");
@@ -234,47 +329,136 @@ function sanitizePhoneE164(raw: string): string | undefined {
           <>
             {provider === "meta_waba" ? (
               <>
-                <div
-                  style={{
-                    padding: "10px 14px",
-                    backgroundColor: "rgba(37, 99, 235, 0.08)",
-                    border: "1px solid rgba(37, 99, 235, 0.2)",
-                    borderRadius: "var(--radius-md)",
-                    fontSize: "var(--font-size-xs)",
-                    color: "var(--text-secondary)",
-                    lineHeight: 1.5,
-                  }}
-                >
-                  <strong>💡 Credenciais da Meta Cloud API:</strong> Insira o Token de Usuário do Sistema e os IDs do WhatsApp Business. Dica: você pode clicar em <strong>Testar Conexão</strong> para validar a linha e obter o número oficial automaticamente antes de salvar.
-                </div>
-                <Input
-                  label="Token de Acesso Permanente (System User Token)"
-                  placeholder="EAAB..."
-                  type="password"
-                  value={accessToken}
-                  onChange={(e) => setAccessToken(e.target.value)}
-                  required
+                <SegmentedControl
+                  value={wabaMode}
+                  onChange={(val) => setWabaMode(val as "manual" | "embedded")}
+                  options={[
+                    { value: "manual", label: "🔑 Inserir Token & IDs (Manual)" },
+                    { value: "embedded", label: "🔵 Login com Facebook (1-Clique Meta)" },
+                  ]}
                 />
-                <Input
-                  label="Phone Number ID"
-                  placeholder="Ex: 1049283749283"
-                  value={phoneNumberId}
-                  onChange={(e) => setPhoneNumberId(e.target.value)}
-                  required
-                />
-                <Input
-                  label="WABA Account ID (WhatsApp Business Account)"
-                  placeholder="Ex: 1982736452819"
-                  value={wabaAccountId}
-                  onChange={(e) => setWabaAccountId(e.target.value)}
-                />
-                <Input
-                  label="App Secret (Meta App)"
-                  placeholder="Opcional..."
-                  type="password"
-                  value={appSecret}
-                  onChange={(e) => setAppSecret(e.target.value)}
-                />
+
+                {wabaMode === "embedded" ? (
+                  <div
+                    style={{
+                      padding: "16px",
+                      backgroundColor: "rgba(24, 119, 242, 0.05)",
+                      border: "1px solid rgba(24, 119, 242, 0.25)",
+                      borderRadius: "var(--radius-lg)",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "12px",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                      <div
+                        style={{
+                          width: "36px",
+                          height: "36px",
+                          borderRadius: "8px",
+                          backgroundColor: "#1877F2",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#fff",
+                          fontWeight: "bold",
+                          fontSize: "18px",
+                          flexShrink: 0,
+                        }}
+                      >
+                        f
+                      </div>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: "14px", fontWeight: 600, color: "var(--text-primary)" }}>
+                          WhatsApp Onboarding com Meta (1-Clique)
+                        </h4>
+                        <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                          Ideal para novos clientes: abre o pop-up oficial do Facebook Login para escolher a empresa, vincular a conta do WhatsApp Business e validar o número por SMS/Ligação sem precisar criar System User nem compartilhar ativos no Gerenciador de Negócios.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        padding: "10px 12px",
+                        backgroundColor: "var(--bg-surface)",
+                        border: "1px solid var(--border-default)",
+                        borderRadius: "var(--radius-md)",
+                        fontSize: "11px",
+                        color: "var(--text-secondary)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "4px",
+                      }}
+                    >
+                      <div><strong>Meta App Vinculado:</strong> CRM TX APP (ID: <code>2294262161340902</code>)</div>
+                      <div><strong>Permissões Solicitadas:</strong> <code>whatsapp_business_management</code>, <code>whatsapp_business_messaging</code></div>
+                    </div>
+
+                    <Button
+                      size="md"
+                      variant="primary"
+                      style={{
+                        backgroundColor: "#1877F2",
+                        borderColor: "#1877F2",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "8px",
+                        fontWeight: 600,
+                        color: "#fff",
+                      }}
+                      onClick={handleLaunchFacebookLogin}
+                      disabled={isEmbeddedLoading || isSubmitting}
+                    >
+                      {isEmbeddedLoading ? "Iniciando Login Meta..." : "Conectar com Facebook (Embedded Signup)"}
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div
+                      style={{
+                        padding: "10px 14px",
+                        backgroundColor: "rgba(37, 99, 235, 0.08)",
+                        border: "1px solid rgba(37, 99, 235, 0.2)",
+                        borderRadius: "var(--radius-md)",
+                        fontSize: "var(--font-size-xs)",
+                        color: "var(--text-secondary)",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      <strong>💡 Credenciais da Meta Cloud API:</strong> Insira o Token de Usuário do Sistema e os IDs do WhatsApp Business. Dica: você pode clicar em <strong>Testar Conexão</strong> para validar a linha e obter o número oficial automaticamente antes de salvar.
+                    </div>
+                    <Input
+                      label="Token de Acesso Permanente (System User Token)"
+                      placeholder="EAAB..."
+                      type="password"
+                      value={accessToken}
+                      onChange={(e) => setAccessToken(e.target.value)}
+                      required
+                    />
+                    <Input
+                      label="Phone Number ID"
+                      placeholder="Ex: 1049283749283"
+                      value={phoneNumberId}
+                      onChange={(e) => setPhoneNumberId(e.target.value)}
+                      required
+                    />
+                    <Input
+                      label="WABA Account ID (WhatsApp Business Account)"
+                      placeholder="Ex: 1982736452819"
+                      value={wabaAccountId}
+                      onChange={(e) => setWabaAccountId(e.target.value)}
+                    />
+                    <Input
+                      label="App Secret (Meta App)"
+                      placeholder="Opcional..."
+                      type="password"
+                      value={appSecret}
+                      onChange={(e) => setAppSecret(e.target.value)}
+                    />
+                  </>
+                )}
               </>
             ) : provider === "waha" ? (
               <>

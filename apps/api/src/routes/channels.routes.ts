@@ -64,6 +64,14 @@ const updateChannelStatusBodySchema = z.object({
   status: z.enum(["unconfigured", "validating", "pairing", "connected", "error", "revoked"]),
 });
 
+const metaEmbeddedSignupBodySchema = z.object({
+  displayName: z.string().min(2).max(100),
+  wabaAccountId: z.string().min(5),
+  phoneNumberId: z.string().min(5),
+  code: z.string().optional(),
+  accessToken: z.string().optional(),
+});
+
 const testConnectionBodySchema = z.object({
   provider: z.enum(["meta_waba", "waha", "evolution"]),
   credentials: channelCredentialsSchema,
@@ -596,6 +604,228 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
         },
         webhookToken: rawToken,
         webhookUrl: `/v1/webhooks/whatsapp/${rawToken}`,
+      });
+    }
+  );
+
+  // 3.1 Meta WhatsApp Embedded Signup (1-Clique Onboarding)
+  app.post(
+    "/v1/workspaces/:workspaceId/channels/meta-embedded-signup",
+    {
+      preHandler: [
+        app.authenticate,
+        app.requireWorkspaceContext,
+        app.requirePermission("workspace:manage"),
+      ],
+    },
+    async (request, reply) => {
+      const parsedParams = workspaceParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        return reply.status(400).send({
+          type: "https://sos-sales.mct.br/errors/bad-request",
+          title: "Bad Request",
+          status: 400,
+          detail: "Invalid workspaceId parameter",
+          instance: request.url,
+          correlationId: request.id,
+        });
+      }
+
+      const parsedBody = metaEmbeddedSignupBodySchema.safeParse(request.body);
+      if (!parsedBody.success) {
+        return reply.status(400).send({
+          type: "https://sos-sales.mct.br/errors/bad-request",
+          title: "Bad Request",
+          status: 400,
+          detail: parsedBody.error.issues.map((i) => i.message).join(", "),
+          instance: request.url,
+          correlationId: request.id,
+        });
+      }
+
+      const { workspaceId } = parsedParams.data;
+      const { displayName, wabaAccountId, phoneNumberId, code, accessToken } = parsedBody.data;
+
+      const metaAppId = process.env.META_APP_ID || "2294262161340902";
+      const metaAppSecret = process.env.META_APP_SECRET || "98b7a4108c98d7e1667809d1a8667879";
+
+      let finalToken = accessToken?.trim() || "";
+
+      // If code was provided, exchange it for a permanent token
+      if (!finalToken && code) {
+        try {
+          const exchangeUrl = `https://graph.facebook.com/${META_GRAPH_API_VERSION}/oauth/access_token?client_id=${encodeURIComponent(
+            metaAppId
+          )}&client_secret=${encodeURIComponent(metaAppSecret)}&code=${encodeURIComponent(code)}`;
+
+          const exchangeResp = await safeFetchWithSsrfGuard(
+            exchangeUrl,
+            { method: "GET" },
+            { timeoutMs: 12000, allowedProtocols: ["https:"] }
+          );
+
+          if (exchangeResp.ok) {
+            const tokenData = (await exchangeResp.json()) as { access_token?: string };
+            if (tokenData.access_token) {
+              finalToken = tokenData.access_token;
+            }
+          } else {
+            const errData = (await exchangeResp.json()) as any;
+            return reply.status(400).send({
+              type: "https://sos-sales.mct.br/errors/bad-request",
+              title: "Meta Token Exchange Failed",
+              status: 400,
+              detail: errData?.error?.message || "Falha ao trocar código de autorização na Meta",
+              instance: request.url,
+              correlationId: request.id,
+            });
+          }
+        } catch (err: unknown) {
+          return reply.status(502).send({
+            type: "https://sos-sales.mct.br/errors/bad-gateway",
+            title: "Meta OAuth Exchange Error",
+            status: 502,
+            detail: err instanceof Error ? err.message : "Erro de comunicação com a Meta Graph API",
+            instance: request.url,
+            correlationId: request.id,
+          });
+        }
+      }
+
+      if (!finalToken) {
+        return reply.status(400).send({
+          type: "https://sos-sales.mct.br/errors/bad-request",
+          title: "Bad Request",
+          status: 400,
+          detail: "Código de autorização Meta ou Access Token é obrigatório.",
+          instance: request.url,
+          correlationId: request.id,
+        });
+      }
+
+      // Automatically subscribe the App to the client WABA's webhooks
+      try {
+        await safeFetchWithSsrfGuard(
+          `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${encodeURIComponent(wabaAccountId)}/subscribed_apps`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${finalToken}`,
+            },
+          },
+          { timeoutMs: 8000, allowedProtocols: ["https:"] }
+        );
+      } catch {
+        // Non-fatal
+      }
+
+      // Fetch verified name and display phone number
+      let verifiedName = displayName;
+      let resolvedPhoneE164: string | null = null;
+      try {
+        const phoneResp = await safeFetchWithSsrfGuard(
+          `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${encodeURIComponent(
+            phoneNumberId
+          )}?fields=verified_name,display_phone_number`,
+          {
+            headers: {
+              Authorization: `Bearer ${finalToken}`,
+            },
+          },
+          { timeoutMs: 8000, allowedProtocols: ["https:"] }
+        );
+        if (phoneResp.ok) {
+          const phoneData = (await phoneResp.json()) as any;
+          if (phoneData.verified_name) verifiedName = phoneData.verified_name;
+          if (phoneData.display_phone_number) {
+            const digits = phoneData.display_phone_number.replace(/\D/g, "");
+            if (digits) resolvedPhoneE164 = `+${digits}`;
+          }
+        }
+      } catch {
+        // Non-fatal
+      }
+
+      // Persist credentials and channel
+      const rawToken = crypto.randomBytes(32).toString("hex");
+      const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+
+      const channel = await withTenantTransaction(workspaceId, async (client) => {
+        const rawPayload = {
+          access_token: finalToken,
+          phone_number_id: phoneNumberId,
+          waba_account_id: wabaAccountId,
+          app_id: metaAppId,
+        };
+
+        const envKeyring = parseKeyringFromEnv();
+        let keyringOrKey: string | Record<string, string> | undefined = envKeyring?.keyring;
+        if (!keyringOrKey) {
+          keyringOrKey =
+            process.env.MCT_CREDENTIALS_MASTER_KEY ||
+            process.env.APP_MASTER_KEY ||
+            process.env.MASTER_ENCRYPTION_KEY ||
+            (process.env.NODE_ENV === "test"
+              ? "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+              : undefined);
+        }
+
+        if (!keyringOrKey) {
+          throw new Error("Master encryption key missing");
+        }
+
+        const enc = encryptPayload(JSON.stringify(rawPayload), keyringOrKey);
+        const credRes = await client.query<{ id: string }>(
+          `INSERT INTO public.provider_credentials (
+             workspace_id, provider, account_id, encrypted_payload, iv, auth_tag, key_version, status
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           ON CONFLICT (workspace_id, provider, account_id)
+           DO UPDATE SET
+             encrypted_payload = EXCLUDED.encrypted_payload,
+             iv = EXCLUDED.iv,
+             auth_tag = EXCLUDED.auth_tag,
+             key_version = EXCLUDED.key_version,
+             status = 'ACTIVE',
+             updated_at = NOW()
+           RETURNING id;`,
+          [workspaceId, "meta_waba", phoneNumberId, enc.ciphertext, enc.iv, enc.tag, enc.version, "ACTIVE"]
+        );
+
+        const credentialId = credRes.rows[0].id;
+
+        const chanRes = await client.query<{
+          id: string;
+          workspace_id: string;
+          provider: string;
+          display_name: string;
+          phone_number_e164: string | null;
+          status: string;
+          is_active: boolean;
+          created_at: string;
+        }>(
+          `INSERT INTO public.channel_instances (
+             workspace_id, provider, display_name, phone_number_e164, endpoint_token_hash, credential_id, status, is_active
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           RETURNING id, workspace_id, provider, display_name, phone_number_e164, status, is_active, created_at;`,
+          [workspaceId, "meta_waba", displayName || verifiedName, resolvedPhoneE164, tokenHash, credentialId, "connected", true]
+        );
+
+        return chanRes.rows[0];
+      });
+
+      return reply.status(201).send({
+        channel: {
+          id: channel.id,
+          workspaceId: channel.workspace_id,
+          provider: channel.provider,
+          displayName: channel.display_name,
+          phoneNumberE164: channel.phone_number_e164,
+          status: channel.status,
+          isActive: channel.is_active,
+          createdAt: channel.created_at,
+          webhookToken: rawToken,
+          webhookUrl: `/v1/webhooks/whatsapp/${rawToken}`,
+        },
       });
     }
   );
