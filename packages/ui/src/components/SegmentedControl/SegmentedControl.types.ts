@@ -11,7 +11,9 @@ export interface SegmentedControlProps<T extends string = string> {
   options: SegmentOption<T>[];
   value: T;
   onChange: (value: T) => void;
+  size?: "sm" | "md";
   className?: string;
   style?: CSSProperties;
   "aria-label"?: string;
 }
+

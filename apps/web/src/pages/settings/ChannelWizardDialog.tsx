@@ -1,6 +1,6 @@
-import { useState, useCallback, type FC } from "react";
+import { useState, useCallback, useEffect, type FC } from "react";
 import { Dialog, Button, Input, SegmentedControl, Alert } from "@sos-sales/ui";
-import { Check, ArrowRight, ArrowLeft } from "lucide-react";
+import { Check, ArrowRight, ArrowLeft, QrCode } from "lucide-react";
 import { apiClient } from "../../services/api-client";
 
 interface ChannelWizardDialogProps {
@@ -9,6 +9,8 @@ interface ChannelWizardDialogProps {
   workspaceId?: string;
   token?: string;
   onChannelCreated: () => void;
+  onOpenQr?: (channelId: string, channelName: string) => void;
+  initialProvider?: "meta_waba" | "waha" | "evolution";
 }
 
 export const ChannelWizardDialog: FC<ChannelWizardDialogProps> = ({
@@ -17,9 +19,11 @@ export const ChannelWizardDialog: FC<ChannelWizardDialogProps> = ({
   workspaceId,
   token,
   onChannelCreated,
+  onOpenQr,
+  initialProvider = "meta_waba",
 }) => {
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [provider, setProvider] = useState<"meta_waba" | "waha" | "evolution">("meta_waba");
+  const [provider, setProvider] = useState<"meta_waba" | "waha" | "evolution">(initialProvider);
   const [displayName, setDisplayName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   // Meta credentials
@@ -30,6 +34,28 @@ export const ChannelWizardDialog: FC<ChannelWizardDialogProps> = ({
   // WAHA / Evolution credentials
   const [apiKey, setApiKey] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
+
+  const [createdChannelId, setCreatedChannelId] = useState<string | null>(null);
+  const [createdChannelName, setCreatedChannelName] = useState<string>("");
+
+  // Sync initialProvider when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setProvider(initialProvider);
+      if (initialProvider === "waha") {
+        setBaseUrl("http://sos-sales-waha:3000");
+        setApiKey("mct_sos_waha_master_2026");
+      }
+    }
+  }, [isOpen, initialProvider]);
+
+  const handleProviderChange = (newProvider: "meta_waba" | "waha" | "evolution") => {
+    setProvider(newProvider);
+    if (newProvider === "waha" && (!baseUrl || baseUrl === "http://seu-servidor:3000")) {
+      setBaseUrl("http://sos-sales-waha:3000");
+      setApiKey("mct_sos_waha_master_2026");
+    }
+  };
 
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message?: string } | null>(null);
@@ -74,7 +100,7 @@ export const ChannelWizardDialog: FC<ChannelWizardDialogProps> = ({
     setErrorMsg(null);
 
     try {
-      await apiClient.createChannel(
+      const res = await apiClient.createChannel(
         workspaceId,
         {
           provider,
@@ -92,6 +118,10 @@ export const ChannelWizardDialog: FC<ChannelWizardDialogProps> = ({
         { token }
       );
 
+      if (res?.channel?.id) {
+        setCreatedChannelId(res.channel.id);
+        setCreatedChannelName(res.channel.displayName);
+      }
       setStep(3);
       onChannelCreated();
     } catch (err: unknown) {
@@ -140,7 +170,7 @@ export const ChannelWizardDialog: FC<ChannelWizardDialogProps> = ({
               </label>
               <SegmentedControl
                 value={provider}
-                onChange={(val) => setProvider(val as any)}
+                onChange={(val) => handleProviderChange(val as any)}
                 options={[
                   { value: "meta_waba", label: "Meta Cloud API" },
                   { value: "waha", label: "WAHA (QR Code)" },
@@ -214,17 +244,47 @@ export const ChannelWizardDialog: FC<ChannelWizardDialogProps> = ({
                   onChange={(e) => setAppSecret(e.target.value)}
                 />
               </>
-            ) : (
+            ) : provider === "waha" ? (
               <>
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    backgroundColor: "rgba(16, 185, 129, 0.08)",
+                    border: "1px solid rgba(16, 185, 129, 0.2)",
+                    borderRadius: "var(--radius-md)",
+                    fontSize: "var(--font-size-xs)",
+                    color: "var(--text-secondary)",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <strong>💡 Servidor WAHA Nativo na VPS:</strong> A URL interna e chave de autenticação já vêm configuradas para a sua instância local. Ao salvar o canal, você poderá escanear o <strong>QR Code</strong> instantaneamente pelo WhatsApp do seu celular (<em>Aparelhos Conectados</em>).
+                </div>
                 <Input
-                  label="URL Base da Instância"
-                  placeholder="http://seu-servidor:3000"
+                  label="URL Base da Instância WAHA (Servidor Interno)"
+                  placeholder="http://sos-sales-waha:3000"
                   value={baseUrl}
                   onChange={(e) => setBaseUrl(e.target.value)}
                   required
                 />
                 <Input
-                  label="API Key / Chave de Autenticação"
+                  label="API Key / Chave de Acesso WAHA"
+                  placeholder="mct_sos_waha_master_2026"
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                />
+              </>
+            ) : (
+              <>
+                <Input
+                  label="URL Base da Instância Evolution"
+                  placeholder="http://seu-servidor:8080"
+                  value={baseUrl}
+                  onChange={(e) => setBaseUrl(e.target.value)}
+                  required
+                />
+                <Input
+                  label="API Key / Chave Global Evolution"
                   placeholder="Sua chave de acesso..."
                   type="password"
                   value={apiKey}
@@ -284,11 +344,30 @@ export const ChannelWizardDialog: FC<ChannelWizardDialogProps> = ({
               Instância conectada com sucesso!
             </div>
             <p style={{ fontSize: "var(--font-size-sm)", color: "var(--text-secondary)", textAlign: "center", margin: 0 }}>
-              O canal agora está sincronizado e ativo para atendimento no Cockpit.
+              {provider === "waha"
+                ? "A sessão WAHA foi criada no servidor. Agora você precisa ler o QR Code com o aplicativo WhatsApp no seu celular."
+                : "O canal agora está sincronizado e ativo para atendimento no Cockpit."}
             </p>
-            <Button size="sm" variant="primary" onClick={handleClose}>
-              Concluir
-            </Button>
+            <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
+              {provider === "waha" && onOpenQr && createdChannelId && (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  prefixIcon={<QrCode size={16} />}
+                  onClick={() => {
+                    const chId = createdChannelId;
+                    const chName = createdChannelName || displayName;
+                    handleClose();
+                    onOpenQr(chId, chName);
+                  }}
+                >
+                  Escanear QR Code Agora
+                </Button>
+              )}
+              <Button size="sm" variant={provider === "waha" ? "secondary" : "primary"} onClick={handleClose}>
+                {provider === "waha" ? "Fazer Isso Mais Tarde" : "Concluir"}
+              </Button>
+            </div>
           </div>
         )}
       </div>

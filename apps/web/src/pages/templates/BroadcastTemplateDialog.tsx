@@ -800,7 +800,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
           )}
 
           {/* 1. Nome da Campanha & Modo A/B */}
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr", gap: "12px", alignItems: "end" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.2fr) minmax(0, 1fr)", gap: "12px", alignItems: "end" }}>
             <Input
               label="Nome da Campanha (Opcional)"
               placeholder="Ex: Oferta Relâmpago - Leads Qualificados"
@@ -808,7 +808,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
               onChange={(e) => setCampaignName(e.target.value)}
             />
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: 0 }}>
               <label style={{ fontSize: "var(--font-size-xs)", fontWeight: 600, color: "var(--text-primary)" }}>
                 Tipo de Disparo
               </label>
@@ -824,11 +824,11 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
           </div>
 
           {/* 2. Seleção de Canal & Trava de Faturamento Meta */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", minWidth: 0 }}>
             <label style={{ fontSize: "var(--font-size-xs)", fontWeight: 600, color: "var(--text-primary)" }}>
               Canal de Envio (Linha WhatsApp)
             </label>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "10px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) minmax(0, 1fr)", gap: "10px" }}>
               {channels.map((ch) => {
                 const isSelected = ch.id === selectedChannelId;
                 const isBlocked = ch.provider === "meta_waba" && !ch.metaBillingConfigured;
@@ -1201,7 +1201,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                             <div
                               style={{
                                 display: "grid",
-                                gridTemplateColumns: "1.5fr 1.5fr 1fr",
+                                gridTemplateColumns: "minmax(0, 1.5fr) minmax(0, 1.5fr) minmax(0, 1fr)",
                                 padding: "6px 10px",
                                 fontWeight: 600,
                                 backgroundColor: "var(--bg-canvas)",
@@ -1218,7 +1218,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                                 key={idx}
                                 style={{
                                   display: "grid",
-                                  gridTemplateColumns: "1.5fr 1.5fr 1fr",
+                                  gridTemplateColumns: "minmax(0, 1.5fr) minmax(0, 1.5fr) minmax(0, 1fr)",
                                   padding: "5px 10px",
                                   borderBottom: "1px solid var(--border-subtle)",
                                   alignItems: "center",
@@ -1621,7 +1621,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                 </span>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) minmax(0, 1fr)", gap: "16px" }}>
                 {/* Coluna Variante A */}
                 <div
                   style={{
@@ -1632,6 +1632,9 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                     display: "flex",
                     flexDirection: "column",
                     gap: "12px",
+                    minWidth: 0,
+                    width: "100%",
+                    boxSizing: "border-box",
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1639,7 +1642,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                     <span style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)" }}>Contatos ímpares</span>
                   </div>
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px", minWidth: 0 }}>
                     <label style={{ fontSize: "var(--font-size-xs)", fontWeight: 600 }}>Modelo A</label>
                     <select
                       value={selectedTemplateId}
@@ -1651,6 +1654,12 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                         backgroundColor: "var(--bg-canvas)",
                         fontSize: "var(--font-size-sm)",
                         color: "var(--text-primary)",
+                        width: "100%",
+                        maxWidth: "100%",
+                        boxSizing: "border-box",
+                        textOverflow: "ellipsis",
+                        overflow: "hidden",
+                        whiteSpace: "nowrap",
                       }}
                     >
                       {templates.map((tpl) => (
@@ -1726,6 +1735,9 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                     display: "flex",
                     flexDirection: "column",
                     gap: "12px",
+                    minWidth: 0,
+                    width: "100%",
+                    boxSizing: "border-box",
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1733,7 +1745,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                     <span style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)" }}>Contatos pares</span>
                   </div>
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px", minWidth: 0 }}>
                     <label style={{ fontSize: "var(--font-size-xs)", fontWeight: 600 }}>Modelo B</label>
                     <select
                       value={selectedTemplateBId}
@@ -1745,6 +1757,12 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                         backgroundColor: "var(--bg-canvas)",
                         fontSize: "var(--font-size-sm)",
                         color: "var(--text-primary)",
+                        width: "100%",
+                        maxWidth: "100%",
+                        boxSizing: "border-box",
+                        textOverflow: "ellipsis",
+                        overflow: "hidden",
+                        whiteSpace: "nowrap",
                       }}
                     >
                       {templates.map((tpl) => (

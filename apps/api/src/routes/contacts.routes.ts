@@ -44,6 +44,11 @@ const updateContactBodySchema = z
       company: z.string().trim().max(150).optional(),
       notes: z.string().trim().max(2000).optional(),
       tags: z.array(z.string().trim().min(1).max(40)).max(20).optional(),
+      isRecurring: z.boolean().optional(),
+      totalOrders: z.number().int().min(0).optional(),
+      totalSpentCents: z.number().int().min(0).optional(),
+      lastOrderAt: z.string().optional(),
+      customerSince: z.string().optional(),
     }).strict().optional(),
   })
   .strict()

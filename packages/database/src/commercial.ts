@@ -284,12 +284,15 @@ export async function recordCommercialOutcome(
 
     // S-07: Authoritative customer phone derivation: consult contacts.phone_e164 in the workspace FIRST
     let customerPhone: string | undefined;
+    let contactMeta: Record<string, any> | undefined;
     if (journey.contact_id) {
-      const contactRes = await client.query<{ phone_e164: string }>(
-        `SELECT phone_e164 FROM public.contacts WHERE workspace_id = $1 AND id = $2;`,
+      const contactRes = await client.query<{ phone_e164: string; metadata: any }>(
+        `SELECT phone_e164, metadata FROM public.contacts WHERE workspace_id = $1 AND id = $2;`,
         [workspaceId, journey.contact_id]
       );
-      const contactPhone = contactRes.rows[0]?.phone_e164?.trim();
+      const row = contactRes.rows[0];
+      const contactPhone = row?.phone_e164?.trim();
+      contactMeta = row?.metadata;
       if (contactPhone) {
         customerPhone = contactPhone;
       }
@@ -311,6 +314,42 @@ export async function recordCommercialOutcome(
     }
     if (journey.ctwa_clid) {
       userData.ctwaClid = journey.ctwa_clid;
+    }
+
+    // Customer Intelligence & Recurrence update
+    if (journey.contact_id) {
+      const prevOrders = Number(contactMeta?.totalOrders || (contactMeta?.isRecurring ? 1 : 0));
+      const newOrders = prevOrders + 1;
+      const prevSpent = Number(contactMeta?.totalSpentCents || 0);
+      const newSpent = prevSpent + Math.max(0, input.valueCents || 0);
+      const isRecurring = newOrders > 1;
+
+      await client.query(
+        `UPDATE public.contacts
+         SET metadata = metadata || $3::jsonb,
+             updated_at = clock_timestamp()
+         WHERE workspace_id = $1 AND id = $2;`,
+        [
+          workspaceId,
+          journey.contact_id,
+          JSON.stringify({
+            isRecurring,
+            totalOrders: newOrders,
+            totalSpentCents: newSpent,
+            lastOrderAt: new Date().toISOString(),
+          }),
+        ]
+      );
+
+      userData.isRecurringCustomer = isRecurring;
+      userData.ordersCount = newOrders;
+      userData.customerLtv = newSpent / 100;
+      if (contactMeta?.email && typeof contactMeta.email === "string" && contactMeta.email.trim()) {
+        userData.hashedEmail = crypto
+          .createHash("sha256")
+          .update(contactMeta.email.trim().toLowerCase())
+          .digest("hex");
+      }
     }
 
     const convRes = await client.query<ConversionEventRecord>(

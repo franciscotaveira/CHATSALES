@@ -119,19 +119,22 @@ async function main() {
       );
       const effectiveCredId = credRes.rows[0].id;
 
-      // Atualizar channel_instance com a credential_id e status conectado
+      // Inserir ou atualizar channel_instance com a credential_id e status conectado
       const tokenHash = crypto.createHash("sha256").update(`chan-${ch.channelId}`).digest("hex");
       await client.query(
-        `UPDATE public.channel_instances
-         SET credential_id = $1,
-             endpoint_token_hash = $2,
-             status = 'connected',
-             is_active = true,
-             updated_at = NOW()
-         WHERE id = $3;`,
-        [effectiveCredId, tokenHash, ch.channelId]
+        `INSERT INTO public.channel_instances (
+           id, workspace_id, provider, display_name, phone_number_e164,
+           endpoint_token_hash, credential_id, is_active, status, updated_at
+         ) VALUES ($1, $2, 'waha', $3, $4, $5, $6, true, 'connected', NOW())
+         ON CONFLICT (id) DO UPDATE SET
+           credential_id = EXCLUDED.credential_id,
+           endpoint_token_hash = EXCLUDED.endpoint_token_hash,
+           status = 'connected',
+           is_active = true,
+           updated_at = NOW();`,
+        [ch.channelId, ch.workspaceId, ch.displayName, ch.phoneE164, tokenHash, effectiveCredId]
       );
-      console.log(`  ✓ Canal ${ch.channelId} vinculado à credencial ${effectiveCredId} com endpoint chan-${ch.channelId}`);
+      console.log(`  ✓ Canal ${ch.channelId} gravado/vinculado à credencial ${effectiveCredId} com endpoint chan-${ch.channelId}`);
 
       // Atualizar configuração do webhook na sessão WAHA
       const webhookUrl = `${API_INTERNAL_URL}/v1/webhooks/whatsapp/chan-${ch.channelId}`;

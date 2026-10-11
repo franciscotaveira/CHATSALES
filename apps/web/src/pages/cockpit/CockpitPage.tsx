@@ -2,7 +2,8 @@ import { type FC, useState, useEffect } from "react";
 import { Drawer, EmptyState, useBreakpoint } from "@sos-sales/ui";
 import { MessageSquare } from "lucide-react";
 import { useSession, type UseSessionReturn } from "../../hooks/useSession";
-import { apiClient, type CommercialProposalSummary, type ProductRecord } from "../../services/api-client";
+import { apiClient, type CommercialProposalSummary, type ProductRecord, type ContactSummary } from "../../services/api-client";
+import { getCustomStages, type CustomStagesMap } from "../opportunities/stages";
 import { useInbox } from "./hooks/useInbox";
 import { useConversation } from "./hooks/useConversation";
 import { useCockpitLayout } from "./hooks/useCockpitLayout";
@@ -29,6 +30,105 @@ export const CockpitPage: FC<CockpitPageProps> = ({ session: propSession }) => {
   const [activeDrawer, setActiveDrawer] = useState<DrawerType>(null);
   const [proposals, setProposals] = useState<CommercialProposalSummary[]>([]);
   const [proposalError, setProposalError] = useState<string | null>(null);
+  const [selectedContact, setSelectedContact] = useState<ContactSummary | null>(null);
+  const [customStages, setCustomStages] = useState<CustomStagesMap>({});
+  const [isUpdatingStage, setIsUpdatingStage] = useState(false);
+
+  useEffect(() => {
+    if (session.activeWorkspace?.id) {
+      setCustomStages(getCustomStages(session.activeWorkspace.id));
+    }
+  }, [session.activeWorkspace?.id]);
+
+  useEffect(() => {
+    if (!conversation.selectedThread || !session.activeWorkspace?.id || !session.token) {
+      setSelectedContact(null);
+      return;
+    }
+    apiClient
+      .getContacts(
+        session.activeWorkspace.id,
+        { search: conversation.selectedThread.contactPhone, status: "all", limit: 1 },
+        { token: session.token }
+      )
+      .then((res) => {
+        setSelectedContact(res.contacts[0] || null);
+      })
+      .catch(() => setSelectedContact(null));
+  }, [conversation.selectedThread?.id, conversation.selectedThread?.contactPhone, session.activeWorkspace?.id, session.token]);
+
+  const handleUpdateLeadStage = async (newStage: string) => {
+    if (!conversation.selectedThread || !session.activeWorkspace?.id || !session.token) return;
+    const workspaceId = session.activeWorkspace.id;
+    const thread = conversation.selectedThread;
+    setIsUpdatingStage(true);
+
+    try {
+      const res = await apiClient.listJourneys(workspaceId, { limit: 100 }, { token: session.token });
+      const journey = res.items.find(
+        (j) => j.threadId === thread.id || j.contactId === thread.contactId
+      );
+
+      if (newStage === "won" || newStage === "lost") {
+        if (journey) {
+          await apiClient.recordJourneyOutcome(
+            workspaceId,
+            journey.id,
+            { status: newStage, valueCents: journey.estimatedValueCents || 0 },
+            { token: session.token }
+          );
+        } else {
+          const newJ = await apiClient.createJourney(
+            workspaceId,
+            {
+              contactId: thread.contactId,
+              stage: "proposal",
+              title: thread.contactName || "Oportunidade Comercial",
+            },
+            { token: session.token }
+          );
+          await apiClient.recordJourneyOutcome(
+            workspaceId,
+            newJ.id,
+            { status: newStage, valueCents: 0 },
+            { token: session.token }
+          );
+        }
+      } else {
+        if (journey) {
+          await apiClient.updateJourneyStage(workspaceId, journey.id, newStage as any, {
+            token: session.token,
+          });
+        } else {
+          await apiClient.createJourney(
+            workspaceId,
+            {
+              contactId: thread.contactId,
+              stage: newStage as any,
+              title: thread.contactName || "Oportunidade Comercial",
+            },
+            { token: session.token }
+          );
+        }
+      }
+
+      await inbox.refreshThreads();
+      if (thread.contactPhone) {
+        const contactRes = await apiClient.getContacts(
+          workspaceId,
+          { search: thread.contactPhone, status: "all", limit: 1 },
+          { token: session.token }
+        );
+        if (contactRes.contacts[0]) {
+          setSelectedContact(contactRes.contacts[0]);
+        }
+      }
+    } catch (err: unknown) {
+      alert((err as Error).message || "Falha ao atualizar etapa do lead.");
+    } finally {
+      setIsUpdatingStage(false);
+    }
+  };
 
   useEffect(() => {
     if (!layout.selectedThreadId || !session.activeWorkspace?.id || !session.token) {
@@ -224,6 +324,9 @@ export const CockpitPage: FC<CockpitPageProps> = ({ session: propSession }) => {
                   await conversation.handleUpdateStatus("active");
                   await inbox.refreshThreads();
                 }}
+                onUpdateStage={handleUpdateLeadStage}
+                customStages={customStages}
+                isUpdatingStage={isUpdatingStage}
               />
               <MessageList messages={conversation.messages} isLoading={conversation.isLoadingMessages} />
               <Composer
@@ -257,7 +360,12 @@ export const CockpitPage: FC<CockpitPageProps> = ({ session: propSession }) => {
       {!isMobile && !isTablet && !layout.isRightCollapsed && conversation.selectedThread && (
         <ContextPanel
           thread={conversation.selectedThread}
+          contact={selectedContact}
           onClose={layout.toggleRight}
+          journeyStage={conversation.selectedThread.journeyStage}
+          onUpdateStage={handleUpdateLeadStage}
+          customStages={customStages}
+          isUpdatingStage={isUpdatingStage}
           onEditLead={() => setActiveDrawer("dossier")}
           proposals={proposals}
           onCreateProposal={() => setActiveDrawer("proposal")}
@@ -276,7 +384,12 @@ export const CockpitPage: FC<CockpitPageProps> = ({ session: propSession }) => {
         >
           <ContextPanel
             thread={conversation.selectedThread}
+            contact={selectedContact}
             onClose={() => layout.setIsContextDrawerOpen(false)}
+            journeyStage={conversation.selectedThread.journeyStage}
+            onUpdateStage={handleUpdateLeadStage}
+            customStages={customStages}
+            isUpdatingStage={isUpdatingStage}
             onEditLead={() => setActiveDrawer("dossier")}
             proposals={proposals}
             onCreateProposal={() => setActiveDrawer("proposal")}
@@ -304,6 +417,7 @@ export const CockpitPage: FC<CockpitPageProps> = ({ session: propSession }) => {
         onRadarDraftApplied={(draft) => conversation.handleMessageInputChange(draft)}
         onSendProduct={handleSendProduct}
         onSendProducts={handleSendProducts}
+        onContactUpdated={(contact) => setSelectedContact(contact)}
       />
     </div>
   );

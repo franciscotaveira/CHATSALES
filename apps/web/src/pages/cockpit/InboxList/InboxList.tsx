@@ -139,9 +139,9 @@ export const InboxList: FC<InboxListProps> = ({
     <aside
       aria-label="Fila de Conversas Inbox"
       style={{
-        width: isMobile ? "100%" : "var(--inbox-list-w, 320px)",
-        minWidth: isMobile ? "100%" : "var(--inbox-list-w, 320px)",
-        maxWidth: isMobile ? "100%" : "var(--inbox-list-w, 320px)",
+        width: isMobile ? "100%" : "var(--inbox-list-w, 340px)",
+        minWidth: isMobile ? "100%" : "var(--inbox-list-w, 340px)",
+        maxWidth: isMobile ? "100%" : "var(--inbox-list-w, 340px)",
         height: "100%",
         display: "flex",
         flexDirection: "column",
@@ -206,6 +206,7 @@ export const InboxList: FC<InboxListProps> = ({
 
         {/* 32px SegmentedControl Filters */}
         <SegmentedControl
+          size="sm"
           options={filterOptions}
           value={queueFilter}
           onChange={(val) => onQueueFilterChange(val as QueueFilter)}

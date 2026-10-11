@@ -390,8 +390,25 @@ export function buildBusinessMessagingPayload(
   if (item.user_data?.hashedPhone) {
     userData.ph = [item.user_data.hashedPhone];
   }
+  if (item.user_data?.hashedEmail) {
+    userData.em = [item.user_data.hashedEmail];
+  }
   if (item.user_data?.ctwaClid) {
     userData.ctwa_clid = item.user_data.ctwaClid;
+  }
+
+  const customData: Record<string, unknown> = {
+    currency: item.currency || "BRL",
+    ...(valueFloat !== undefined ? { value: valueFloat } : {}),
+  };
+  if (item.user_data?.isRecurringCustomer !== undefined) {
+    customData.is_recurring_customer = item.user_data.isRecurringCustomer;
+  }
+  if (item.user_data?.ordersCount !== undefined) {
+    customData.orders_count = item.user_data.ordersCount;
+  }
+  if (item.user_data?.customerLtv !== undefined) {
+    customData.customer_ltv = item.user_data.customerLtv;
   }
 
   const eventData: Record<string, unknown> = {
@@ -401,10 +418,7 @@ export function buildBusinessMessagingPayload(
     action_source: "business_messaging",
     messaging_channel: "whatsapp",
     user_data: userData,
-    custom_data: {
-      currency: item.currency || "BRL",
-      ...(valueFloat !== undefined ? { value: valueFloat } : {}),
-    },
+    custom_data: customData,
   };
 
   const payload: Record<string, unknown> = {

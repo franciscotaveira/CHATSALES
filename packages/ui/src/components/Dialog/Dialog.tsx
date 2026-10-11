@@ -1,4 +1,5 @@
 import { useEffect, useRef, useId, type FC } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import type { DialogProps } from "./Dialog.types";
 
@@ -120,7 +121,7 @@ export const Dialog: FC<DialogProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  const dialogElement = (
     <div
       style={{
         position: "fixed",
@@ -130,6 +131,7 @@ export const Dialog: FC<DialogProps> = ({
         alignItems: "center",
         justifyContent: "center",
         padding: "16px",
+        boxSizing: "border-box",
       }}
     >
       {/* Backdrop */}
@@ -159,6 +161,8 @@ export const Dialog: FC<DialogProps> = ({
           position: "relative",
           width: "100%",
           maxWidth,
+          boxSizing: "border-box",
+          overflow: "hidden",
           backgroundColor: "var(--bg-surface, #FFFFFF)",
           borderRadius: "var(--radius-lg, 12px)",
           boxShadow: "var(--shadow-lg)",
@@ -178,6 +182,7 @@ export const Dialog: FC<DialogProps> = ({
             justifyContent: "space-between",
             padding: "20px 24px",
             borderBottom: "1px solid var(--border-default, #E2E8F0)",
+            flexShrink: 0,
           }}
         >
           <div>
@@ -229,6 +234,9 @@ export const Dialog: FC<DialogProps> = ({
           style={{
             padding: "20px 24px",
             overflowY: "auto",
+            overflowX: "hidden",
+            width: "100%",
+            boxSizing: "border-box",
             color: "var(--text-primary, #0F172A)",
             fontSize: "0.875rem",
             lineHeight: 1.5,
@@ -249,6 +257,7 @@ export const Dialog: FC<DialogProps> = ({
               gap: "12px",
               borderBottomLeftRadius: "var(--radius-lg, 12px)",
               borderBottomRightRadius: "var(--radius-lg, 12px)",
+              flexShrink: 0,
             }}
           >
             {footer}
@@ -257,4 +266,10 @@ export const Dialog: FC<DialogProps> = ({
       </div>
     </div>
   );
+
+  if (typeof document !== "undefined") {
+    return createPortal(dialogElement, document.body);
+  }
+
+  return dialogElement;
 };

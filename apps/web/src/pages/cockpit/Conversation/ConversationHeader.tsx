@@ -15,6 +15,9 @@ interface ConversationHeaderProps {
   onToggleContext?: () => void;
   isContextOpen?: boolean;
   onAssumeAttendance?: () => void;
+  onUpdateStage?: (newStage: string) => Promise<void> | void;
+  customStages?: Record<string, string>;
+  isUpdatingStage?: boolean;
 }
 
 export const ConversationHeader: FC<ConversationHeaderProps> = ({
@@ -28,6 +31,9 @@ export const ConversationHeader: FC<ConversationHeaderProps> = ({
   onToggleContext,
   isContextOpen = true,
   onAssumeAttendance,
+  onUpdateStage,
+  customStages,
+  isUpdatingStage = false,
 }) => {
   const hasName = Boolean(thread.contactName && thread.contactName.trim());
   const displayName = hasName
@@ -121,25 +127,34 @@ export const ConversationHeader: FC<ConversationHeaderProps> = ({
                 </span>
               )}
 
-              {thread.journeyStage && (
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    padding: "1px 6px",
-                    borderRadius: "10px",
-                    backgroundColor: "var(--bg-canvas)",
-                    color: "var(--text-secondary)",
-                    fontSize: "10.5px",
-                    fontWeight: 500,
-                    border: "1px solid var(--border-default)",
-                    flexShrink: 0,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {thread.journeyStage}
-                </span>
-              )}
+              <select
+                aria-label="Etapa do lead no funil"
+                value={thread.journeyStage || "lead"}
+                onChange={(e) => onUpdateStage?.(e.target.value)}
+                disabled={isUpdatingStage}
+                title="Clique para avançar ou alterar a etapa do lead no funil"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "1px 6px",
+                  borderRadius: "10px",
+                  backgroundColor: "var(--bg-canvas)",
+                  color: "var(--color-operational)",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  border: "1px solid var(--border-default)",
+                  flexShrink: 0,
+                  cursor: isUpdatingStage ? "wait" : "pointer",
+                  outline: "none",
+                }}
+              >
+                <option value="lead">🌱 {customStages?.lead || "Lead"}</option>
+                <option value="qualified">🎯 {customStages?.qualified || "Qualificado"}</option>
+                <option value="proposal">📄 {customStages?.proposal || "Proposta"}</option>
+                <option value="scheduled">📅 {customStages?.scheduled || "Agendado"}</option>
+                <option value="won">🎉 {customStages?.won || "Ganho"}</option>
+                <option value="lost">❌ {customStages?.lost || "Perdido"}</option>
+              </select>
             </div>
             <div
               style={{

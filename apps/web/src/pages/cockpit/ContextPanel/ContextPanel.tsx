@@ -13,6 +13,7 @@ import {
 import type {
   CommercialThreadSummary,
   CommercialProposalSummary,
+  ContactSummary,
 } from "../../../services/api-client";
 import { LeadSummary } from "./LeadSummary";
 import { PixStatus } from "./PixStatus";
@@ -24,11 +25,15 @@ import { JourneyTimeline } from "./JourneyTimeline";
 
 interface ContextPanelProps {
   thread: CommercialThreadSummary;
+  contact?: ContactSummary | null;
   onClose?: () => void;
   // Journey & lead
   journeyStage?: string | null;
   estimatedValueCents?: number | null;
   onEditLead?: () => void;
+  onUpdateStage?: (newStage: string) => Promise<void> | void;
+  customStages?: Record<string, string>;
+  isUpdatingStage?: boolean;
   // Proposals (F3)
   proposals?: CommercialProposalSummary[];
   onCreateProposal?: () => void;
@@ -57,10 +62,14 @@ interface ContextPanelProps {
 
 export const ContextPanel: FC<ContextPanelProps> = ({
   thread,
+  contact,
   onClose,
   journeyStage,
   estimatedValueCents,
   onEditLead,
+  onUpdateStage,
+  customStages,
+  isUpdatingStage,
   proposals = [],
   onCreateProposal,
   onUpdateProposalStatus,
@@ -170,8 +179,13 @@ export const ContextPanel: FC<ContextPanelProps> = ({
           </div>
           <LeadSummary
             thread={thread}
+            contact={contact}
             journeyStage={journeyStage}
             estimatedValueCents={estimatedValueCents}
+            onUpdateStage={onUpdateStage}
+            customStages={customStages}
+            isUpdatingStage={isUpdatingStage}
+            onEditLead={onEditLead}
           />
         </section>
 

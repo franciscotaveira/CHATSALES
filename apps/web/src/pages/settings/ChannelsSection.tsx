@@ -63,24 +63,55 @@ export const ChannelsSection: FC<ChannelsSectionProps> = ({
         gap: "16px",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", flexWrap: "wrap" }}>
         <div>
           <h2 style={{ fontSize: "var(--font-size-sm)", fontWeight: 600, margin: 0, color: "var(--text-primary)" }}>
             Canais WhatsApp Conectados
           </h2>
           <p style={{ fontSize: "var(--font-size-xs)", color: "var(--text-secondary)", margin: "4px 0 0 0" }}>
-            Instâncias Meta Cloud API e WAHA autorizadas no workspace.
+            Instâncias Meta Cloud API (Oficial Nuvem) e WAHA (WhatsApp Web via QR Code).
           </p>
         </div>
 
-        <Button
-          size="sm"
-          variant="primary"
-          prefixIcon={<Plus size={14} />}
-          onClick={onOpenWizard}
-        >
-          Conectar Canal
-        </Button>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <Button
+            size="sm"
+            variant="primary"
+            prefixIcon={<Plus size={14} />}
+            onClick={onOpenWizard}
+          >
+            Conectar Canal
+          </Button>
+        </div>
+      </div>
+
+      {/* Explanatory callout for WhatsApp Web / WAHA vs Cloud API */}
+      <div
+        style={{
+          padding: "12px 14px",
+          backgroundColor: "rgba(0, 128, 105, 0.06)",
+          border: "1px solid rgba(0, 128, 105, 0.2)",
+          borderRadius: "var(--radius-md)",
+          display: "flex",
+          alignItems: "flex-start",
+          gap: "10px",
+          fontSize: "var(--font-size-xs)",
+          color: "var(--text-secondary)",
+          lineHeight: 1.5,
+        }}
+      >
+        <QrCode size={18} color="var(--color-action)" style={{ flexShrink: 0, marginTop: "2px" }} />
+        <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+          <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>
+            Como funciona a conexão por QR Code (WAHA) vs Meta Cloud API:
+          </span>
+          <span>
+            • <strong>Meta Cloud API (Oficial):</strong> Opera direto na nuvem da Meta — <em>não usa QR Code</em>, nunca desconecta por celular desligado, mas exige cartão na Meta para disparos ativos.
+          </span>
+          <span>
+            • <strong>WAHA (WhatsApp Web):</strong> Conecta via <strong>leitura de QR Code</strong> no aplicativo WhatsApp (<em>Aparelhos Conectados</em>). Para conectar uma linha com QR Code, clique em <strong>+ Conectar Canal</strong> e selecione <strong>WAHA (QR Code)</strong>.
+          </span>
+        </div>
       </div>
 
       {isLoading && channels.length === 0 ? (
@@ -139,6 +170,15 @@ export const ChannelsSection: FC<ChannelsSectionProps> = ({
                     </div>
                     <div style={{ fontSize: "var(--font-size-xs)", color: "var(--text-secondary)", marginTop: "3px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px" }}>
                       <span>{ch.provider.toUpperCase()} {ch.phoneNumberE164 ? `· ${ch.phoneNumberE164}` : ""}</span>
+                      {ch.provider === "meta_waba" ? (
+                        <span style={{ fontSize: "0.68rem", padding: "1px 6px", borderRadius: "4px", backgroundColor: "rgba(59, 130, 246, 0.12)", color: "#2563eb", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                          ☁️ Nuvem Meta (Sem QR Code)
+                        </span>
+                      ) : ch.provider === "waha" ? (
+                        <span style={{ fontSize: "0.68rem", padding: "1px 6px", borderRadius: "4px", backgroundColor: "rgba(16, 185, 129, 0.12)", color: "#059669", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                          📱 WhatsApp Web (Via QR Code)
+                        </span>
+                      ) : null}
                       {ch.provider === "meta_waba" && (
                         ch.metaBillingConfigured ? (
                           <span style={{ fontSize: "0.68rem", padding: "1px 6px", borderRadius: "4px", backgroundColor: "rgba(16, 185, 129, 0.15)", color: "#10b981", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "3px" }}>

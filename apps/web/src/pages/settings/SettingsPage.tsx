@@ -282,6 +282,7 @@ export const SettingsPage: FC<{ session: UseSessionReturn }> = ({ session }) => 
         workspaceId={activeWorkspace?.id}
         token={token ?? undefined}
         onChannelCreated={loadChannels}
+        onOpenQr={handleOpenQr}
       />
 
       {/* WAHA QR Code Dialog */}

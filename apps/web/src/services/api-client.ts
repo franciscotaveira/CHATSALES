@@ -458,6 +458,11 @@ export interface ContactSummary {
     company?: string;
     notes?: string;
     tags?: string[];
+    isRecurring?: boolean;
+    totalOrders?: number;
+    totalSpentCents?: number;
+    lastOrderAt?: string;
+    customerSince?: string;
   };
   createdAt: string;
   updatedAt: string;
