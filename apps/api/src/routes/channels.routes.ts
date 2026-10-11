@@ -40,8 +40,19 @@ const createChannelBodySchema = z.object({
   displayName: z.string().min(2).max(100),
   phoneNumberE164: z
     .string()
-    .regex(/^\+[1-9][0-9]{6,14}$/, "Must be a valid E.164 phone number")
-    .optional(),
+    .nullish()
+    .transform((val) => {
+      if (!val) return undefined;
+      const trimmed = val.trim();
+      if (!trimmed) return undefined;
+      const digits = trimmed.replace(/\D/g, "");
+      if (!digits) return undefined;
+      if (digits.length === 10 || digits.length === 11) {
+        return `+55${digits}`;
+      }
+      return `+${digits}`;
+    })
+    .pipe(z.string().regex(/^\+[1-9][0-9]{6,14}$/, "Must be a valid E.164 phone number").optional()),
   endpointToken: z.string().min(16).optional(),
   credentials: channelCredentialsSchema.optional(),
   waacId: z.string().optional(),
@@ -504,6 +515,41 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
         // Neither can start in 'connected' or 'pairing' without server adapter proof.
         const initialStatus = credentials ? "validating" : "unconfigured";
 
+        let effectivePhoneNumberE164: string | null = phoneNumberE164 ?? null;
+
+        if (
+          !effectivePhoneNumberE164 &&
+          provider === "meta_waba" &&
+          credentials?.phoneNumberId &&
+          credentials?.accessToken &&
+          process.env.NODE_ENV !== "test"
+        ) {
+          try {
+            const metaResp = await safeFetchWithSsrfGuard(
+              `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${encodeURIComponent(
+                credentials.phoneNumberId
+              )}?fields=display_phone_number`,
+              {
+                headers: {
+                  Authorization: `Bearer ${credentials.accessToken}`,
+                },
+              },
+              { timeoutMs: 8000, allowedProtocols: ["https:"] }
+            );
+            if (metaResp.ok) {
+              const metaData = (await metaResp.json()) as { display_phone_number?: string };
+              if (metaData?.display_phone_number) {
+                const rawDigits = metaData.display_phone_number.replace(/\D/g, "");
+                if (rawDigits) {
+                  effectivePhoneNumberE164 = `+${rawDigits}`;
+                }
+              }
+            }
+          } catch {
+            // Non-fatal fallback: remains null
+          }
+        }
+
         const res = await client.query<{
           id: string;
           workspace_id: string;
@@ -518,7 +564,7 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
              workspace_id, provider, display_name, phone_number_e164, endpoint_token_hash, credential_id, status, is_active
            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
            RETURNING id, workspace_id, provider, display_name, phone_number_e164, status, is_active, created_at;`,
-          [workspaceId, provider, displayName, phoneNumberE164 ?? null, tokenHash, credentialId, initialStatus, false]
+          [workspaceId, provider, displayName, effectivePhoneNumberE164, tokenHash, credentialId, initialStatus, false]
         );
         return res.rows[0];
       });

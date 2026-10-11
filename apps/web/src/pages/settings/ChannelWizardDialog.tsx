@@ -62,6 +62,17 @@ export const ChannelWizardDialog: FC<ChannelWizardDialogProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+function sanitizePhoneE164(raw: string): string | undefined {
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  const digits = trimmed.replace(/\D/g, "");
+  if (!digits) return undefined;
+  if (digits.length === 10 || digits.length === 11) {
+    return `+55${digits}`;
+  }
+  return `+${digits}`;
+}
+
   const handleTestConnection = async () => {
     if (!workspaceId || !token) return;
     setIsTesting(true);
@@ -84,6 +95,9 @@ export const ChannelWizardDialog: FC<ChannelWizardDialogProps> = ({
         { token }
       );
       setTestResult(res);
+      if (res.success && res.displayPhoneNumber && !phoneNumber.trim()) {
+        setPhoneNumber(res.displayPhoneNumber);
+      }
     } catch (err: unknown) {
       setTestResult({
         success: false,
@@ -105,7 +119,7 @@ export const ChannelWizardDialog: FC<ChannelWizardDialogProps> = ({
         {
           provider,
           displayName: displayName.trim(),
-          phoneNumberE164: phoneNumber.trim() || undefined,
+          phoneNumberE164: sanitizePhoneE164(phoneNumber),
           credentials: {
             accessToken: accessToken.trim() || undefined,
             phoneNumberId: phoneNumberId.trim() || undefined,
@@ -193,6 +207,11 @@ export const ChannelWizardDialog: FC<ChannelWizardDialogProps> = ({
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
             />
+            {provider === "meta_waba" && (
+              <span style={{ fontSize: "11px", color: "var(--text-tertiary)", marginTop: "-10px", display: "block" }}>
+                💡 Para Meta Cloud API, o número é detectado e verificado automaticamente na Meta se deixado em branco.
+              </span>
+            )}
 
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "8px" }}>
               <Button size="sm" variant="secondary" onClick={handleClose}>
@@ -215,6 +234,19 @@ export const ChannelWizardDialog: FC<ChannelWizardDialogProps> = ({
           <>
             {provider === "meta_waba" ? (
               <>
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    backgroundColor: "rgba(37, 99, 235, 0.08)",
+                    border: "1px solid rgba(37, 99, 235, 0.2)",
+                    borderRadius: "var(--radius-md)",
+                    fontSize: "var(--font-size-xs)",
+                    color: "var(--text-secondary)",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <strong>💡 Credenciais da Meta Cloud API:</strong> Insira o Token de Usuário do Sistema e os IDs do WhatsApp Business. Dica: você pode clicar em <strong>Testar Conexão</strong> para validar a linha e obter o número oficial automaticamente antes de salvar.
+                </div>
                 <Input
                   label="Token de Acesso Permanente (System User Token)"
                   placeholder="EAAB..."
