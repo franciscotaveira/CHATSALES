@@ -172,40 +172,42 @@ function sanitizePhoneE164(raw: string): string | undefined {
     const executeLogin = () => {
       try {
         (window as any).FB.login(
-          async (response: any) => {
+          (response: any) => {
             window.clearTimeout(safetyTimer);
             setIsEmbeddedLoading(false);
             window.removeEventListener("message", messageListener);
 
-            if (response?.authResponse?.code || response?.authResponse?.accessToken) {
-              setIsSubmitting(true);
-              try {
-                const res = await apiClient.metaEmbeddedSignup(
-                  workspaceId!,
-                  {
-                    displayName: displayName.trim(),
-                    code: response.authResponse?.code,
-                    accessToken: response.authResponse?.accessToken,
-                    wabaAccountId: wabaAccountId.trim() || response.authResponse?.waba_id || "",
-                    phoneNumberId: phoneNumberId.trim() || response.authResponse?.phone_number_id || "",
-                  },
-                  { token }
-                );
+            void (async () => {
+              if (response?.authResponse?.code || response?.authResponse?.accessToken) {
+                setIsSubmitting(true);
+                try {
+                  const res = await apiClient.metaEmbeddedSignup(
+                    workspaceId!,
+                    {
+                      displayName: displayName.trim(),
+                      code: response.authResponse?.code,
+                      accessToken: response.authResponse?.accessToken,
+                      wabaAccountId: wabaAccountId.trim() || response.authResponse?.waba_id || "",
+                      phoneNumberId: phoneNumberId.trim() || response.authResponse?.phone_number_id || "",
+                    },
+                    { token }
+                  );
 
-                if (res?.channel?.id) {
-                  setCreatedChannelId(res.channel.id);
-                  setCreatedChannelName(res.channel.displayName);
+                  if (res?.channel?.id) {
+                    setCreatedChannelId(res.channel.id);
+                    setCreatedChannelName(res.channel.displayName);
+                  }
+                  setStep(3);
+                  onChannelCreated();
+                } catch (err: unknown) {
+                  setErrorMsg(err instanceof Error ? err.message : "Falha ao provisionar canal via Embedded Signup");
+                } finally {
+                  setIsSubmitting(false);
                 }
-                setStep(3);
-                onChannelCreated();
-              } catch (err: unknown) {
-                setErrorMsg(err instanceof Error ? err.message : "Falha ao provisionar canal via Embedded Signup");
-              } finally {
-                setIsSubmitting(false);
+              } else {
+                setErrorMsg("Autenticação da Meta cancelada pelo usuário ou janela fechada.");
               }
-            } else {
-              setErrorMsg("Autenticação da Meta cancelada pelo usuário ou janela fechada.");
-            }
+            })();
           },
           {
             scope: "whatsapp_business_management,whatsapp_business_messaging",
