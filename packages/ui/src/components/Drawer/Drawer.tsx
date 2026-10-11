@@ -1,5 +1,6 @@
 import { useEffect, useRef, useId, type FC } from "react";
 import { X } from "lucide-react";
+import { useBreakpoint } from "../../hooks/useBreakpoint";
 import type { DrawerProps } from "./Drawer.types";
 
 export const Drawer: FC<DrawerProps> = ({
@@ -13,6 +14,7 @@ export const Drawer: FC<DrawerProps> = ({
   children,
   footer,
 }) => {
+  const { isMobile } = useBreakpoint();
   const drawerRef = useRef<HTMLDivElement>(null);
   const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
   const hasInitiallyFocusedRef = useRef(false);
@@ -120,8 +122,9 @@ export const Drawer: FC<DrawerProps> = ({
 
   if (!isOpen) return null;
 
-  const isLeft = position === "left";
-  const isBottom = position === "bottom";
+  const effectivePosition = isMobile && position !== "left" ? "bottom" : position;
+  const isLeft = effectivePosition === "left";
+  const isBottom = effectivePosition === "bottom";
 
   return (
     <div
@@ -262,7 +265,9 @@ export const Drawer: FC<DrawerProps> = ({
         {footer && (
           <div
             style={{
-              padding: "14px 20px",
+              padding: isBottom
+                ? "14px 20px calc(14px + env(safe-area-inset-bottom, 0px))"
+                : "14px 20px",
               borderTop: "1px solid var(--border-default, #E2E8F0)",
               backgroundColor: "var(--bg-surface-subtle, #F8FAFC)",
               display: "flex",

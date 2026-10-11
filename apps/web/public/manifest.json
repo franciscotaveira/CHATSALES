@@ -1,0 +1,18 @@
+{
+  "short_name": "SOS Sales",
+  "name": "SOS Sales V3 — Sistema Operacional Comercial",
+  "description": "Cockpit comercial com WhatsApp Dual-Engine, Funil e Atribuição Meta Ads (CAPI)",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#F8FAFC",
+  "theme_color": "#008069",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "/"
+}
