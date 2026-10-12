@@ -19,6 +19,7 @@ import { ProductsPage } from "./pages/ProductsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { CatalogPage } from "./pages/CatalogPage";
 import { OpportunitiesPage } from "./pages/opportunities/OpportunitiesPage";
+import { PublicLegalPage } from "./pages/PublicLegalPage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { CreateWorkspaceModal } from "./components/CreateWorkspaceModal";
 import {
@@ -450,6 +451,15 @@ export const App: FC = () => {
         ? ("action" as const)
         : ("neutral" as const),
   };
+
+  // Public Legal Routes (Always accessible without authentication for Meta App Review and compliance)
+  const currentPath = typeof window !== "undefined" ? window.location.pathname.toLowerCase() : "";
+  if (currentPath === "/privacidade" || currentPath === "/privacy") {
+    return <PublicLegalPage type="privacy" />;
+  }
+  if (currentPath === "/termos" || currentPath === "/terms") {
+    return <PublicLegalPage type="terms" />;
+  }
 
   // If unauthenticated or token expired, show Sovereign Login Portal
   if (!token || session.error?.type === "auth") {
