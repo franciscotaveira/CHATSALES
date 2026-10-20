@@ -234,7 +234,6 @@ export async function publishAiAgentVersion(
     );
 
     return {
-      success: true,
       activeRevision: draft.revision,
       ...response(updatedActive, { ...draft, active_revision: draft.revision }),
     };

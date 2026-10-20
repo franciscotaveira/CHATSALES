@@ -112,7 +112,7 @@ describe("AbacatePay Service Suite", () => {
       });
 
       expect(mockFetch).toHaveBeenCalledOnce();
-      const [url, init] = mockFetch.mock.calls[0];
+      const [url, init] = mockFetch.mock.calls[0]!;
       expect(url).toBe("https://api.abacatepay.com/v1/billing/create");
       expect(init.headers["Authorization"]).toBe("Bearer api_key_test_123");
 

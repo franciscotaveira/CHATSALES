@@ -1,4 +1,3 @@
-import crypto from "node:crypto";
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { withTenantTransaction } from "@sos-sales/database";

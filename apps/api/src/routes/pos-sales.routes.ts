@@ -104,12 +104,11 @@ export const posSalesRoutes: FastifyPluginAsync = async (app) => {
       try {
         const result = await withTenantTransaction(workspaceId, async (client) => {
           // 1. Obter ou criar contato no workspace
-          const contact = await createOrGetContact(
-            client,
+          const contact = await createOrGetContact(client, {
             workspaceId,
-            data.customer.phoneE164,
-            data.customer.name
-          );
+            phoneE164: data.customer.phoneE164,
+            name: data.customer.name,
+          });
 
           // 2. Enriquecer metadados fiscais no contato
           const fiscalMetadata = {
@@ -143,43 +142,70 @@ export const posSalesRoutes: FastifyPluginAsync = async (app) => {
             await client.query<{ id: string; provider: string; name: string }>(
               `SELECT id, provider, name 
                FROM public.channel_instances 
-               WHERE workspace_id = $1 AND status = 'active' 
+               WHERE workspace_id = $1 AND (status = 'active' OR status = 'connected') 
+               ORDER BY updated_at DESC LIMIT 1`,
+              [workspaceId]
+            )
+          ).rows[0] ?? (
+            await client.query<{ id: string; provider: string; name: string }>(
+              `SELECT id, provider, name 
+               FROM public.channel_instances 
+               WHERE workspace_id = $1
                ORDER BY updated_at DESC LIMIT 1`,
               [workspaceId]
             )
           ).rows[0];
 
           // 4. Localizar ou criar conversa (commercial_threads)
-          let threadId: string | null = null;
-          if (channel) {
-            const existingThread = (
+          let threadId: string;
+          const existingThread = (
+            await client.query<{ id: string }>(
+              `SELECT id FROM public.commercial_threads 
+               WHERE workspace_id = $1 AND contact_id = $2 
+               ORDER BY last_message_at DESC NULLS LAST LIMIT 1`,
+              [workspaceId, contact.id]
+            )
+          ).rows[0];
+
+          if (existingThread) {
+            threadId = existingThread.id;
+          } else if (channel) {
+            const newThread = (
               await client.query<{ id: string }>(
-                `SELECT id FROM public.commercial_threads 
-                 WHERE workspace_id = $1 AND contact_id = $2 
-                 ORDER BY last_message_at DESC NULLS LAST LIMIT 1`,
-                [workspaceId, contact.id]
+                `INSERT INTO public.commercial_threads (workspace_id, channel_instance_id, contact_id, status)
+                 VALUES ($1, $2, $3, 'active')
+                 RETURNING id`,
+                [workspaceId, channel.id, contact.id]
+              )
+            ).rows[0];
+            threadId = newThread?.id ?? "";
+          } else {
+            const fallbackChannel = (
+              await client.query<{ id: string }>(
+                `SELECT id FROM public.channel_instances WHERE workspace_id = $1 LIMIT 1`,
+                [workspaceId]
               )
             ).rows[0];
 
-            if (existingThread) {
-              threadId = existingThread.id;
-            } else {
-              const newThread = (
-                await client.query<{ id: string }>(
-                  `INSERT INTO public.commercial_threads (workspace_id, channel_instance_id, contact_id, status)
-                   VALUES ($1, $2, $3, 'active')
-                   RETURNING id`,
-                  [workspaceId, channel.id, contact.id]
-                )
-              ).rows[0];
-              threadId = newThread?.id ?? null;
+            if (!fallbackChannel) {
+              throw new Error("CANAL_NOT_CONFIGURED: O workspace precisa de ao menos um canal de atendimento para registrar vendas.");
             }
+
+            const newThread = (
+              await client.query<{ id: string }>(
+                `INSERT INTO public.commercial_threads (workspace_id, channel_instance_id, contact_id, status)
+                 VALUES ($1, $2, $3, 'active')
+                 RETURNING id`,
+                [workspaceId, fallbackChannel.id, contact.id]
+              )
+            ).rows[0];
+            threadId = newThread!.id;
           }
 
           // 5. Criar a proposta de venda balcão já no estado aceito
           const proposal = await createCommercialProposal(client, {
             workspaceId,
-            threadId: threadId ?? undefined,
+            threadId,
             contactId: contact.id,
             title: data.sale.title,
             items: data.sale.items,

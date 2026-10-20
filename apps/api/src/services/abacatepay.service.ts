@@ -217,7 +217,7 @@ export async function reconcileAbacatePaySettlement(
     .update(JSON.stringify({ billingId, paidAmountCents, customerData, metadata }))
     .digest("hex");
 
-  const receipt = await client.query(
+  await client.query(
     `INSERT INTO public.integration_event_receipts(workspace_id, provider, event_key, payload_hash)
      VALUES ($1, 'abacatepay', $2, $3)
      ON CONFLICT DO NOTHING RETURNING event_key`,
@@ -225,7 +225,7 @@ export async function reconcileAbacatePaySettlement(
   );
 
   // Locate the charge in pix_charges (either by gateway_charge_id or metadata.chargeId)
-  let chargeRow = (
+  let chargeRow: PixChargeRecord | undefined = (
     await client.query<PixChargeRecord>(
       `SELECT * FROM public.pix_charges
        WHERE workspace_id = $1 AND (gateway_charge_id = $2 OR id = $3::uuid)
@@ -245,7 +245,9 @@ export async function reconcileAbacatePaySettlement(
     throw new Error(`COBRANCA_NOT_FOUND: Cobrança ${billingId} não encontrada no Chat Sales`);
   }
 
-  const alreadySettled = chargeRow.status === "PAID";
+  const currentCharge: PixChargeRecord = chargeRow;
+
+  const alreadySettled = currentCharge.status === "PAID";
   if (!alreadySettled) {
     const updated = await client.query(
       `UPDATE public.pix_charges
@@ -261,18 +263,23 @@ export async function reconcileAbacatePaySettlement(
        RETURNING *`,
       [
         workspaceId,
-        chargeRow.id,
+        currentCharge.id,
         `AbacatePay billing ${billingId} (event ${eventId})`.slice(0, 200),
         billingId,
       ]
     );
-    chargeRow = {
-      ...chargeRow,
-      ...updated.rows[0],
-      amount_cents: Number(updated.rows[0]?.amount_cents ?? chargeRow.amount_cents),
-      proposal_id: updated.rows[0]?.proposal_id ?? chargeRow.proposal_id,
-    };
+    const updatedRow = updated.rows[0];
+    if (updatedRow) {
+      chargeRow = {
+        ...currentCharge,
+        ...updatedRow,
+        amount_cents: Number(updatedRow.amount_cents ?? currentCharge.amount_cents),
+        proposal_id: updatedRow.proposal_id ?? currentCharge.proposal_id,
+      };
+    }
   }
+
+  const finalCharge: PixChargeRecord = chargeRow ?? currentCharge;
 
   // Record in external_payment_confirmations for durable multi-tenant financial reporting
   await client.query(
@@ -283,16 +290,16 @@ export async function reconcileAbacatePaySettlement(
     [
       workspaceId,
       billingId,
-      chargeRow.contact_id,
-      paidAmountCents || chargeRow.amount_cents,
-      chargeRow.title || "Cobrança AbacatePay",
+      finalCharge.contact_id,
+      paidAmountCents || finalCharge.amount_cents,
+      finalCharge.title || "Cobrança AbacatePay",
     ]
   );
 
   let proposalAccepted = false;
 
   // If tied to a commercial proposal, accept it and mark outcome as won!
-  if (chargeRow.proposal_id) {
+  if (finalCharge.proposal_id) {
     const propRes = await client.query<{
       id: string;
       status: string;
@@ -303,7 +310,7 @@ export async function reconcileAbacatePaySettlement(
       `SELECT id, status, journey_id, total_cents, currency
        FROM public.commercial_proposals
        WHERE workspace_id = $1 AND id = $2 FOR UPDATE`,
-      [workspaceId, chargeRow.proposal_id]
+      [workspaceId, finalCharge.proposal_id]
     );
 
     const prop = propRes.rows[0];
@@ -355,7 +362,7 @@ export async function reconcileAbacatePaySettlement(
         workspaceId,
         customerData.taxId || null,
         customerData.email || null,
-        chargeRow.contact_id,
+        finalCharge.contact_id,
       ]
     );
   }
@@ -366,12 +373,12 @@ export async function reconcileAbacatePaySettlement(
      VALUES ($1, $1, 'integration', 'payment.settled.abacatepay', 'pix_charge', $2, $3::jsonb)`,
     [
       workspaceId,
-      chargeRow.id,
+      finalCharge.id,
       JSON.stringify({
         billingId,
         eventId,
-        amountCents: chargeRow.amount_cents,
-        proposalId: chargeRow.proposal_id ?? null,
+        amountCents: finalCharge.amount_cents,
+        proposalId: finalCharge.proposal_id ?? null,
       }),
     ]
   );
@@ -379,9 +386,9 @@ export async function reconcileAbacatePaySettlement(
   // Send WhatsApp celebratory notification
   if (!alreadySettled) {
     try {
-      await enqueuePixConfirmationMessage(client, workspaceId, chargeRow);
+      await enqueuePixConfirmationMessage(client, workspaceId, finalCharge);
     } catch (notifErr) {
-      logger.warn({ err: notifErr, chargeId: chargeRow.id }, "Could not enqueue WhatsApp payment confirmation message");
+      logger.warn({ err: notifErr, chargeId: finalCharge.id }, "Could not enqueue WhatsApp payment confirmation message");
     }
 
     // Enqueue Trojan Utility post-sale flow
@@ -391,7 +398,7 @@ export async function reconcileAbacatePaySettlement(
          JOIN public.channel_instances ci ON ci.id = t.channel_instance_id AND ci.workspace_id = t.workspace_id
          WHERE t.workspace_id = $1 AND t.id = $2 AND ci.is_active = true AND ci.status = 'connected'
          LIMIT 1`,
-        [workspaceId, chargeRow.thread_id]
+        [workspaceId, finalCharge.thread_id]
       );
 
       const channelInstanceId = channelRes.rows[0]?.id;
@@ -407,24 +414,24 @@ export async function reconcileAbacatePaySettlement(
           [
             workspaceId,
             channelInstanceId,
-            chargeRow.thread_id,
+            finalCharge.thread_id,
             JSON.stringify({
               intent: "post_sale_invoice_prompt",
-              chargeId: chargeRow.id,
-              proposalId: chargeRow.proposal_id ?? null,
-              amountCents: chargeRow.amount_cents,
+              chargeId: finalCharge.id,
+              proposalId: finalCharge.proposal_id ?? null,
+              amountCents: finalCharge.amount_cents,
             }),
-            `post-sale-abacate-${chargeRow.id}`,
+            `post-sale-abacate-${finalCharge.id}`,
           ]
         );
       }
     } catch (postSaleErr) {
-      logger.warn({ err: postSaleErr, chargeId: chargeRow.id }, "Could not enqueue post-sale command");
+      logger.warn({ err: postSaleErr, chargeId: finalCharge.id }, "Could not enqueue post-sale command");
     }
   }
 
   return {
-    charge: chargeRow,
+    charge: finalCharge,
     proposalAccepted,
     alreadySettled,
   };

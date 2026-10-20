@@ -1,11 +1,9 @@
-import crypto from "node:crypto";
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import {
   withTenantTransaction,
   createPixCharge,
   getCommercialProposalById,
-  type PixChargeRecord,
 } from "@sos-sales/database";
 import { logger } from "@sos-sales/observability";
 import {
