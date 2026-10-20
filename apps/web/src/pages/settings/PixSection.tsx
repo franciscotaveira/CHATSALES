@@ -2,7 +2,7 @@ import {hasWorkspacePermission} from "@sos-sales/contracts";
 import { useState, useEffect, useRef, type FC } from "react";
 import { Button, Input, Alert, Badge, useBreakpoint } from "@sos-sales/ui";
 import { useDiscardChanges, UnsavedChangesNotice } from "../UnsavedChangesNotice";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, ExternalLink, Wrench } from "lucide-react";
 import type { UseSessionReturn } from "../../hooks/useSession";
 import { apiClient } from "../../services/api-client";
 import { userFacingError } from "../../utils/user-facing-error";
@@ -347,6 +347,78 @@ const AbacatePayConfiguration: FC<{ session: UseSessionReturn }> = ({ session })
           <p style={{ fontSize: "var(--font-size-xs)", color: "var(--text-secondary)", margin: "4px 0 0 0" }}>
             Integração nativa com AbacatePay para emissão de QRCodes dinâmicos com identificação do cliente e baixa em tempo real via Webhook HMAC-SHA256.
           </p>
+        </div>
+      </div>
+
+      <div
+        style={{
+          backgroundColor: "rgba(34, 197, 94, 0.06)",
+          border: "1px solid rgba(34, 197, 94, 0.22)",
+          borderRadius: "var(--radius-md)",
+          padding: "12px 16px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "12px",
+        }}
+      >
+        <div style={{ maxWidth: "480px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ fontSize: "15px" }} role="img" aria-label="Abacate">🥑</span>
+            <strong style={{ fontSize: "var(--font-size-xs)", color: "var(--text-primary)" }}>
+              Ainda não possui conta no AbacatePay?
+            </strong>
+          </div>
+          <p style={{ margin: "4px 0 0 0", fontSize: "11px", color: "var(--text-secondary)", lineHeight: "1.4" }}>
+            Crie sua conta pelo link parceiro oficial CHAT SALES para obter baixa em tempo real e taxas reduzidas, ou contrate nossa equipe para fazer todo o setup.
+          </p>
+        </div>
+
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <a
+            href="https://abacatepay.com?utm_source=chatsales&utm_medium=partner_portal&utm_campaign=parceiro_mct"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "7px 14px",
+              borderRadius: "var(--radius-sm)",
+              backgroundColor: "#16A34A",
+              color: "#FFFFFF",
+              fontSize: "12px",
+              fontWeight: 600,
+              textDecoration: "none",
+              transition: "opacity 0.2s",
+            }}
+          >
+            <span>Criar Conta AbacatePay</span>
+            <ExternalLink size={13} />
+          </a>
+
+          <a
+            href="https://wa.me/554988447562?text=Ol%C3%A1%20Francisco%2C%20estou%20no%20Cockpit%20do%20Chat%20Sales%20e%20gostaria%20de%20contratar%20a%20implanta%C3%A7%C3%A3o%20assistida%20do%20AbacatePay%20e%20WhatsApp%20para%20minha%20empresa."
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "7px 14px",
+              borderRadius: "var(--radius-sm)",
+              backgroundColor: "var(--bg-subtle)",
+              border: "1px solid var(--border-default)",
+              color: "var(--text-primary)",
+              fontSize: "12px",
+              fontWeight: 500,
+              textDecoration: "none",
+            }}
+          >
+            <Wrench size={13} />
+            <span>Contratar Implantação Assistida</span>
+          </a>
         </div>
       </div>
 
