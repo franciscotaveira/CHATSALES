@@ -90,10 +90,98 @@ describe("AI simulation permissions",()=>{
 describe('AI draft access boundaries',()=>{
  it.each(['operator','manager','analyst'])('does not expose or mutate drafts for %s',async role=>{
   state.role=role;
-  for(const [method,tail,payload] of [['GET','',undefined],['POST','/suspend',{reason:'SIM Parada manual'}],['POST','/draft/from-guided',{expectedRevision:0,expectedGuidedRevision:1}]] as const){
+  for(const [method,tail,payload] of [['GET','',undefined],['POST','/suspend',{reason:'SIM Parada manual'}],['POST','/draft/from-guided',{expectedRevision:0,expectedGuidedRevision:1}],['POST','/publish',{expectedRevision:1}]] as const){
    const response=await app.inject({method,url:`/v1/workspaces/${workspace}/ai-agent${tail}`,headers,payload});expect(response.statusCode).toBe(403);
   }
   expect(state.transaction).not.toHaveBeenCalled();
+ });
+
+ it('allows owner to publish draft version when revision matches', async () => {
+  state.role = 'owner';
+  state.query.mockImplementation(async (sql: string) => {
+    if (sql.includes('FROM public.workspace_memberships')) return { rows: [{ role: 'owner' }] };
+    if (sql.includes('SELECT pg_advisory_xact_lock')) return { rows: [] };
+    if (sql.includes('FROM public.workspaces WHERE id=$1')) {
+      return {
+        rows: [{
+          workspace_name: 'LAB',
+          ai_receptionist_enabled: false,
+          ai_agent_name: 'Assistente Anterior',
+          ai_system_prompt: 'Prompt antigo',
+          ai_personality: 'cordial_comercial',
+          ai_skills: {},
+          ai_business_rules: {},
+          ai_faq: [],
+          ai_strict_mode: true,
+          ai_temperature: 0.1,
+          ai_provider: 'nvidia',
+          ai_model: 'SIM_MODEL',
+          ai_api_key: null,
+        }],
+      };
+    }
+    if (sql.includes('FROM public.ai_agent_version_heads h JOIN public.ai_agent_versions v')) {
+      return {
+        rows: [{
+          revision: 2,
+          config: {
+            enabled: true,
+            name: 'Assistente Publicado',
+            systemPrompt: 'Prompt novo publicado',
+            personality: 'cordial_comercial',
+            skills: { qualify_lead: true },
+            businessRules: { companyName: 'LAB Empresa' },
+            faq: [],
+            strictMode: true,
+            temperature: 0.2,
+            provider: 'nvidia',
+            model: 'SIM_MODEL',
+          },
+          key_policy: 'inherit',
+          credential_envelope: null,
+          source_guided_revision: null,
+          active_revision: 1,
+          guided_snapshot: null,
+          guided_modified: false,
+        }],
+      };
+    }
+    if (sql.includes('UPDATE public.workspaces')) {
+      return {
+        rows: [{
+          workspace_name: 'LAB',
+          ai_receptionist_enabled: true,
+          ai_agent_name: 'Assistente Publicado',
+          ai_system_prompt: 'Prompt novo publicado',
+          ai_personality: 'cordial_comercial',
+          ai_skills: { qualify_lead: true },
+          ai_business_rules: { companyName: 'LAB Empresa' },
+          ai_faq: [],
+          ai_strict_mode: true,
+          ai_temperature: 0.2,
+          ai_provider: 'nvidia',
+          ai_model: 'SIM_MODEL',
+          ai_api_key: null,
+        }],
+      };
+    }
+    if (sql.includes('UPDATE public.ai_agent_version_heads')) return { rows: [] };
+    if (sql.includes('INSERT INTO public.audit_events')) return { rows: [] };
+    return { rows: [] };
+  });
+
+  const response = await app.inject({
+    method: 'POST',
+    url: `/v1/workspaces/${workspace}/ai-agent/publish`,
+    headers,
+    payload: { expectedRevision: 2 },
+  });
+
+  expect(response.statusCode).toBe(200);
+  const data = JSON.parse(response.body);
+  expect(data.success).toBe(true);
+  expect(data.activeRevision).toBe(2);
+  expect(data.activeConfig.name).toBe('Assistente Publicado');
  });
 });
 

@@ -2012,6 +2012,19 @@ export class ApiClient {
     return this.request(`/v1/workspaces/${workspaceId}/ai-agent/draft/from-guided`,{...options,method:"POST",body:payload,workspaceId});
   }
 
+  async publishAiAgentVersion(
+    workspaceId: string,
+    payload: { expectedRevision: number },
+    options?: RequestOptions
+  ): Promise<AiAgentConfigResponse> {
+    return this.request(`/v1/workspaces/${workspaceId}/ai-agent/publish`, {
+      ...options,
+      method: "POST",
+      body: payload,
+      workspaceId,
+    });
+  }
+
   async syncMetaTemplates(workspaceId: string, channelId: string, options?: RequestOptions): Promise<{ success: boolean; imported: number }> {
     return this.request(`/v1/workspaces/${workspaceId}/templates/sync`, { ...options, method: "POST", body: { channelId }, workspaceId });
   }

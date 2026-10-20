@@ -1,7 +1,7 @@
 import {withTenantTransaction} from "@sos-sales/database";
 import {listAiRevisionTests,runAiRevisionTest,reviewAiRevisionTest} from '../services/ai-revision-tests';
 import {simulateAiText} from '../services/ai-agent-simulation';
-import {getEditableAiConfig,saveAiConfigDraft,prepareGuidedAiDraft,getAiSimulationBase,suspendActiveAi,AiDraftError} from "../services/ai-config-drafts";
+import {getEditableAiConfig,saveAiConfigDraft,prepareGuidedAiDraft,getAiSimulationBase,suspendActiveAi,publishAiAgentVersion,AiDraftError} from "../services/ai-config-drafts";
 import {updateAiAgentBodySchema} from "../services/ai-config-schema";
 import { guidedAgentRoutes } from "./guided-agent.routes";
 import type { FastifyPluginAsync } from "fastify";
@@ -136,6 +136,14 @@ export const aiAgentRoutes: FastifyPluginAsync = async (app) => {
     const body=z.object({expectedRevision:z.number().int().min(0),expectedGuidedRevision:z.number().int().positive()}).strict().safeParse(request.body);
     if(!params.success||!body.success)return reply.code(400).send({detail:"Revisão do plano ou do rascunho inválida."});
     try{return await prepareGuidedAiDraft(params.data.workspaceId,request.user!.id,body.data.expectedRevision,body.data.expectedGuidedRevision);}
+    catch(error){if(error instanceof AiDraftError)return reply.code(error.status).send({detail:error.message});throw error;}
+  });
+
+  app.post("/v1/workspaces/:workspaceId/ai-agent/publish",{preHandler:[app.authenticate,app.requireWorkspaceContext,app.requirePermission("workspace:manage")]},async(request,reply)=>{
+    const params=workspaceParamsSchema.safeParse(request.params);
+    const body=z.object({expectedRevision:z.number().int().positive()}).strict().safeParse(request.body);
+    if(!params.success||!body.success)return reply.code(400).send({detail:"Informe uma revisão válida para publicação."});
+    try{return await publishAiAgentVersion(params.data.workspaceId,request.user!.id,body.data.expectedRevision);}
     catch(error){if(error instanceof AiDraftError)return reply.code(error.status).send({detail:error.message});throw error;}
   });
 

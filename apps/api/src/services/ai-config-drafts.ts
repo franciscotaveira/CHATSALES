@@ -123,3 +123,120 @@ export async function suspendActiveAi(workspaceId:string,actorId:string,reason:s
     return {success:true,activeEnabled:false};
   });
 }
+
+export async function publishAiAgentVersion(
+  workspaceId: string,
+  actorId: string,
+  expectedRevision: number
+) {
+  return withTenantTransaction(workspaceId, async (client) => {
+    await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [`ai-config:${workspaceId}`]);
+    const { active, draft } = await load(client, workspaceId);
+
+    if (!draft) {
+      throw new AiDraftError(404, "Nenhum rascunho de IA encontrado para publicação.");
+    }
+
+    if (draft.revision !== expectedRevision) {
+      throw new AiDraftError(
+        409,
+        `A revisão do rascunho mudou (atual: ${draft.revision}, esperado: ${expectedRevision}). Consulte a versão atual antes de publicar.`
+      );
+    }
+
+    const config = draft.config;
+    let apiKey: string | null = null;
+
+    if (draft.key_policy === "inherit") {
+      apiKey = config.provider === (active.ai_provider || "nvidia") ? active.ai_api_key ?? null : null;
+    } else if (draft.key_policy === "draft" && draft.credential_envelope) {
+      const secret = draft.credential_envelope;
+      const keys = cryptoKey();
+      try {
+        apiKey = decryptPayload(
+          secret.encryptedBase64,
+          secret.ivBase64,
+          secret.authTagBase64,
+          keys.key,
+          {
+            keyVersion: secret.keyVersion,
+            aad: `ai-draft:${workspaceId}:${config.provider}`,
+          }
+        );
+      } catch {
+        throw new AiDraftError(
+          503,
+          "Não foi possível abrir a credencial protegida do rascunho para publicação."
+        );
+      }
+    }
+
+    const updateResult = await client.query<ActiveRow>(
+      `UPDATE public.workspaces 
+       SET 
+         ai_receptionist_enabled = $2,
+         ai_agent_name = $3,
+         ai_system_prompt = $4,
+         ai_personality = $5,
+         ai_skills = $6::jsonb,
+         ai_business_rules = $7::jsonb,
+         ai_faq = $8::jsonb,
+         ai_strict_mode = $9,
+         ai_temperature = $10,
+         ai_provider = $11,
+         ai_model = $12,
+         ai_api_key = $13,
+         updated_at = clock_timestamp()
+       WHERE id = $1
+       RETURNING ${activeColumns}`,
+      [
+        workspaceId,
+        config.enabled === true,
+        config.name || "Assistente Virtual",
+        config.systemPrompt || "",
+        config.personality || "cordial_comercial",
+        JSON.stringify(config.skills || {}),
+        JSON.stringify(config.businessRules || {}),
+        JSON.stringify(config.faq || []),
+        config.strictMode !== false,
+        config.temperature ?? 0.1,
+        config.provider || "nvidia",
+        config.model,
+        apiKey,
+      ]
+    );
+
+    const updatedActive = updateResult.rows[0];
+    if (!updatedActive) {
+      throw new AiDraftError(404, "Empresa não encontrada para atualização.");
+    }
+
+    await client.query(
+      `UPDATE public.ai_agent_version_heads 
+       SET active_revision = $2, updated_at = clock_timestamp() 
+       WHERE workspace_id = $1`,
+      [workspaceId, draft.revision]
+    );
+
+    await client.query(
+      `INSERT INTO public.audit_events (workspace_id, actor_id, actor_type, action, resource_type, resource_id, metadata)
+       VALUES ($1, $2, 'human', 'ai.version_published', 'workspace', $1, $3::jsonb)`,
+      [
+        workspaceId,
+        actorId,
+        JSON.stringify({
+          publishedRevision: draft.revision,
+          sourceGuidedRevision: draft.source_guided_revision,
+          provider: config.provider,
+          model: config.model,
+        }),
+      ]
+    );
+
+    return {
+      success: true,
+      activeRevision: draft.revision,
+      ...response(updatedActive, { ...draft, active_revision: draft.revision }),
+    };
+  });
+}

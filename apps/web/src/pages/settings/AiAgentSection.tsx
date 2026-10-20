@@ -38,6 +38,7 @@ import {
   Check,
   Briefcase,
   ArrowRight,
+  Send,
 } from "lucide-react";
 import { NICHE_PLAYBOOKS } from "./playbooks";
 import {
@@ -157,7 +158,7 @@ export const AiAgentSection: FC<AiAgentSectionProps> = ({ workspaceId, token }) 
     if (!workspaceId || !token) return;
     let cancelled=false;
     const gen=++generation.current;
-    saveRequest.current=null;simulationRequest.current=null;setSaving(false);setSuspending(false);setSimLoading(false);setSimSnapshot(null);setDraftConflict(false);setDraftComparison(null);setComparingDraft(false);
+    saveRequest.current=null;simulationRequest.current=null;setSaving(false);setPublishing(false);setSuspending(false);setSimLoading(false);setSimSnapshot(null);setDraftConflict(false);setDraftComparison(null);setComparingDraft(false);
     const requestedScope=scope.current;
     setRemovedFaq(null);setFaqIssue(null);setLoadedScope(null);setLoadError(null);setApiKey("");setSimResult(null);setSimError(null);setSimInput("");setPlaybookAppliedNotice(null);setPlaybookPreview(null);setPlaybookUndo(null);setReplacePlaybookFields(false);focusPlaybookNotice.current=false;
     setLoading(true);
@@ -446,6 +447,41 @@ export const AiAgentSection: FC<AiAgentSectionProps> = ({ workspaceId, token }) 
     }catch(error){if(gen===generation.current&&requestedScope===scope.current){focusOutcome.current=true;setErrorMsg(userFacingError(error,"Não foi possível suspender. Confira a configuração em uso antes de tentar novamente."));}}
     finally{if(saveRequest.current===id){saveRequest.current=null;if(gen===generation.current&&requestedScope===scope.current)setSuspending(false);}}
   }
+
+  const [publishing, setPublishing] = useState(false);
+
+  const handlePublish = async () => {
+    if (discard.isPending || !workspaceId || !token || saveRequest.current || simulationRequest.current || publishing || loadedScope !== scope.current) return;
+    if (operationalDirty) {
+      setErrorMsg("Você possui alterações não salvas no rascunho. Salve o rascunho operacional antes de publicar em produção.");
+      focusOutcome.current = true;
+      return;
+    }
+    if (version.draftRevision === 0) {
+      setErrorMsg("Nenhum rascunho salvo para publicar.");
+      focusOutcome.current = true;
+      return;
+    }
+    setPublishing(true);
+    setErrorMsg(null);
+    setPreparedNotice("");
+    try {
+      const result = await apiClient.publishAiAgentVersion(
+        workspaceId,
+        { expectedRevision: version.draftRevision },
+        { token }
+      );
+      setVersion(result.version);
+      setActiveConfig(result.activeConfig ?? null);
+      focusOutcome.current = true;
+      setPreparedNotice(`Revisão ${result.version.activeRevision} publicada com sucesso! A IA agora está em uso no atendimento aos clientes.`);
+    } catch (err: unknown) {
+      focusOutcome.current = true;
+      setErrorMsg(userFacingError(err, "Falha ao publicar a revisão em produção."));
+    } finally {
+      setPublishing(false);
+    }
+  };
 
   if (!workspaceId || !token) return <p>Selecione uma empresa com acesso à configuração da IA.</p>;
   if (loadError && loadedScope!==scope.current) return <div role="alert">{loadError} <Button onClick={()=>setReload(value=>value+1)}>Tentar novamente</Button></div>;
@@ -2395,17 +2431,34 @@ export const AiAgentSection: FC<AiAgentSectionProps> = ({ workspaceId, token }) 
         )}
       </div>
 
-      {/* Save button bar */}
-      <div style={{ display: "flex", justifyContent: "flex-end", flexWrap:"wrap" }}>
+      {/* Save and Publish button bar */}
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+        <Button
+          size="md"
+          variant="secondary"
+          prefixIcon={<Save size={16} />}
+          onClick={handleSave}
+          disabled={saving || publishing}
+        >
+          {saving ? "Salvando rascunho..." : "Salvar rascunho operacional"}
+        </Button>
         <Button
           size="md"
           variant="primary"
-          prefixIcon={<Save size={16} />}
-          onClick={handleSave}
-          disabled={saving}
-          style={{ boxShadow: "var(--shadow-md, 0 4px 6px -1px rgba(0,0,0,0.1))" }}
+          prefixIcon={<Send size={16} />}
+          onClick={handlePublish}
+          disabled={saving || publishing || version.draftRevision === 0 || operationalDirty || (version.activeRevision === version.draftRevision && !operationalDirty)}
+          style={{
+            backgroundColor: version.activeRevision === version.draftRevision && !operationalDirty ? "var(--bg-surface-elevated)" : "#10B981",
+            borderColor: version.activeRevision === version.draftRevision && !operationalDirty ? "var(--border-default)" : "#10B981",
+            color: version.activeRevision === version.draftRevision && !operationalDirty ? "var(--text-secondary)" : "#FFFFFF",
+          }}
         >
-          {saving ? "Salvando alterações..." : "Salvar rascunho operacional"}
+          {publishing
+            ? "Publicando em Produção..."
+            : version.activeRevision === version.draftRevision && !operationalDirty
+            ? "Revisão Ativa em Produção"
+            : `Publicar Revisão ${version.draftRevision} em Produção`}
         </Button>
       </div>
       </fieldset></details>
