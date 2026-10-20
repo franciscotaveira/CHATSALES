@@ -1,6 +1,6 @@
 # CODEBASE.md — SOS Sales V3 (Greenfield Sovereign Architecture)
 
-> MCT OS v2.0 | Francisco Rios | 36.473.741 FRANCISCO TAVEIRA RIOS (CNPJ: 36.473.741/0001-37) | MCT LTDA | Chapecó, SC  
+> MCT OS v2.0 | Francisco Rios | 69.553.990 FRANCISCO TAVEIRA RIOS (CNPJ: 69.553.990/0001-91) | MCT LTDA | Chapecó, SC  
 > Filosofia: Poder invisível, simplicidade visível. Truth in Data.  
 > Última atualização: 20 de outubro de 2026 (Migração Hostinger KVM 4, Domínio automatizaprocessos.tech, Topologia de Ilhas e Governança Anti-Tampering VPS)
 
