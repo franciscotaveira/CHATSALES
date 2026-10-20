@@ -112,6 +112,23 @@
 - **Garantia Global Zero-Network:** Interceptor HTTP instalado nos testes de integração do worker bloqueia qualquer tentativa de chamada para `graph.facebook.com` ou redes externas com `FAIL_CLOSED_NETWORK_VIOLATION`. Testes executam exclusivamente contra mock servers locais (`127.0.0.1`).
 - **Códigos Canônicos de Erro:** Allowlist estrita de 19 códigos canônicos (`CAPI_ERROR_CODES`), prevenindo vazamento de stack traces ou payloads externos.
 
+### 3.9 Gateway AbacatePay & Conciliação Transacional de Pagamentos (Migração 064)
+- **Topologia de Pagamentos Híbrida:**
+  - Suporte concomitante para Pix BACEN EMV nativo (`pix_charges`) e cobranças via Gateway AbacatePay para links de checkout transparentes.
+  - **Schema & Migração 064:** Campos de workspace (`abacatepay_api_key`, `abacatepay_webhook_secret`, `abacatepay_enabled`) e campos de rastreabilidade em `pix_charges` (`gateway_provider`, `gateway_charge_id`, `gateway_checkout_url`).
+- **Segurança de Webhook & HMAC Timing-Safe:**
+  - Verificação de assinatura no cabeçalho `AbacatePay-Signature` (`t=timestamp,v1=hash`) via `crypto.timingSafeEqual` com prevenção de replay attacks (janela de tolerância de 300 segundos).
+  - Rotas expostas: `POST /v1/webhooks/abacatepay/:workspaceId` (escopada por tenant) e `POST /v1/webhooks/abacatepay` (resolução dinâmica por metadados de webhook).
+- **Ciclo Transacional de Fechamento (`billing.paid`):**
+  - Implementado em `apps/api/src/services/abacatepay.service.ts`:
+    1. Transição de `pix_charges.status = 'PAID'` e timestamp `paid_at`.
+    2. Transição automática de propostas comerciais associadas (`proposals.status = 'accepted'`).
+    3. Registro de desfecho comercial em `commercial_outcomes`.
+    4. Enriquecimento de dados fiscais via BrasilAPI (quando CPF/CNPJ presente).
+    5. Disparo transacional de confirmação ao cliente via fila `outbound_commands` no WhatsApp.
+- **Gestão no Cockpit Web:**
+  - Painel administrativo em [PixSection.tsx](file:///Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/apps/web/src/pages/settings/PixSection.tsx) integrado com `api-client.ts` para configuração de credenciais, toggle ativo/inativo e cópia de webhook com 1 clique.
+
 ---
 
 ## 4. Estado de Homologação e Limites Operacionais

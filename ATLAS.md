@@ -116,6 +116,23 @@
   - Conformidade Meta App Review: páginas públicas [PublicLegalPage.tsx](file:///Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/apps/web/src/pages/PublicLegalPage.tsx) (`/legal/terms` e `/legal/privacy`) responsivas e auditadas com o e-mail de DPO `suporte@automatizaprocessos.tech`.
   - Rebuild produtivo de `chat-sales-web` e reinicialização coordenada de `chat-sales-api` e `chat-sales-worker` na VPS, mantendo latência de banco em 7-14ms e Redis em 0-1ms.
 
+### 2.11 Gateway AbacatePay & Conciliação Comercial Transacional REA (Migração 064)
+- **Topologia Híbrida de Liquidação:**
+  - O SOS Sales V3 passa a suportar liquidação dual: Pix Direto BACEN EMV nativo (sem intermediários bancários) e Gateway AbacatePay para links de checkout transparentes e cobranças com cartão/Pix gerenciado.
+  - **Migração 064 (`064_abacatepay_gateway_integration.sql`):** Adição de `abacatepay_api_key`, `abacatepay_webhook_secret` e `abacatepay_enabled` em `public.workspaces`, e adição de `gateway_provider`, `gateway_charge_id` e `gateway_checkout_url` em `public.pix_charges` com índices dedicados `idx_pix_charges_gateway_charge` e `idx_workspaces_abacatepay_enabled`.
+- **Segurança de Webhook & Mitigação de Timing Attack:**
+  - Validação rigorosa de assinatura HMAC SHA-256 no cabeçalho `AbacatePay-Signature` (`t=timestamp,v1=hash`) usando `crypto.timingSafeEqual` com tolerância de drift de relógio de 5 minutos (300s).
+  - Rotas de Webhook isoladas: Endpoint tenant-scoped (`POST /v1/webhooks/abacatepay/:workspaceId`) e endpoint de resolução global por metadados (`POST /v1/webhooks/abacatepay`).
+- **Ciclo de Conciliação Transacional de Ponta a Ponta:**
+  - Ao receber o evento `billing.paid`, o `abacatepay.service.ts` executa reconciliação transacional completa:
+    1. Atualiza `pix_charges.status = 'PAID'` e timestamp `paid_at`.
+    2. Atualiza propostas vinculadas (`proposals.status = 'accepted'`).
+    3. Registra desfecho comercial em `commercial_outcomes` com valor bruto e canal de origem.
+    4. Dispara enriquecimento cadastral via BrasilAPI (caso haja CPF/CNPJ).
+    5. Emite mensagem de confirmação de pagamento para o cliente via fila `outbound_commands` no WhatsApp.
+- **Cockpit Comercial & Gestão de Credenciais:**
+  - Seção dedicada em `Configurações > Cobrança & Pix` ([PixSection.tsx](file:///Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/apps/web/src/pages/settings/PixSection.tsx)) permitindo ativação/desativação, inserção de API Key, Webhook Secret e cópia com 1 clique da URL pública de webhook.
+
 ---
 
 ## 3. Diretrizes de Segurança e Isolamento

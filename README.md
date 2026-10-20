@@ -66,6 +66,19 @@ CHAT-SALES/
 │   ├── database/            # Client PostgreSQL, migrations SQL e RLS
 │   └── observability/       # Pino logger com redaction de segredos
 ├── docs/
-│   └── adr/                 # ADR-001 a ADR-004 formalizados
+│   ├── adr/                 # ADR-001 a ADR-004 formalizados
+│   └── tools/               # Catálogo e Manual de Ferramentas (Diataxis)
 └── docker-compose.yml       # Docker Lab hermético isolado
 ```
+
+---
+
+## 5. Documentação de Ferramentas & Motores (Diataxis)
+
+Acesse o manual completo e auditado de ferramentas:
+- 📖 **[Catálogo de Ferramentas Soberanas](docs/tools/README.md)**
+  - 🚀 [Tutorial: Do Zero à Primeira Venda](docs/tools/tutorial-tools-quickstart.md)
+  - 🛠️ [How-To: Guias Práticos de Operação](docs/tools/howto-tools-operations.md)
+  - 📋 [Reference: Especificações de APIs e Schemas](docs/tools/reference-tools-catalog.md)
+  - 🧠 [Explanation: Decisões Arquiteturais e Racional de Design](docs/tools/explanation-tools-architecture.md)
+
