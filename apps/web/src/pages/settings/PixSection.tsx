@@ -1,8 +1,8 @@
 import {hasWorkspacePermission} from "@sos-sales/contracts";
 import { useState, useEffect, useRef, type FC } from "react";
-import { Button, Input, Alert, useBreakpoint } from "@sos-sales/ui";
+import { Button, Input, Alert, Badge, useBreakpoint } from "@sos-sales/ui";
 import { useDiscardChanges, UnsavedChangesNotice } from "../UnsavedChangesNotice";
-import { Check } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 import type { UseSessionReturn } from "../../hooks/useSession";
 import { apiClient } from "../../services/api-client";
 import { userFacingError } from "../../utils/user-facing-error";
@@ -12,7 +12,12 @@ const displayPixKeyType=(value:string|null|undefined)=>{const stored=value?.trim
 
 export const PixSection: FC<{ session: UseSessionReturn }> = ({ session }) => {
   const context=JSON.stringify([session.activeWorkspace?.id,session.activeWorkspace?.role,session.token]);
-  return <PixConfiguration key={context} session={session}/>;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+      <PixConfiguration key={`pix-${context}`} session={session} />
+      <AbacatePayConfiguration key={`abacate-${context}`} session={session} />
+    </div>
+  );
 };
 const PixConfiguration: FC<{ session: UseSessionReturn }> = ({ session }) => {
   const live=useRef(true),busy=useRef(false),refreshBusy=useRef(false);
@@ -229,6 +234,208 @@ const PixConfiguration: FC<{ session: UseSessionReturn }> = ({ session }) => {
           {isSaving ? "Salvando..." : "Salvar Configurações Pix"}
         </Button>
       </div>
+      </fieldset>
+    </form>
+  );
+};
+
+const AbacatePayConfiguration: FC<{ session: UseSessionReturn }> = ({ session }) => {
+  const { activeWorkspace, token } = session;
+  const canManage = hasWorkspacePermission(activeWorkspace?.role, "workspace:manage");
+  const { isMobile } = useBreakpoint();
+
+  const [config, setConfig] = useState<import("../../services/api-client").AbacatePayConfigResponse | null>(null);
+  const [apiKey, setApiKey] = useState("");
+  const [webhookSecret, setWebhookSecret] = useState("");
+  const [enabled, setEnabled] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const webhookUrl = activeWorkspace?.id
+    ? `${window.location.origin}/v1/webhooks/abacatepay/${activeWorkspace.id}`
+    : "";
+
+  useEffect(() => {
+    if (!activeWorkspace?.id || !token) return;
+    setIsLoading(true);
+    apiClient
+      .getAbacatePayConfig(activeWorkspace.id)
+      .then((res) => {
+        setConfig(res);
+        setEnabled(res.enabled);
+      })
+      .catch((err) => {
+        setErrorMsg(userFacingError(err, "Não foi possível carregar as credenciais do AbacatePay."));
+      })
+      .finally(() => setIsLoading(false));
+  }, [activeWorkspace?.id, token]);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeWorkspace?.id || isSaving || !canManage) return;
+
+    setIsSaving(true);
+    setSuccessMsg(null);
+    setErrorMsg(null);
+
+    try {
+      const payload: { apiKey?: string; webhookSecret?: string; enabled?: boolean } = {
+        enabled,
+      };
+      if (apiKey.trim()) payload.apiKey = apiKey.trim();
+      if (webhookSecret.trim()) payload.webhookSecret = webhookSecret.trim();
+
+      await apiClient.updateAbacatePayConfig(activeWorkspace.id, payload);
+
+      setSuccessMsg("Credenciais do AbacatePay atualizadas com sucesso!");
+      setApiKey("");
+      setWebhookSecret("");
+      const updated = await apiClient.getAbacatePayConfig(activeWorkspace.id);
+      setConfig(updated);
+      setEnabled(updated.enabled);
+    } catch (err) {
+      setErrorMsg(userFacingError(err, "Falha ao salvar credenciais do AbacatePay."));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const copyWebhookUrl = () => {
+    if (!webhookUrl) return;
+    navigator.clipboard.writeText(webhookUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const statusVariant = config?.enabled && config?.isConfigured
+    ? ("operational" as const)
+    : config?.isConfigured
+    ? ("warning" as const)
+    : ("neutral" as const);
+
+  const statusLabel = config?.enabled && config?.isConfigured
+    ? "Ativo em Produção"
+    : config?.isConfigured
+    ? "Pausado"
+    : "Não Configurado";
+
+  return (
+    <form
+      onSubmit={handleSave}
+      style={{
+        backgroundColor: "var(--bg-surface)",
+        borderRadius: "var(--radius-lg)",
+        border: "1px solid var(--border-default)",
+        padding: "var(--space-5)",
+        display: "flex",
+        flexDirection: "column",
+        gap: "16px",
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "8px" }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <h2 style={{ fontSize: "var(--font-size-sm)", fontWeight: 600, margin: 0, color: "var(--text-primary)" }}>
+              Gateway AbacatePay (Pix Dinâmico & Baixa Automática)
+            </h2>
+            <Badge variant={statusVariant}>{statusLabel}</Badge>
+          </div>
+          <p style={{ fontSize: "var(--font-size-xs)", color: "var(--text-secondary)", margin: "4px 0 0 0" }}>
+            Integração nativa com AbacatePay para emissão de QRCodes dinâmicos com identificação do cliente e baixa em tempo real via Webhook HMAC-SHA256.
+          </p>
+        </div>
+      </div>
+
+      {successMsg && <Alert variant="info" title="Sucesso">{successMsg}</Alert>}
+      {errorMsg && <Alert variant="danger" title="Erro">{errorMsg}</Alert>}
+      {isLoading && <p style={{ fontSize: "var(--font-size-xs)", color: "var(--text-secondary)" }}>Carregando status do gateway...</p>}
+
+      <fieldset disabled={!canManage || isSaving} style={{ border: 0, padding: 0, margin: 0, display: "grid", gap: "14px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "12px" }}>
+          <div>
+            <Input
+              type="password"
+              label="API Key (Token de Acesso)"
+              placeholder={config?.isConfigured ? `Configurado (${config.maskedApiKey || "••••"})` : "abacate_api_..."}
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              helperText={config?.isConfigured ? "Preencha apenas se desejar substituir a chave atual do CNPJ" : "Chave de API gerada no dashboard do AbacatePay"}
+            />
+          </div>
+          <div>
+            <Input
+              type="password"
+              label="Webhook Secret (Segredo Criptográfico)"
+              placeholder={config?.hasWebhookSecret ? "••••••••••••••••" : "abacate_sec_..."}
+              value={webhookSecret}
+              onChange={(e) => setWebhookSecret(e.target.value)}
+              helperText={config?.hasWebhookSecret ? "Segredo ativo para validação HMAC" : "Segredo de assinatura configurado no Webhook do AbacatePay"}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label style={{ display: "block", fontSize: "var(--font-size-xs)", fontWeight: 500, color: "var(--text-secondary)", marginBottom: "4px" }}>
+            URL do Webhook (Cole no painel da AbacatePay)
+          </label>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <input
+              type="text"
+              readOnly
+              value={webhookUrl}
+              style={{
+                flex: 1,
+                height: isMobile ? "44px" : "36px",
+                padding: "0 10px",
+                borderRadius: "var(--radius-md)",
+                border: "1px solid var(--border-default)",
+                backgroundColor: "var(--bg-subtle)",
+                fontSize: "var(--font-size-xs)",
+                fontFamily: "monospace",
+                color: "var(--text-primary)",
+                outline: "none",
+              }}
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={copyWebhookUrl}
+              prefixIcon={copied ? <Check size={14} /> : <Copy size={14} />}
+            >
+              {copied ? "Copiado!" : "Copiar URL"}
+            </Button>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
+          <input
+            type="checkbox"
+            id="abacatepay-enabled-toggle"
+            checked={enabled}
+            onChange={(e) => setEnabled(e.target.checked)}
+            style={{ width: "16px", height: "16px", cursor: "pointer" }}
+          />
+          <label htmlFor="abacatepay-enabled-toggle" style={{ fontSize: "var(--font-size-sm)", color: "var(--text-primary)", cursor: "pointer" }}>
+            Habilitar AbacatePay como gateway ativo para novas cobranças e propostas
+          </label>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px" }}>
+          <Button
+            size="sm"
+            variant="primary"
+            type="submit"
+            disabled={!canManage || isSaving}
+            prefixIcon={<Check size={14} />}
+          >
+            {isSaving ? "Salvando..." : "Salvar Configurações AbacatePay"}
+          </Button>
+        </div>
       </fieldset>
     </form>
   );

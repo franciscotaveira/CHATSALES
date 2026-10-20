@@ -25,6 +25,9 @@ export interface PixChargeRecord {
   paid_at: Date | null;
   created_at: Date;
   updated_at: Date;
+  gateway_provider?: "bacen_native" | "abacatepay" | "cakto" | null;
+  gateway_charge_id?: string | null;
+  gateway_checkout_url?: string | null;
 }
 
 export interface CreatePixChargeParams {
@@ -37,6 +40,11 @@ export interface CreatePixChargeParams {
   amountCents: number;
   currency?: string;
   expiresMinutes?: number;
+  gatewayProvider?: "bacen_native" | "abacatepay" | "cakto";
+  gatewayChargeId?: string | null;
+  gatewayCheckoutUrl?: string | null;
+  pixCode?: string;
+  pixQrUrl?: string | null;
 }
 
 /**
@@ -157,44 +165,51 @@ export async function createPixCharge(
   const minutes = params.expiresMinutes || 30;
   const expiresAt = new Date(Date.now() + minutes * 60 * 1000);
 
-  const wsRes = await client.query(
-    "SELECT default_pix_key, default_pix_merchant_name, default_pix_merchant_city FROM public.workspaces WHERE id = $1",
-    [params.workspaceId]
-  );
-  const wsRow = wsRes.rows[0];
-
-  if (!wsRow?.default_pix_key || !wsRow.default_pix_key.trim()) {
-    throw new Error(
-      "PIX_KEY_NOT_CONFIGURED: Workspace não possui chave Pix configurada. Cadastre uma chave em Configurações antes de emitir cobranças."
-    );
-  }
-
   const idResult = await client.query("SELECT gen_random_uuid() as id");
   const chargeId = idResult.rows[0].id;
 
-  const pixCode = generatePixCopiaECola({
-    amountCents: params.amountCents,
-    title: params.title,
-    chargeId,
-    pixKey: wsRow.default_pix_key,
-    merchantName: wsRow.default_pix_merchant_name,
-    merchantCity: wsRow.default_pix_merchant_city,
-  });
+  let pixCode = params.pixCode;
+  let pixQrUrl = params.pixQrUrl ?? null;
 
-  const validation = validatePixCopiaECola(pixCode);
-  if (!validation.isValid) {
-    throw new Error(`PIX_CODE_GENERATION_FAILED: ${validation.error}`);
+  if (!pixCode) {
+    const wsRes = await client.query(
+      "SELECT default_pix_key, default_pix_merchant_name, default_pix_merchant_city FROM public.workspaces WHERE id = $1",
+      [params.workspaceId]
+    );
+    const wsRow = wsRes.rows[0];
+
+    if (!wsRow?.default_pix_key || !wsRow.default_pix_key.trim()) {
+      throw new Error(
+        "PIX_KEY_NOT_CONFIGURED: Workspace não possui chave Pix configurada. Cadastre uma chave em Configurações antes de emitir cobranças."
+      );
+    }
+
+    pixCode = generatePixCopiaECola({
+      amountCents: params.amountCents,
+      title: params.title,
+      chargeId,
+      pixKey: wsRow.default_pix_key,
+      merchantName: wsRow.default_pix_merchant_name,
+      merchantCity: wsRow.default_pix_merchant_city,
+    });
+
+    const validation = validatePixCopiaECola(pixCode);
+    if (!validation.isValid) {
+      throw new Error(`PIX_CODE_GENERATION_FAILED: ${validation.error}`);
+    }
   }
 
   // Generate QR Code locally in-process as Data URL (zero call to api.qrserver.com)
-  const pixQrUrl = await QRCode.toDataURL(pixCode, {
-    width: 300,
-    margin: 2,
-    color: {
-      dark: "#0F172A",
-      light: "#FFFFFF",
-    },
-  });
+  if (!pixQrUrl && pixCode) {
+    pixQrUrl = await QRCode.toDataURL(pixCode, {
+      width: 300,
+      margin: 2,
+      color: {
+        dark: "#0F172A",
+        light: "#FFFFFF",
+      },
+    });
+  }
 
   const result = await client.query(
     `
@@ -212,8 +227,11 @@ export async function createPixCharge(
       pix_qr_url,
       status,
       verification_method,
-      expires_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'PENDING', 'UNVERIFIED', $12)
+      expires_at,
+      gateway_provider,
+      gateway_charge_id,
+      gateway_checkout_url
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'PENDING', 'UNVERIFIED', $12, $13, $14, $15)
     RETURNING *
   `,
     [
@@ -229,6 +247,9 @@ export async function createPixCharge(
       pixCode,
       pixQrUrl,
       expiresAt,
+      params.gatewayProvider || "bacen_native",
+      params.gatewayChargeId ?? null,
+      params.gatewayCheckoutUrl ?? null,
     ]
   );
 
@@ -285,6 +306,29 @@ export async function getPixChargeById(
     LIMIT 1
   `,
     [workspaceId, chargeId]
+  );
+
+  if (result.rows.length === 0) return null;
+  const row = result.rows[0];
+  return {
+    ...row,
+    amount_cents: Number(row.amount_cents),
+  };
+}
+
+export async function getPixChargeByGatewayId(
+  client: PoolClient,
+  workspaceId: string,
+  gatewayChargeId: string
+): Promise<PixChargeRecord | null> {
+  const result = await client.query(
+    `
+    SELECT *
+    FROM public.pix_charges
+    WHERE workspace_id = $1 AND gateway_charge_id = $2
+    LIMIT 1
+  `,
+    [workspaceId, gatewayChargeId]
   );
 
   if (result.rows.length === 0) return null;

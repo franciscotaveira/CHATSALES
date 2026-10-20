@@ -391,10 +391,20 @@ export interface PixChargeSummary {
   verifiedAt?: string | null;
   verificationNotes?: string | null;
   status: "PENDING" | "PAID" | "EXPIRED" | "CANCELLED";
+  gatewayProvider?: "bacen_native" | "abacatepay" | "cakto" | null;
+  gatewayChargeId?: string | null;
+  gatewayCheckoutUrl?: string | null;
   expiresAt: string;
   paidAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AbacatePayConfigResponse {
+  enabled: boolean;
+  isConfigured: boolean;
+  hasWebhookSecret: boolean;
+  maskedApiKey: string | null;
 }
 
 export type PixSettlementPatch=Pick<PixChargeSummary,"id"|"status"|"amountCents"|"amountFormatted"|"paidAt"> & Partial<Pick<PixChargeSummary,"proposalId"|"verificationMethod"|"verifiedByUserId"|"verifiedAt"|"verificationNotes">>;
@@ -1040,6 +1050,71 @@ export class ApiClient {
       body: payload,
       workspaceId,
     });
+  }
+
+  async getAbacatePayConfig(
+    workspaceId: string,
+    options?: RequestOptions
+  ): Promise<AbacatePayConfigResponse> {
+    return this.request(`/v1/workspaces/${workspaceId}/abacatepay/config`, {
+      ...options,
+      method: "GET",
+      workspaceId,
+    });
+  }
+
+  async updateAbacatePayConfig(
+    workspaceId: string,
+    payload: {
+      apiKey?: string | null;
+      webhookSecret?: string | null;
+      enabled?: boolean;
+    },
+    options?: RequestOptions
+  ): Promise<{ success: boolean }> {
+    return this.request(`/v1/workspaces/${workspaceId}/abacatepay/config`, {
+      ...options,
+      method: "PATCH",
+      body: payload,
+      workspaceId,
+    });
+  }
+
+  async createAbacatePayBilling(
+    workspaceId: string,
+    threadId: string,
+    payload: {
+      contactId: string;
+      title: string;
+      amountCents: number;
+      productId?: string | null;
+    },
+    options?: RequestOptions
+  ): Promise<{ charge: PixChargeSummary }> {
+    return this.request<{ charge: PixChargeSummary }>(
+      `/v1/workspaces/${workspaceId}/threads/${threadId}/abacatepay/billings`,
+      {
+        ...options,
+        method: "POST",
+        body: payload,
+        workspaceId,
+      }
+    );
+  }
+
+  async createProposalAbacatePayCharge(
+    workspaceId: string,
+    proposalId: string,
+    options?: RequestOptions
+  ): Promise<{ proposal: CommercialProposalSummary; charge: PixChargeSummary }> {
+    return this.request<{ proposal: CommercialProposalSummary; charge: PixChargeSummary }>(
+      `/v1/workspaces/${workspaceId}/proposals/${proposalId}/abacatepay-charge`,
+      {
+        ...options,
+        method: "POST",
+        workspaceId,
+      }
+    );
   }
 
   async getThreadMessages(
