@@ -74,7 +74,7 @@ export const PublicLegalPage: FC<PublicLegalPageProps> = ({ type }) => {
               {isPrivacy ? "Política de Privacidade e Proteção de Dados" : "Termos de Uso e Serviço"}
             </h1>
             <p style={{ margin: "4px 0 0", fontSize: "14px", color: "#94A3B8" }}>
-              STA — Seu Time de Atendimento & SOS Sales V3 | MCT LTDA
+              STA — Seu Time de Atendimento & SOS Sales V3 | FRANCISCO TAVEIRA RIOS (CNPJ: 36.473.741/0001-37)
             </p>
           </div>
         </div>
@@ -88,7 +88,7 @@ export const PublicLegalPage: FC<PublicLegalPageProps> = ({ type }) => {
             color: "#64748B",
           }}
         >
-          Última atualização: 11 de Outubro de 2026 • Em conformidade com a LGPD (Lei nº 13.709/2018) e Meta Platform Terms
+          Última atualização: 20 de Outubro de 2026 • Em conformidade com a LGPD (Lei nº 13.709/2018) e Meta Platform Terms
         </div>
 
         {isPrivacy ? (
@@ -98,7 +98,7 @@ export const PublicLegalPage: FC<PublicLegalPageProps> = ({ type }) => {
                 1. Visão Geral e Controlador dos Dados
               </h2>
               <p>
-                A plataforma <strong>STA — Seu Time de Atendimento</strong> (também operando sob a marca SOS Sales V3) é desenvolvida e controlada pela <strong>MCT LTDA</strong>. Esta Política de Privacidade explica de forma transparente como coletamos, processamos, armazenamos e protegemos as informações fornecidas pelos usuários, clientes e parceiros ao utilizar nosso software como serviço (SaaS), inclusive através de integrações oficiais com a Meta Cloud API (WhatsApp Business, Instagram Messaging e Facebook Login).
+                A plataforma <strong>STA — Seu Time de Atendimento</strong> (também operando sob a marca SOS Sales V3 e MCT LTDA) é desenvolvida e controlada por <strong>36.473.741 FRANCISCO TAVEIRA RIOS</strong>, pessoa jurídica de direito privado inscrita no CNPJ/MF sob o nº <strong>36.473.741/0001-37</strong>, com sede na Rua Marechal Deodoro da Fonseca - E, nº 890, Bairro Jardim Itália, Chapecó - SC, CEP 89802-141. Esta Política de Privacidade explica de forma transparente como coletamos, processamos, armazenamos e protegemos as informações fornecidas pelos usuários, clientes e parceiros ao utilizar nosso software como serviço (SaaS), inclusive através de integrações oficiais com a Meta Cloud API (WhatsApp Business Cloud API, Instagram Messaging e Facebook Login).
               </p>
             </section>
 
@@ -132,7 +132,7 @@ export const PublicLegalPage: FC<PublicLegalPageProps> = ({ type }) => {
                 4. Direitos dos Titulares (LGPD)
               </h2>
               <p>
-                Em conformidade com o Artigo 18 da LGPD, os titulares de dados ou clientes podem solicitar a qualquer momento a confirmação de tratamento, acesso, correção, anonimização, eliminação de dados ou revogação de consentimento de canais conectados através do e-mail do Encarregado de Dados (DPO): <code>suporte@automatizaprocessos.tech</code>.
+                Em conformidade com o Artigo 18 da LGPD, os titulares de dados ou clientes podem solicitar a qualquer momento a confirmação de tratamento, acesso, correção, anonimização, eliminação de dados ou revogação de consentimento de canais conectados através do e-mail do Encarregado de Dados (DPO): <code>suporte@automatizaprocessos.tech</code> ou pelo telefone institucional <code>+55 (49) 8844-7562</code>.
               </p>
             </section>
 
@@ -152,7 +152,7 @@ export const PublicLegalPage: FC<PublicLegalPageProps> = ({ type }) => {
                 1. Aceitação dos Termos
               </h2>
               <p>
-                Ao acessar e utilizar a plataforma <strong>STA — Seu Time de Atendimento</strong> (SOS Sales V3), disponibilizada pela <strong>MCT LTDA</strong>, você concorda expressamente em vincular-se a estes Termos de Serviço e a cumprir integralmente a legislação vigente, bem como as Políticas de Uso Comercial da Meta Platforms.
+                Ao acessar e utilizar a plataforma <strong>STA — Seu Time de Atendimento</strong> (SOS Sales V3), disponibilizada por <strong>36.473.741 FRANCISCO TAVEIRA RIOS</strong> (CNPJ/MF sob o nº <strong>36.473.741/0001-37</strong>, operando sob a marca <strong>MCT LTDA</strong>), com sede em Chapecó - SC, você concorda expressamente em vincular-se a estes Termos de Serviço e a cumprir integralmente a legislação vigente, bem como as Políticas de Uso Comercial da Meta Platforms.
               </p>
             </section>
 
@@ -184,7 +184,7 @@ export const PublicLegalPage: FC<PublicLegalPageProps> = ({ type }) => {
                 4. Disponibilidade e Nível de Serviço (SLA)
               </h2>
               <p>
-                A MCT LTDA emprega práticas avançadas de engenharia de software para assegurar alta disponibilidade da plataforma. Não obstante, interrupções originadas diretamente nos servidores da Meta Platforms, operadoras de telecomunicação ou provedores de nuvem de terceiros estão fora do controle direto da plataforma.
+                A 36.473.741 FRANCISCO TAVEIRA RIOS (MCT LTDA) emprega práticas avançadas de engenharia de software para assegurar alta disponibilidade da plataforma. Não obstante, interrupções originadas diretamente nos servidores da Meta Platforms, operadoras de telecomunicação ou provedores de nuvem de terceiros estão fora do controle direto da plataforma.
               </p>
             </section>
 
@@ -209,7 +209,7 @@ export const PublicLegalPage: FC<PublicLegalPageProps> = ({ type }) => {
             color: "#64748B",
           }}
         >
-          © 2026 MCT LTDA. Todos os direitos reservados. Chapecó - SC, Brasil.
+          © 2026 36.473.741 FRANCISCO TAVEIRA RIOS • CNPJ: 36.473.741/0001-37 • MCT LTDA. Todos os direitos reservados. Chapecó - SC, Brasil.
         </div>
       </div>
     </main>
