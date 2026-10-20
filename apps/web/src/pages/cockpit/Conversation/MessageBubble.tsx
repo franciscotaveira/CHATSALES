@@ -331,18 +331,18 @@ export const MessageBubble: FC<MessageBubbleProps> = ({ message }) => {
           backgroundColor: isPixConfirmation
             ? "rgba(16, 185, 129, 0.08)"
             : isOutbound
-            ? "var(--color-action-subtle)"
-            : "var(--bg-surface)",
+            ? "var(--color-action-subtle, #E6F4F1)"
+            : "var(--bg-surface, #FFFFFF)",
           border: isPixConfirmation
-            ? "1px solid var(--color-action)"
+            ? "1.5px solid var(--color-action, #008069)"
             : isOutbound
-            ? "1px solid rgba(0, 128, 105, 0.15)"
-            : "1px solid var(--border-default)",
+            ? "1.5px solid var(--color-action-border, #80C0B4)"
+            : "1.5px solid var(--border-default, #CBD5E1)",
           borderRadius: "var(--radius-lg, 12px)",
           borderBottomRightRadius: isOutbound ? "var(--radius-xs, 4px)" : "var(--radius-lg, 12px)",
           borderBottomLeftRadius: !isOutbound ? "var(--radius-xs, 4px)" : "var(--radius-lg, 12px)",
           padding: "var(--space-2, 8px) var(--space-3, 12px)",
-          boxShadow: "var(--shadow-xs, 0 1px 2px rgba(0, 0, 0, 0.05))",
+          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.07)",
           wordBreak: "break-word",
           position: "relative",
         }}

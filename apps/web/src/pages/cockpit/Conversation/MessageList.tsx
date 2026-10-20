@@ -86,11 +86,11 @@ export const MessageList: FC<MessageListProps> = ({ messages, isLoading,error,on
       onScroll={()=>{const list=listRef.current;if(!list)return;followLatest.current=list.scrollHeight-list.clientHeight-list.scrollTop<=48;if(followLatest.current)setHasNewMessages(false);}}
       style={{
         flex: 1, minHeight:0, overflowY:"auto",
-        backgroundColor: "var(--bg-surface-subtle)",
-        padding: "var(--space-4)",
+        backgroundColor: "var(--bg-canvas, #F0F2F5)",
+        padding: "var(--space-4, 16px)",
         display: "flex",
         flexDirection: "column",
-        gap: "4px",
+        gap: "6px",
       }}
     >
       {error&&<div role="alert"><p>{error}</p><p>As mensagens exibidas são da última consulta concluída e podem estar desatualizadas.</p>{onRetry&&<Button variant="secondary" disabled={isLoading} onClick={onRetry}>Consultar mensagens novamente</Button>}</div>}

@@ -32,6 +32,6 @@ export function parseHistoryMessage(value: unknown, baseUrl: string) {
   const statuses = { "-1": ["failed", -1], "0": ["queued", 0], "1": ["sent", 10], "2": ["delivered", 20], "3": ["read", 30], "4": ["read", 30] } as const;
   const status = message.fromMe && ack !== null ? statuses[String(ack) as keyof typeof statuses] : ["unknown", 0] as const;
   return { id: message.id, outbound: message.fromMe, createdAt, contentType, mediaUrl, ack,
-    body: (typeof message.body === "string" ? message.body : "").slice(0, 100_000) || (message.hasMedia === true ? mediaUrl ? "[Mídia do histórico]" : "[Mídia do histórico indisponível]" : ""),
+    body: (typeof message.body === "string" ? message.body : "").slice(0, 100_000) || (message.hasMedia === true ? (mediaUrl ? "" : "[Mídia do histórico indisponível]") : ""),
     deliveryStatus: status[0], statusRank: status[1] };
 }

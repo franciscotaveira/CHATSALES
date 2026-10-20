@@ -165,7 +165,12 @@ export const mediaUploadRoutes: FastifyPluginAsync<MediaUploadRoutesOptions> = a
         if(!/^\/api\/files\/[a-zA-Z0-9_./-]+$/.test(cleanPath))return reply.code(400).send({detail:"Invalid media path"});
         const owned=await withTenantTransaction(workspaceId,async client=>(await client.query<{id:string}>(`SELECT ch.id FROM public.messages m JOIN public.channel_instances ch ON ch.id=m.channel_instance_id AND ch.workspace_id=m.workspace_id
           WHERE m.workspace_id=$1 AND ch.provider='waha' AND ch.is_active AND ($3::uuid IS NULL OR ch.id=$3)
-          AND (right(split_part(COALESCE(m.media_url,''),'?',1),length($2))=$2 OR right(split_part(COALESCE(m.metadata->>'mediaUrl',m.metadata->'media'->>'url',m.metadata->>'url',''),'?',1),length($2))=$2)
+          AND (
+            right(split_part(COALESCE(m.media_url,''),'?',1),length($2))=$2
+            OR m.media_url LIKE '%' || $2 || '%'
+            OR right(split_part(COALESCE(m.metadata->>'mediaUrl',m.metadata->'media'->>'url',m.metadata->>'url',''),'?',1),length($2))=$2
+            OR (m.metadata->>'mediaUrl') LIKE '%' || $2 || '%'
+          )
           LIMIT 1`,[workspaceId,cleanPath,channelInstanceId??null])).rows[0]);
         if(!owned)return reply.code(404).send({detail:"Mídia não encontrada nas mensagens deste canal e empresa."});
         const credentials=await resolveMediaCredentials(workspaceId,owned.id,"waha");

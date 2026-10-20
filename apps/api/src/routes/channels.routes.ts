@@ -1703,7 +1703,7 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
         checkedChatsCount++;
         const phoneE164 = historyPhone(chat.id)!;
         try {
-          const response = await getProvider(`/api/${effectiveSession}/chats/${encodeURIComponent(String(chat.id))}/messages?limit=15&offset=0&downloadMedia=false`);
+          const response = await getProvider(`/api/${effectiveSession}/chats/${encodeURIComponent(String(chat.id))}/messages?limit=15&offset=0&downloadMedia=true`);
           if (!response.ok) { failedChatsCount++; continue; }
           const rawMessages: unknown = await response.json();
           if (!Array.isArray(rawMessages)) { failedChatsCount++; continue; }
@@ -1732,7 +1732,12 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
             for (const message of messages) {
               const result = await client.query(`INSERT INTO public.messages (workspace_id,channel_instance_id,thread_id,provider,direction,sender_e164,recipient_e164,content_type,body,media_url,metadata,provider_message_id,delivery_status,status_rank,created_at,updated_at)
                 VALUES ($1,$2,$3,'waha',$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12,$13,$14,$14)
-                ON CONFLICT (channel_instance_id,provider_message_id) DO NOTHING RETURNING id`, [workspaceId, channelId, thread.id, message.outbound ? "outbound" : "inbound", message.outbound ? ownPhone : phoneE164, message.outbound ? phoneE164 : ownPhone, message.contentType, message.body, message.mediaUrl, JSON.stringify({ waha_synced: true, fromMe: message.outbound, history_ack: message.ack, history_import_version: 2 }), message.id, message.deliveryStatus, message.statusRank, message.createdAt]);
+                ON CONFLICT (channel_instance_id,provider_message_id) DO UPDATE SET
+                  media_url = COALESCE(EXCLUDED.media_url, messages.media_url),
+                  content_type = CASE WHEN EXCLUDED.media_url IS NOT NULL THEN EXCLUDED.content_type ELSE messages.content_type END,
+                  body = CASE WHEN (messages.body LIKE '[Mídia%' OR messages.body = '') AND EXCLUDED.media_url IS NOT NULL THEN EXCLUDED.body ELSE messages.body END,
+                  metadata = messages.metadata || EXCLUDED.metadata
+                RETURNING id`, [workspaceId, channelId, thread.id, message.outbound ? "outbound" : "inbound", message.outbound ? ownPhone : phoneE164, message.outbound ? phoneE164 : ownPhone, message.contentType, message.body, message.mediaUrl, JSON.stringify({ waha_synced: true, fromMe: message.outbound, history_ack: message.ack, history_import_version: 2 }), message.id, message.deliveryStatus, message.statusRank, message.createdAt]);
               insertedCount += result.rowCount ?? 0;
             }
             return insertedCount;
