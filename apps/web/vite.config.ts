@@ -32,6 +32,12 @@ export default defineConfig(({ mode, command }) => {
     define: {
       __CHAT_SALES_LAB__: JSON.stringify(labDistribution),
     },
+    esbuild: {
+      drop: mode === "production" ? ["console", "debugger"] : [],
+    },
+    build: {
+      sourcemap: false,
+    },
     server: {
       port: 3400,
       host: "0.0.0.0",
