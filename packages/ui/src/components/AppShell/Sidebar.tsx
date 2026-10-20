@@ -81,7 +81,7 @@ export const Sidebar: FC<SidebarProps> = ({
                 whiteSpace: "nowrap",
               }}
             >
-              SOS Sales
+              SOS Vendas
             </span>
           </div>
         )}

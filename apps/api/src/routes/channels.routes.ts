@@ -945,7 +945,7 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
         channelId: revoked.id,
         status: revoked.status,
         isActive: revoked.is_active,
-        message: `Canal '${revoked.display_name}' suspenso no CHAT-SALES. A sessão no provedor não foi desconectada.`,
+        message: `Canal '${revoked.display_name}' suspenso no SOS Vendas. A sessão no provedor não foi desconectada.`,
       });
     }
   );
@@ -1137,7 +1137,7 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
       if (!parsedBody.success) return reply.status(400).send({ message: "Informe a revisão do canal e a declaração de faturamento válida." });
       const { workspaceId, channelId } = parsedParams.data;
       const input = parsedBody.data;
-      if (input.metaBillingConfigured && input.acknowledgedDeclaration !== true) return reply.status(422).send({ message: "Confirme que conferiu o faturamento na Meta. O CHAT-SALES registra uma declaração, sem verificar ou cadastrar seu cartão." });
+      if (input.metaBillingConfigured && input.acknowledgedDeclaration !== true) return reply.status(422).send({ message: "Confirme que conferiu o faturamento na Meta. O SOS Vendas registra uma declaração, sem verificar ou cadastrar seu cartão." });
       const updated = await withTenantTransaction(workspaceId, async client => {
         await lockChannelManager(client, workspaceId, request.user.id);
         const current = (await client.query<{ id: string; provider: string; status: string; is_active: boolean; revision: string; meta_billing_configured: boolean; meta_billing_account_id: string | null }>(`SELECT id,provider,status,is_active,meta_billing_configured,meta_billing_account_id,${channelRevisionExpression} AS revision FROM public.channel_instances WHERE id=$1 AND workspace_id=$2 FOR UPDATE`, [channelId, workspaceId])).rows[0];
@@ -1151,7 +1151,7 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
         return changed;
       });
       if (!updated) return reply.status(404).send({ message: "Canal não encontrado nesta empresa." });
-      return reply.send({ success: true, channel: { id: updated.id, provider: updated.provider, displayName: updated.display_name, metaBillingConfigured: updated.meta_billing_configured, metaBillingAccountId: updated.meta_billing_account_id, revision: updated.revision }, message: updated.meta_billing_configured ? "Declaração de faturamento registrada. A situação do cartão não foi verificada pelo CHAT-SALES." : "Declaração de faturamento removida. Disparos dependentes dessa condição ficam bloqueados." });
+      return reply.send({ success: true, channel: { id: updated.id, provider: updated.provider, displayName: updated.display_name, metaBillingConfigured: updated.meta_billing_configured, metaBillingAccountId: updated.meta_billing_account_id, revision: updated.revision }, message: updated.meta_billing_configured ? "Declaração de faturamento registrada. A situação do cartão não foi verificada pelo SOS Vendas." : "Declaração de faturamento removida. Disparos dependentes dessa condição ficam bloqueados." });
     }
   );
 

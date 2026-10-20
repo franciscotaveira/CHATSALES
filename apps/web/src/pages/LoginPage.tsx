@@ -126,7 +126,7 @@ export const LoginPage: FC<LoginPageProps> = ({ onLoginSuccess, initialError }) 
                 margin: 0,
               }}
             >
-              CHAT-SALES
+              SOS Vendas
             </h1>
             <p
               style={{
@@ -135,7 +135,7 @@ export const LoginPage: FC<LoginPageProps> = ({ onLoginSuccess, initialError }) 
                 margin: "4px 0 0 0",
               }}
             >
-              Sistema Operacional de Vendas & Atendimento
+              Sistema Operacional Comercial para WhatsApp & Pix
             </p>
           </div>
         </div>
@@ -185,7 +185,7 @@ export const LoginPage: FC<LoginPageProps> = ({ onLoginSuccess, initialError }) 
               prefixIcon={<Lock size={16} />}
               style={{ width: "100%", marginTop: "4px" }}
             >
-              {isLoading ? "Autenticando..." : "Entrar no CHAT-SALES"}
+              {isLoading ? "Autenticando..." : "Entrar no SOS Vendas"}
             </Button>
 
             {hasSupabase && (

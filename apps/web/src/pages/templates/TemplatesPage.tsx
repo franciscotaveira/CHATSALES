@@ -197,7 +197,7 @@ export const TemplatesPage: FC<TemplatesPageProps> = ({ session,broadcastRequest
         {error && <p role="alert">{error}</p>}
         {loadError&&<div role="alert">{loadError}</div>}
         {channelError&&<div role="alert">{channelError} <Button disabled={loadingChannels||syncing} onClick={()=>void loadChannels()}>Consultar canais novamente</Button></div>}
-        {activeTab === "TEMPLATES"&&<div><Button disabled={!workspaceId||!token||isLoading||syncing} onClick={()=>{if(isLoading||syncBusy.current)return;void fetchTemplates();}}>Atualizar modelos</Button><p style={{fontSize:12,color:"var(--text-secondary)"}}>Reconsulta os registros do CHAT-SALES. Para consultar aprovações no provedor, use a sincronização da Meta.</p></div>}
+        {activeTab === "TEMPLATES"&&<div><Button disabled={!workspaceId||!token||isLoading||syncing} onClick={()=>{if(isLoading||syncBusy.current)return;void fetchTemplates();}}>Atualizar modelos</Button><p style={{fontSize:12,color:"var(--text-secondary)"}}>Reconsulta os registros do SOS Vendas. Para consultar aprovações no provedor, use a sincronização da Meta.</p></div>}
         {activeTab === "TEMPLATES"&&hasLoadedTemplates&&isLoading&&<p role="status">Atualizando modelos… A lista exibida é da última consulta concluída.</p>}
         {activeTab === "TEMPLATES"&&hasLoadedTemplates&&loadError&&<p role="status">A lista exibida é da última consulta concluída e pode estar desatualizada.</p>}
         {syncNotice && <p role="status">{syncNotice}</p>}

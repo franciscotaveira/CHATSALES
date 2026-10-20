@@ -74,7 +74,7 @@ export const PublicLegalPage: FC<PublicLegalPageProps> = ({ type }) => {
               {isPrivacy ? "Política de Privacidade e Proteção de Dados" : "Termos de Uso e Serviço"}
             </h1>
             <p style={{ margin: "4px 0 0", fontSize: "14px", color: "#94A3B8" }}>
-              STA — Seu Time de Atendimento & SOS Sales V3 | FRANCISCO TAVEIRA RIOS (CNPJ: 69.553.990/0001-91)
+              STA — Seu Time de Atendimento & SOS Vendas | FRANCISCO TAVEIRA RIOS (CNPJ: 69.553.990/0001-91)
             </p>
           </div>
         </div>
@@ -98,7 +98,7 @@ export const PublicLegalPage: FC<PublicLegalPageProps> = ({ type }) => {
                 1. Visão Geral e Controlador dos Dados
               </h2>
               <p>
-                A plataforma <strong>STA — Seu Time de Atendimento</strong> (também operando sob a marca SOS Sales V3 e MCT LTDA) é desenvolvida e controlada por <strong>69.553.990 FRANCISCO TAVEIRA RIOS</strong>, pessoa jurídica de direito privado inscrita no CNPJ/MF sob o nº <strong>69.553.990/0001-91</strong>, com sede na Rua Barão do Rio Branco - E, nº 837E, Bairro Jardim Itália, Chapecó - SC, CEP 89802-101. Esta Política de Privacidade explica de forma transparente como coletamos, processamos, armazenamos e protegemos as informações fornecidas pelos usuários, clientes e parceiros ao utilizar nosso software como serviço (SaaS), inclusive através de integrações oficiais com a Meta Cloud API (WhatsApp Business Cloud API, Instagram Messaging e Facebook Login).
+                A plataforma <strong>STA — Seu Time de Atendimento</strong> (também operando sob a marca comercial SOS Vendas e MCT LTDA) é desenvolvida e controlada por <strong>69.553.990 FRANCISCO TAVEIRA RIOS</strong>, pessoa jurídica de direito privado inscrita no CNPJ/MF sob o nº <strong>69.553.990/0001-91</strong>, com sede na Rua Barão do Rio Branco - E, nº 837E, Bairro Jardim Itália, Chapecó - SC, CEP 89802-101. Esta Política de Privacidade explica de forma transparente como coletamos, processamos, armazenamos e protegemos as informações fornecidas pelos usuários, clientes e parceiros ao utilizar nosso software como serviço (SaaS), inclusive através de integrações oficiais com a Meta Cloud API (WhatsApp Business Cloud API, Instagram Messaging e Facebook Login).
               </p>
             </section>
 
@@ -152,7 +152,7 @@ export const PublicLegalPage: FC<PublicLegalPageProps> = ({ type }) => {
                 1. Aceitação dos Termos
               </h2>
               <p>
-                Ao acessar e utilizar a plataforma <strong>STA — Seu Time de Atendimento</strong> (SOS Sales V3), disponibilizada por <strong>69.553.990 FRANCISCO TAVEIRA RIOS</strong> (CNPJ/MF sob o nº <strong>69.553.990/0001-91</strong>, operando sob a marca <strong>MCT LTDA</strong>), com sede em Chapecó - SC, você concorda expressamente em vincular-se a estes Termos de Serviço e a cumprir integralmente a legislação vigente, bem como as Políticas de Uso Comercial da Meta Platforms.
+                Ao acessar e utilizar a plataforma <strong>STA — Seu Time de Atendimento</strong> (SOS Vendas), disponibilizada por <strong>69.553.990 FRANCISCO TAVEIRA RIOS</strong> (CNPJ/MF sob o nº <strong>69.553.990/0001-91</strong>, operando sob a marca <strong>MCT LTDA</strong>), com sede em Chapecó - SC, você concorda expressamente em vincular-se a estes Termos de Serviço e a cumprir integralmente a legislação vigente, bem como as Políticas de Uso Comercial da Meta Platforms.
               </p>
             </section>
 

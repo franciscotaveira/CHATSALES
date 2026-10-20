@@ -129,7 +129,7 @@ export const PixDrawer: FC<PixDrawerProps> = ({
     const signature=(item:PixChargeSummary)=>JSON.stringify([item.id,item.title,item.amountCents,item.pixCode,item.expiresAt,item.status]);
     if(signature(latest)!==signature(charge))throw new Error("Os dados da cobrança mudaram. A prévia foi atualizada; revise antes de enviar novamente.");
     if(sendBlock.current)throw new Error(sendBlock.current);
-    await apiClient.sendOutboundMessage(workspaceId,thread.channelInstanceId,{recipientPhoneE164:thread.contactPhone,contentType:"text",body:`*Cobrança Pix — Chat Sales*\n\n*Item:* ${latest.title}\n*Valor:* ${latest.amountFormatted}\n\n*Pix Copia e Cola:*\n${latest.pixCode}\n\nValidade: ${new Date(latest.expiresAt).toLocaleString("pt-BR")}`,metadata:{chargeId:latest.id},idempotencyKey:`pix_charge_${latest.id}`},{token});return true;
+    await apiClient.sendOutboundMessage(workspaceId,thread.channelInstanceId,{recipientPhoneE164:thread.contactPhone,contentType:"text",body:`*Cobrança Pix — SOS Vendas*\n\n*Item:* ${latest.title}\n*Valor:* ${latest.amountFormatted}\n\n*Pix Copia e Cola:*\n${latest.pixCode}\n\nValidade: ${new Date(latest.expiresAt).toLocaleString("pt-BR")}`,metadata:{chargeId:latest.id},idempotencyKey:`pix_charge_${latest.id}`},{token});return true;
   };
   async function handleGenerate(){
     if(!thread||!workspaceId||!token||generatedCharge||busy.current||discard.isPending||isLoadingCharges||loadError)return;

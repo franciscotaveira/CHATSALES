@@ -893,11 +893,11 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                     Disparo Ativo Bloqueado — Faturamento Meta não declarado
                   </span>
                   <span style={{ fontSize: "var(--font-size-xs)", color: "var(--text-secondary)", lineHeight: 1.5 }}>
-                    O <strong>SOS Sales não cobra nem intermedeia tarifas</strong> de mensagens da Meta.
+                    O <strong>SOS Vendas não cobra nem intermedeia tarifas</strong> de mensagens da Meta.
                     Confira diretamente no <strong>Gerenciador de Negócios da Meta</strong> as condições de faturamento vinculadas a este número.
                   </span>
                   <span style={{ fontSize: "var(--font-size-xs)", color: "var(--text-secondary)", lineHeight: 1.5 }}>
-                    Confira o faturamento diretamente na Meta e vá em <strong>Configurações &gt; Canais WhatsApp</strong> para registrar sua declaração. O CHAT-SALES não verifica nem cadastra cartão.
+                    Confira o faturamento diretamente na Meta e vá em <strong>Configurações &gt; Canais WhatsApp</strong> para registrar sua declaração. O SOS Vendas não verifica nem cadastra cartão.
                   </span>
                 </div>
               </div>
@@ -918,7 +918,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
               >
                 <ShieldCheck size={18} color="#10b981" style={{ flexShrink: 0 }} />
                 <span style={{ fontSize: "var(--font-size-xs)", color: "var(--text-secondary)" }}>
-                  <strong>Faturamento Direto Meta Ativo:</strong> Tarifas cobradas diretamente no seu cartão cadastrado no Business Manager. O SOS Sales não cobra intermediários.
+                  <strong>Faturamento Direto Meta Ativo:</strong> Tarifas cobradas diretamente no seu cartão cadastrado no Business Manager. O SOS Vendas não cobra intermediários.
                 </span>
               </div>
             )}

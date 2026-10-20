@@ -197,7 +197,7 @@ export const CreateTemplateDialog: FC<CreateTemplateDialogProps> = ({
       category: "UTILITY" as const,
       header: "Solicitação de atendimento",
       body: "Olá {{1}}! Recebemos sua solicitação de atendimento para {{2}}. Qual horário você prefere? O agendamento depende de confirmação.",
-      footer: "SOS Sales • Confirmação",
+      footer: "SOS Vendas • Confirmação",
       button: "Informar preferência",
     },
     {
@@ -227,7 +227,7 @@ export const CreateTemplateDialog: FC<CreateTemplateDialogProps> = ({
       category: "UTILITY" as const,
       header: "Pagamento do Pedido",
       body: "Olá {{1}}, segue o link/chave Pix no valor de {{2}} referente ao seu pedido {{3}}. A confirmação depende da verificação do recebimento.",
-      footer: "Chat Sales Oficial",
+      footer: "SOS Vendas Oficial",
       button: "Consultar pagamento",
     },
     {

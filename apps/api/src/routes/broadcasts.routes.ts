@@ -766,7 +766,7 @@ export const broadcastsRoutes: FastifyPluginAsync<BroadcastsRoutesOptions> = asy
           title: "Disparo Bloqueado — Faturamento Meta Não Declarado",
           status: 422,
           detail:
-            "Disparo ativo bloqueado: o responsável ainda não declarou que conferiu o faturamento deste número na Meta. Confira diretamente na Meta e registre a declaração em Configurações > Canais WhatsApp. O CHAT-SALES não verifica nem cadastra cartão e não intermedeia tarifas da Meta.",
+            "Disparo ativo bloqueado: o responsável ainda não declarou que conferiu o faturamento deste número na Meta. Confira diretamente na Meta e registre a declaração em Configurações > Canais WhatsApp. O SOS Vendas não verifica nem cadastra cartão e não intermedeia tarifas da Meta.",
           instance: request.url,
           correlationId: request.id,
         });

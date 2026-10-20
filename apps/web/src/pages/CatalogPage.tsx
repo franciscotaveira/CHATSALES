@@ -67,7 +67,7 @@ export const CatalogPage: FC<{ onClose?: () => void }> = ({ onClose }) => {
             </Badge>
           </div>
           <p style={{ color: "var(--text-secondary)", fontSize: "0.95rem" }}>
-            Biblioteca de componentes e tokens canônicos do CHAT-SALES para revisão visual e de acessibilidade.
+            Biblioteca de componentes e tokens canônicos do SOS Vendas para revisão visual e de acessibilidade.
           </p>
         </div>
 

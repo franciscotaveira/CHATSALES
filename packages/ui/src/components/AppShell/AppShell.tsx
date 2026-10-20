@@ -95,7 +95,7 @@ export const AppShell: FC<AppShellProps> = ({
         <Drawer
           isOpen={isMobileMenuOpen}
           onClose={() => setIsMobileMenuOpen(false)}
-          title="SOS Sales"
+          title="SOS Vendas"
           description="Navegação do Operador"
           position="left"
           width="280px"

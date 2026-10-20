@@ -1404,7 +1404,7 @@ export const AiAgentSection: FC<AiAgentSectionProps> = ({ workspaceId, token }) 
           />
           <p style={{ margin: 0, fontSize: "var(--font-size-xs, 0.7rem)", color: "var(--text-secondary)" }}>
             {provider === "nvidia"
-              ? "Deixe em branco para usar o endpoint corporativo nativo do SOS Sales, ou informe sua chave própria para bilhetagem direta."
+              ? "Deixe em branco para usar o endpoint corporativo nativo do SOS Vendas, ou informe sua chave própria para bilhetagem direta."
               : "Obtenha sua chave em openrouter.ai/keys. A chave não é exibida novamente após salvar e pertence à configuração desta empresa."}
           </p>
         </div>

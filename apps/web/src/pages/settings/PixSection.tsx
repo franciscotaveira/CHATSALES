@@ -371,13 +371,13 @@ const AbacatePayConfiguration: FC<{ session: UseSessionReturn }> = ({ session })
             </strong>
           </div>
           <p style={{ margin: "4px 0 0 0", fontSize: "11px", color: "var(--text-secondary)", lineHeight: "1.4" }}>
-            Crie sua conta pelo link parceiro oficial CHAT SALES para obter baixa em tempo real e taxas reduzidas, ou contrate nossa equipe para fazer todo o setup.
+            Crie sua conta pelo link parceiro oficial SOS VENDAS para obter baixa em tempo real e taxas reduzidas, ou contrate nossa equipe para fazer todo o setup.
           </p>
         </div>
 
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
           <a
-            href="https://abacatepay.com?utm_source=chatsales&utm_medium=partner_portal&utm_campaign=parceiro_mct"
+            href="https://abacatepay.com?utm_source=sosvendas&utm_medium=partner_portal&utm_campaign=parceiro_mct"
             target="_blank"
             rel="noopener noreferrer"
             style={{

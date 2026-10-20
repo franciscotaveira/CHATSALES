@@ -324,7 +324,7 @@ export const ChannelsSection: FC<ChannelsSectionProps> = ({
                       prefixIcon={<CreditCard size={12} />}
                       aria-label={`${ch.metaBillingConfigured?"Remover declaração de faturamento":"Declarar faturamento Meta"} de ${channelLabel}`}
                       onClick={() => onToggleBilling(ch.id, Boolean(ch.metaBillingConfigured))}
-                      title="Declaração do responsável. O CHAT-SALES não verifica nem cadastra cartão na Meta."
+                      title="Declaração do responsável. O SOS Vendas não verifica nem cadastra cartão na Meta."
                       disabled={existingChannelBusy || !ch.revision || (!ch.metaBillingConfigured && (!ch.isActive || ch.status !== "connected"))}
                     >
                       {ch.metaBillingConfigured ? "Remover declaração" : "Declarar faturamento Meta"}

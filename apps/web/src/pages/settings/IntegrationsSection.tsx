@@ -344,7 +344,7 @@ export const IntegrationsSection: FC<{ session: UseSessionReturn }> = ({ session
               <Braces size={17} /> API de Integrações
             </h2>
             <p style={description}>
-              Conecte n8n, sistemas internos ou agentes ao Chat Sales sem entregar controle direto do WhatsApp.
+              Conecte n8n, sistemas internos ou agentes ao SOS Vendas sem entregar controle direto do WhatsApp.
             </p>
           </div>
           <Badge variant="neutral">Referência da API</Badge>
@@ -375,7 +375,7 @@ export const IntegrationsSection: FC<{ session: UseSessionReturn }> = ({ session
               <Webhook size={17} /> Webhooks de Saída
             </h2>
             <p style={description}>
-              Envie eventos em tempo real para o n8n ou seu backend quando ocorrerem ações no Chat Sales (leads, mensagens, propostas, pagamentos Pix).
+              Envie eventos em tempo real para o n8n ou seu backend quando ocorrerem ações no SOS Vendas (leads, mensagens, propostas, pagamentos Pix).
             </p>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
@@ -644,7 +644,7 @@ export const IntegrationsSection: FC<{ session: UseSessionReturn }> = ({ session
             <ShieldCheck size={14} color="var(--color-primary)" /> Assinatura Criptográfica HMAC SHA-256
           </div>
           <p style={{ margin: 0, fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5 }}>
-            Cada payload enviado pelo Chat Sales inclui o cabeçalho <code>X-ChatSales-Signature-256: sha256=&lt;hash&gt;</code>. Valide esse hash no n8n usando o segredo do webhook para garantir autenticidade e evitar requisições forjadas.
+            Cada payload enviado pelo SOS Vendas inclui o cabeçalho <code>X-ChatSales-Signature-256: sha256=&lt;hash&gt;</code>. Valide esse hash no n8n usando o segredo do webhook para garantir autenticidade e evitar requisições forjadas.
           </p>
         </div>
       </section>

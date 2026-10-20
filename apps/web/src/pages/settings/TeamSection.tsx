@@ -191,7 +191,7 @@ export const TeamSection: FC<{ session: UseSessionReturn }> = ({ session }) => {
     const requestedScope=scope.current,requestedEpoch=epoch.current,copyRequest=copyGeneration.current;
     const valid=()=>requestedScope===scope.current&&requestedEpoch===epoch.current&&copyRequest===copyGeneration.current;
     copyBusy.current=true;setCopyPending(true);setCopyError("");setCopied(false);clearTimeout(copyTimer.current);
-    const text = `Acesso ao CHAT-SALES:\nEmpresa: ${activeWorkspace?.name}\nE-mail: ${createdCredentials.email}\n${createdCredentials.pass?`Senha inicial: ${createdCredentials.pass}\n`:`Use sua senha atual.\n`}Link: ${window.location.origin}`;
+    const text = `Acesso ao SOS Vendas:\nEmpresa: ${activeWorkspace?.name}\nE-mail: ${createdCredentials.email}\n${createdCredentials.pass?`Senha inicial: ${createdCredentials.pass}\n`:`Use sua senha atual.\n`}Link: ${window.location.origin}`;
     try {await navigator.clipboard.writeText(text);if(!valid())return;setCopied(true);copyTimer.current=setTimeout(() => {if(valid())setCopied(false);}, 2500);}
     catch {if(valid()){setCopied(false);setCopyError("Não foi possível copiar. Selecione os dados exibidos e copie manualmente.");}}
     finally{if(valid()){copyBusy.current=false;setCopyPending(false);}}
