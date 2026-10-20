@@ -47,6 +47,11 @@ export const CockpitPage: FC<CockpitPageProps> = ({ session: propSession }) => {
   const currentDraft=useRef(conversation.messageInput);currentDraft.current=conversation.messageInput;
   const [pixRefreshKey,setPixRefreshKey]=useState(0);
   const [activeDrawer, setActiveDrawer] = useState<DrawerType>(null);
+  useEffect(() => {
+    const handleOpenPos = () => setActiveDrawer("pos");
+    window.addEventListener("sos-sales:open-pos-sale", handleOpenPos);
+    return () => window.removeEventListener("sos-sales:open-pos-sale", handleOpenPos);
+  }, []);
   const [proposals, setProposals] = useState<CommercialProposalSummary[]>([]);
   const [proposalsLoading,setProposalsLoading]=useState(false);
   const [proposalBusy,setProposalBusy]=useState(false);
@@ -219,6 +224,7 @@ export const CockpitPage: FC<CockpitPageProps> = ({ session: propSession }) => {
           onSync={() => inbox.syncActiveChannel()}
           isSyncing={inbox.isSyncing}
           canImportHistory={inbox.historyImportAvailable}
+          onOpenPosSale={() => setActiveDrawer("pos")}
           isLoading={inbox.isLoadingThreads || session.isLoadingMe || session.isLoadingWorkspace}
           error={inbox.error}
           notice={inbox.notice}
@@ -391,6 +397,12 @@ export const CockpitPage: FC<CockpitPageProps> = ({ session: propSession }) => {
         onSendProduct={handleSendProduct}
         onSendProducts={handleSendProducts}
         onContactUpdated={(contact) => setSelectedContact(contact)}
+        onPosSaleCreated={async (result) => {
+          await inbox.refreshThreads();
+          if (result.threadId) {
+            layout.setSelectedThreadId(result.threadId);
+          }
+        }}
       />
     </div>
   );

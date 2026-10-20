@@ -8,8 +8,9 @@ import { RadarDrawer } from "./RadarDrawer";
 import { DossierDrawer } from "./DossierDrawer";
 import { CatalogDrawer } from "./CatalogDrawer";
 import { FlowDrawer } from "./FlowDrawer";
+import { CounterSaleDrawer } from "./CounterSaleDrawer";
 
-export type DrawerType = "template" | "proposal" | "pix" | "radar" | "dossier" | "catalog" | "flow" | null;
+export type DrawerType = "template" | "proposal" | "pix" | "radar" | "dossier" | "catalog" | "flow" | "pos" | null;
 
 interface CockpitDrawersProps {
   textSendBlockedReason?:string;
@@ -28,6 +29,7 @@ interface CockpitDrawersProps {
   onSendProduct?: (product: ProductRecord,idempotencyKey?:string) => void | Promise<void>;
   onSendProducts?: (products: ProductRecord[],idempotencyKey?:string) => void | Promise<void>;
   onContactUpdated?: (contact: ContactSummary) => void;
+  onPosSaleCreated?: (result: import("../../../services/api-client").PosSaleResult) => void | Promise<void>;
 }
 
 export const CockpitDrawers: FC<CockpitDrawersProps> = ({
@@ -44,6 +46,7 @@ export const CockpitDrawers: FC<CockpitDrawersProps> = ({
   onSendProduct,
   onSendProducts,
   onContactUpdated,
+  onPosSaleCreated,
 }) => {
   const token = session.token ?? undefined;
 
@@ -118,6 +121,13 @@ export const CockpitDrawers: FC<CockpitDrawersProps> = ({
         workspaceId={session.activeWorkspace?.id}
         token={token}
         onFlowQueued={onTemplateSent}
+      />
+      <CounterSaleDrawer
+        isOpen={activeDrawer === "pos"}
+        onClose={onClose}
+        workspaceId={session.activeWorkspace?.id}
+        token={token}
+        onSaleCreated={onPosSaleCreated}
       />
     </>
   );

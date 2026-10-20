@@ -40,6 +40,7 @@ import {
   RefreshCw,
   PlusCircle,
   Smartphone,
+  Zap,
 } from "lucide-react";
 const LoginPage=lazy(()=>import("./pages/LoginPage").then(module=>({default:module.LoginPage})));
 
@@ -435,6 +436,17 @@ export const App: FC = () => {
     ];
 
     const actionCommands: CommandItem[] = [
+      {
+        id: "act-counter-sale",
+        title: "⚡ Nova Venda Balcão / POS",
+        subtitle: "Registrar venda presencial, enriquecer dados fiscais e disparar pós-venda",
+        category: "actions",
+        icon: <Zap size={16} />,
+        keywords: ["balcao", "pos", "caixa", "venda", "nota fiscal", "nf", "presencial"],
+        onSelect: () => handleNavigate("cockpit", () => {
+          window.dispatchEvent(new CustomEvent("sos-sales:open-pos-sale"));
+        }),
+      },
       {
         id: "act-new-broadcast",
         title: "Nova Campanha de Transmissão",

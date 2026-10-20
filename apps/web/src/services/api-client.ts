@@ -1007,6 +1007,41 @@ export class ApiClient {
     );
   }
 
+  async enrichCnpj(
+    cnpj: string,
+    options?: RequestOptions
+  ): Promise<CnpjEnrichmentResult> {
+    const clean = cnpj.replace(/\D/g, "");
+    return this.request(`/v1/enrichment/cnpj/${clean}`, {
+      ...options,
+      method: "GET",
+    });
+  }
+
+  async enrichCep(
+    cep: string,
+    options?: RequestOptions
+  ): Promise<CepEnrichmentResult> {
+    const clean = cep.replace(/\D/g, "");
+    return this.request(`/v1/enrichment/cep/${clean}`, {
+      ...options,
+      method: "GET",
+    });
+  }
+
+  async createPosSale(
+    workspaceId: string,
+    payload: PosSalePayload,
+    options?: RequestOptions
+  ): Promise<PosSaleResult> {
+    return this.request(`/v1/workspaces/${workspaceId}/pos/sales`, {
+      ...options,
+      method: "POST",
+      body: payload,
+      workspaceId,
+    });
+  }
+
   async getThreadMessages(
     workspaceId: string,
     threadId: string,
@@ -2326,6 +2361,83 @@ export interface WebhookTestResult {
   durationMs: number;
   responseBody: string | null;
   errorMessage: string | null;
+}
+
+export interface CnpjEnrichmentResult {
+  cnpj: string;
+  razaoSocial: string;
+  nomeFantasia: string;
+  situacaoCadastral: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  cep: string;
+  municipio: string;
+  uf: string;
+  telefone: string;
+  email: string;
+}
+
+export interface CepEnrichmentResult {
+  cep: string;
+  street: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+}
+
+export interface PosSaleItemPayload {
+  title: string;
+  unitPriceCents: number;
+  quantity: number;
+}
+
+export interface PosSalePayload {
+  customer: {
+    name: string;
+    phoneE164: string;
+    documentType: "CPF" | "CNPJ";
+    documentNumber: string;
+    email?: string;
+    companyName?: string;
+    tradeName?: string;
+    address?: {
+      zipCode?: string;
+      street?: string;
+      number?: string;
+      neighborhood?: string;
+      city?: string;
+      state?: string;
+    };
+  };
+  sale: {
+    title?: string;
+    items: PosSaleItemPayload[];
+    totalCents: number;
+    paymentMethod: "dinheiro" | "pix" | "credito" | "debito" | "outros";
+  };
+  fiscal?: {
+    emitNfe?: boolean;
+    naturezaOperacao?: string;
+  };
+  postSale?: {
+    sendUtilityWhatsapp?: boolean;
+    bonusPercent?: number;
+    bonusCoupon?: string;
+    followUpFlow?: "agendamento" | "pesquisa_satisfacao" | "oferta_recompra";
+  };
+}
+
+export interface PosSaleResult {
+  success: boolean;
+  contactId: string;
+  proposalId: string;
+  threadId: string;
+  totalCents: number;
+  fiscalStatus: "solicitada" | "nao_solicitada";
+  whatsappDispatched: boolean;
+  postSalePrompt: string | null;
 }
 
 export const apiClient = new ApiClient();

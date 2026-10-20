@@ -1,7 +1,7 @@
 import type {CustomStagesMap} from "../../opportunities/stages";
 import {useEffect, useRef, type FC} from "react";
 import { Badge, Button, IconButton, Input, SegmentedControl, EmptyState, LoadingState, useBreakpoint } from "@sos-sales/ui";
-import { PanelLeftClose, PanelLeftOpen, Search, MessageSquare, RefreshCw, AlertTriangle } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Search, MessageSquare, RefreshCw, AlertTriangle, Zap } from "lucide-react";
 import { Avatar } from "@sos-sales/ui";
 import type { CommercialThreadSummary, ChannelSummary } from "../../../services/api-client";
 import { ConversationRow } from "./ConversationRow";
@@ -31,6 +31,7 @@ interface InboxListProps {
   onSync?: () => void;
   isSyncing?: boolean;
   canImportHistory?: boolean;
+  onOpenPosSale?: () => void;
   isLoading?: boolean;
   error?: string | null;
   notice?: string | null;
@@ -58,6 +59,7 @@ export const InboxList: FC<InboxListProps> = ({
   onSync,
   isSyncing,
   canImportHistory=false,
+  onOpenPosSale,
   isLoading = false, error, notice, onRetry,
 }) => {
   const { isMobile: hookMobile } = useBreakpoint();
@@ -99,6 +101,17 @@ export const InboxList: FC<InboxListProps> = ({
           onClick={onToggleCollapse}
           tooltip="Expandir Fila (320px)"
         />
+
+        {onOpenPosSale && (
+          <IconButton
+            aria-label="Nova Venda Balcão / POS"
+            icon={<Zap size={16} style={{ color: "#10B981" }} />}
+            size="sm"
+            variant="ghost"
+            onClick={onOpenPosSale}
+            tooltip="⚡ Nova Venda Balcão / POS"
+          />
+        )}
 
         {(error || requiresRefresh) && (
           <div role="alert">
@@ -281,6 +294,16 @@ export const InboxList: FC<InboxListProps> = ({
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            {onOpenPosSale && (
+              <IconButton
+                aria-label="Nova Venda Balcão / POS"
+                icon={<Zap size={14} style={{ color: "#10B981" }} />}
+                size="sm"
+                variant="ghost"
+                onClick={onOpenPosSale}
+                tooltip="⚡ Nova Venda Balcão / POS (NF + Pós-Venda)"
+              />
+            )}
             {onSync && (
               <IconButton
                 aria-label="Revisar importação do histórico recente"

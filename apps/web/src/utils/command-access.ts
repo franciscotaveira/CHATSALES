@@ -4,6 +4,7 @@ const contextual:Record<string,Permission>={
  'act-new-broadcast':'cockpit:send_message',
  'act-new-product':'cockpit:access',
  'act-whatsapp-instances':'workspace:manage',
+ 'act-counter-sale':'cockpit:send_message',
 };
 export function canUseCommand(id:string,role:string|null|undefined,canCreateCompany:boolean){
  if(id.startsWith('nav-'))return canAccessPage(role,id.slice(4));
