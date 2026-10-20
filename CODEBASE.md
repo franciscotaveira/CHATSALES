@@ -498,20 +498,25 @@ A infraestrutura de automações externas da MCT LTDA está centralizada em um d
   - Preservação total de dados (Truth in Data):
     - Base Chat Sales V3: 16.692 mensagens, 891 threads, 841 contatos, 30 workspaces restaurados com integridade RLS via backup criptografado AES-256.
     - Base PLX n8n: 148 tabelas restauradas em container dedicado (`plx-n8n-db`).
-- **Arquitetura de Ilhas Segregadas com Borda Unificada:**
-  - **Ilha 1 (Chat Sales V3):** Rede `sos-sales-network` contendo `chat-sales-web` (Nginx), `chat-sales-api` (Fastify 5), `chat-sales-worker`, `sos-sales-postgres`, `sos-sales-redis` e `sos-sales-waha`.
-  - **Ilha 2 (PLX Automações):** Rede `plx-network` contendo `n8n` (v2.43.8) e `plx-n8n-db`.
-  - **Borda Unificada:** Container `sos-sales-caddy` conectado simultaneamente às redes `sos-sales-network` e `plx-network`, gerenciando TLS automático Let's Encrypt para todos os domínios.
-- **Domínio Oficial e Automação via Hostinger DNS API:**
-  - Migração de domínio legado (`iaparavendas.tech`) para o domínio soberano unificado: **`automatizaprocessos.tech`**.
-  - Integração direta com a API REST da Hostinger (`https://developers.hostinger.com/api/dns/v1/zones/automatizaprocessos.tech`):
+    - Base LUMA OS: Inicializada e auditada em container dedicado (`luma-db`).
+- **Arquitetura Definitiva de 3 Ilhas Segregadas com Borda Unificada:**
+  - **Ilha 1 (Chat Sales V3):** Diretório `/opt/chat-sales-v3/`, rede `sos-sales-network` contendo `chat-sales-web` (Nginx), `chat-sales-api` (Fastify 5), `chat-sales-worker`, `sos-sales-postgres`, `sos-sales-redis` e `sos-sales-waha` (limite 7.5 GB RAM).
+  - **Ilha 2 (PLX Automações):** Diretório `/opt/plx-documentos/`, rede `plx-network` contendo `n8n` (v2.43.8) e `plx-n8n-db` (limite 4.0 GB RAM).
+  - **Ilha 3 (LUMA OS):** Diretório `/opt/luma-os/`, rede `luma-network` contendo `luma-app` (Fastify/Node.js) e `luma-db` (Postgres 16) (limite 2.0 GB RAM).
+  - **Borda Unificada:** Container `sos-sales-caddy` conectado simultaneamente às 3 redes (`sos-sales-network`, `plx-network`, `luma-network`), gerenciando TLS automático Let's Encrypt para todos os domínios.
+- **Domínios Oficiais e Automação via Hostinger DNS API:**
+  - Domínio soberano unificado: **`automatizaprocessos.tech`**.
+  - Registros A e AAAA ativos na API REST da Hostinger (`https://developers.hostinger.com/api/dns/v1/zones/automatizaprocessos.tech`):
     - `chat.automatizaprocessos.tech` -> A `200.141.17.99`, AAAA `2a02:4780:6e:c5ee::1`
     - `automacao.automatizaprocessos.tech` -> A `200.141.17.99`, AAAA `2a02:4780:6e:c5ee::1`
+    - `luma.automatizaprocessos.tech` -> A `200.141.17.99`, AAAA `2a02:4780:6e:c5ee::1`
     - `@` (`automatizaprocessos.tech`) -> A `200.141.17.99`, AAAA `2a02:4780:6e:c5ee::1`
     - `www.automatizaprocessos.tech` -> CNAME `automatizaprocessos.tech.`
-  - Certificados SSL/TLS emitidos com sucesso e em operação ativa com HTTP/2.
-- **Governança Operacional Anti-Tampering para IAs (P0):**
+  - Certificados SSL/TLS emitidos com sucesso e em operação ativa com HTTP/2 (auditados com retorno `HTTP/2 200` em todos os endpoints).
+- **Governança Operacional Anti-Tampering & Ferramental de Migração 1-Click (P0):**
   - Guardrails e regras invioláveis instalados no host em `/root/SOVEREIGN_VPS_RULES.md`, `/root/README_IA.md`, `/etc/motd`, `/opt/README.md` e no monorepo em `docs/architecture/SOVEREIGN_VPS_OPERATING_MANUAL.md`.
-  - Comandos globais utilitários em `/usr/local/bin/`: `vps-status`, `vps-backup`, `chat-sales-restart`, `plx-restart`, `caddy-reload`.
-  - Crontab de produção com backup diário automático (03:00 AM) e sentinela watchdog a cada 5 minutos.
+  - Comandos globais utilitários em `/usr/local/bin/`: `vps-status`, `vps-backup`, `chat-sales-restart`, `plx-restart`, `luma-restart`, `caddy-reload`.
+  - **1-Click Island Migration Protocol (`export-island`):** Ferramenta utilitária no host (`export-island <chat-sales|plx|luma>`) que gera snapshot atômico (dump Postgres + `.env` + compose + auto-installer `setup-new-vps.sh`) para migração instantânea para VPS própria quando qualquer ilha atingir maturidade e breakeven financeiro.
+  - Crontab de produção com backup diário automático (03:00 AM) com criptografia AES-256 e sentinela watchdog a cada 5 minutos.
+
 
