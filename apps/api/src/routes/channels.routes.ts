@@ -1680,8 +1680,13 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
         if (!ownPhone || (channel.phone_number_e164 && channel.phone_number_e164 !== ownPhone)) {
           return providerError("A identidade da sessão não corresponde ao canal ou não pôde ser confirmada. Confira a conexão.", 409);
         }
-        let chatsResp = await getProvider(`/api/${effectiveSession}/chats?limit=100&offset=0&sortBy=messageTimestamp&sortOrder=desc`);
-        if (chatsResp.status === 404) chatsResp = await getProvider(`/api/sessions/${effectiveSession}/chats?limit=100&offset=0`);
+        let chatsResp = await getProvider(`/api/${effectiveSession}/chats?limit=100&offset=0&sortBy=conversationTimestamp&sortOrder=desc`);
+        if (!chatsResp.ok) {
+          chatsResp = await getProvider(`/api/${effectiveSession}/chats?limit=100&offset=0`);
+        }
+        if (chatsResp.status === 404 || !chatsResp.ok) {
+          chatsResp = await getProvider(`/api/sessions/${effectiveSession}/chats?limit=100&offset=0`);
+        }
         if (!chatsResp.ok) return providerError("O provedor não retornou as conversas. Tente novamente após conferir a conexão.");
         rawChats = await chatsResp.json();
         if (!Array.isArray(rawChats)) return providerError("O provedor retornou uma lista de conversas inválida. Nenhum histórico foi importado.");
@@ -1707,7 +1712,11 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
           const dates = [historyDate(chat.conversationTimestamp), ...messages.map(message => message.createdAt)].filter((date): date is Date => date !== null);
           if (!dates.length) { failedChatsCount++; continue; }
           const lastMessageAt = new Date(Math.max(...dates.map(date => date.getTime())));
-          const contactName = [chat.name, chat.pushName].find(name => typeof name === "string" && name.trim()) as string | undefined;
+          const contactName = [
+            chat.name,
+            chat.pushName,
+            ...rawMessages.map(m => (m && typeof m === "object" ? (m as { pushName?: unknown; _data?: { pushName?: unknown } }).pushName || (m as { pushName?: unknown; _data?: { pushName?: unknown } })._data?.pushName : undefined))
+          ].find(name => typeof name === "string" && name.trim()) as string | undefined;
           const importedCount = await withTenantTransaction(workspaceId, async client => {
             const member = (await client.query<{ role: string }>("SELECT role FROM public.workspace_memberships WHERE workspace_id=$1 AND user_id=$2 FOR SHARE", [workspaceId, request.user.id])).rows[0];
             if (!member || !hasWorkspacePermission(member.role, "cockpit:access")) throw new Error("history_access_changed");

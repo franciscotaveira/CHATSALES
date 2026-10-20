@@ -1,7 +1,9 @@
 /** Provider history is evidence, never a new inbox event or permission to send. */
 export function historyPhone(value: unknown): string | null {
-  if (typeof value !== "string" || !/^[1-9][0-9]{6,14}@c\.us$/.test(value)) return null;
-  return `+${value.slice(0, -5)}`;
+  if (typeof value !== "string") return null;
+  const match = value.match(/^([1-9][0-9]{6,14})@(c\.us|s\.whatsapp\.net)$/);
+  if (!match) return null;
+  return `+${match[1]}`;
 }
 export function historyDate(value: unknown): Date | null {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return null;

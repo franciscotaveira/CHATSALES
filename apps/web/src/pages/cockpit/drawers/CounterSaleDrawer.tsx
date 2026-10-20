@@ -321,6 +321,7 @@ export const CounterSaleDrawer: FC<CounterSaleDrawerProps> = ({
     <Drawer
       isOpen={isOpen}
       onClose={onClose}
+      width="min(680px, 95vw)"
       title="⚡ Nova Venda Balcão / POS"
       description="Registre vendas presenciais com enriquecimento fiscal automático e pós-venda inteligente no WhatsApp."
       footer={
@@ -436,7 +437,7 @@ export const CounterSaleDrawer: FC<CounterSaleDrawerProps> = ({
           </div>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "20px", overflowX: "hidden", maxWidth: "100%", width: "100%", boxSizing: "border-box" }}>
           {errorMessage && (
             <div
               role="alert"
@@ -466,31 +467,35 @@ export const CounterSaleDrawer: FC<CounterSaleDrawerProps> = ({
               display: "flex",
               flexDirection: "column",
               gap: "14px",
+              boxSizing: "border-box",
+              width: "100%",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <Building2 size={18} style={{ color: "var(--color-action, #3B82F6)" }} />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+                <Building2 size={18} style={{ color: "var(--color-action, #3B82F6)", flexShrink: 0 }} />
                 <h4 style={{ margin: 0, fontSize: "0.9375rem", fontWeight: 600, color: "var(--text-primary)" }}>
                   Identificação do Cliente & Fiscal
                 </h4>
               </div>
-              <SegmentedControl
-                options={[
-                  { value: "CPF", label: "Pessoa Física (CPF)" },
-                  { value: "CNPJ", label: "Pessoa Jurídica (CNPJ)" },
-                ]}
-                value={docType}
-                onChange={(val) => {
-                  setDocType(val as "CPF" | "CNPJ");
-                  setDocNumber("");
-                  setEnrichedData(null);
-                }}
-              />
+              <div style={{ flexShrink: 0 }}>
+                <SegmentedControl
+                  options={[
+                    { value: "CPF", label: "Pessoa Física (CPF)" },
+                    { value: "CNPJ", label: "Pessoa Jurídica (CNPJ)" },
+                  ]}
+                  value={docType}
+                  onChange={(val) => {
+                    setDocType(val as "CPF" | "CNPJ");
+                    setDocNumber("");
+                    setEnrichedData(null);
+                  }}
+                />
+              </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "12px" }}>
+              <div style={{ minWidth: 0 }}>
                 <Input
                   label={docType === "CPF" ? "CPF do Cliente" : "CNPJ da Empresa"}
                   placeholder={docType === "CPF" ? "000.000.000-00" : "00.000.000/0000-00"}
@@ -513,7 +518,7 @@ export const CounterSaleDrawer: FC<CounterSaleDrawerProps> = ({
                 />
               </div>
 
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <Input
                   label={docType === "CPF" ? "Nome Completo" : "Razão Social"}
                   placeholder={docType === "CPF" ? "Nome do cliente" : "Razão Social da empresa"}
@@ -524,8 +529,8 @@ export const CounterSaleDrawer: FC<CounterSaleDrawerProps> = ({
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "12px" }}>
+              <div style={{ minWidth: 0 }}>
                 <Input
                   label="WhatsApp para Pós-Venda"
                   placeholder="(00) 00000-0000"
@@ -536,7 +541,7 @@ export const CounterSaleDrawer: FC<CounterSaleDrawerProps> = ({
                 />
               </div>
 
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <Input
                   label="E-mail (Opcional)"
                   placeholder="cliente@email.com"
@@ -548,52 +553,68 @@ export const CounterSaleDrawer: FC<CounterSaleDrawerProps> = ({
             </div>
 
             {/* Endereço Fiscal Resumido */}
-            <div style={{ borderTop: "1px solid var(--border-default, rgba(255,255,255,0.06))", paddingTop: "12px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "130px 1fr 90px 130px", gap: "10px" }}>
-                <Input
-                  label="CEP"
-                  placeholder="00000-000"
-                  value={cep}
-                  onChange={(e) => handleCepChange(e.target.value)}
-                />
-                <Input
-                  label="Logradouro"
-                  placeholder="Rua / Avenida"
-                  value={street}
-                  onChange={(e) => setStreet(e.target.value)}
-                />
-                <Input
-                  label="Nº"
-                  placeholder="123"
-                  value={number}
-                  onChange={(e) => setNumber(e.target.value)}
-                />
-                <Input
-                  label="Complemento"
-                  placeholder="Sala / Apto"
-                  value={complement}
-                  onChange={(e) => setComplement(e.target.value)}
-                />
+            <div style={{ borderTop: "1px solid var(--border-default, rgba(255,255,255,0.06))", paddingTop: "12px", display: "flex", flexDirection: "column", gap: "10px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "minmax(120px, 140px) 1fr", gap: "10px" }}>
+                <div style={{ minWidth: 0 }}>
+                  <Input
+                    label="CEP"
+                    placeholder="00000-000"
+                    value={cep}
+                    onChange={(e) => handleCepChange(e.target.value)}
+                  />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <Input
+                    label="Logradouro"
+                    placeholder="Rua / Avenida"
+                    value={street}
+                    onChange={(e) => setStreet(e.target.value)}
+                  />
+                </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 80px", gap: "10px", marginTop: "8px" }}>
-                <Input
-                  label="Bairro"
-                  placeholder="Bairro"
-                  value={neighborhood}
-                  onChange={(e) => setNeighborhood(e.target.value)}
-                />
-                <Input
-                  label="Cidade"
-                  placeholder="Município"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                />
-                <Input
-                  label="UF"
-                  placeholder="SC"
-                  value={state}
-                  onChange={(e) => setState(e.target.value.toUpperCase().slice(0, 2))}
-                />
+              <div style={{ display: "grid", gridTemplateColumns: "minmax(90px, 110px) 1fr", gap: "10px" }}>
+                <div style={{ minWidth: 0 }}>
+                  <Input
+                    label="Nº"
+                    placeholder="123"
+                    value={number}
+                    onChange={(e) => setNumber(e.target.value)}
+                  />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <Input
+                    label="Complemento"
+                    placeholder="Sala / Apto (Opcional)"
+                    value={complement}
+                    onChange={(e) => setComplement(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr minmax(65px, 80px)", gap: "10px" }}>
+                <div style={{ minWidth: 0 }}>
+                  <Input
+                    label="Bairro"
+                    placeholder="Bairro"
+                    value={neighborhood}
+                    onChange={(e) => setNeighborhood(e.target.value)}
+                  />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <Input
+                    label="Cidade"
+                    placeholder="Município"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                  />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <Input
+                    label="UF"
+                    placeholder="SC"
+                    value={state}
+                    onChange={(e) => setState(e.target.value.toUpperCase().slice(0, 2))}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -608,9 +629,11 @@ export const CounterSaleDrawer: FC<CounterSaleDrawerProps> = ({
               display: "flex",
               flexDirection: "column",
               gap: "14px",
+              boxSizing: "border-box",
+              width: "100%",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <ShoppingBag size={18} style={{ color: "#10B981" }} />
                 <h4 style={{ margin: 0, fontSize: "0.9375rem", fontWeight: 600, color: "var(--text-primary)" }}>
@@ -634,31 +657,37 @@ export const CounterSaleDrawer: FC<CounterSaleDrawerProps> = ({
                     key={item.id}
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "1fr 120px 70px 100px 36px",
+                      gridTemplateColumns: "minmax(140px, 1fr) 110px 70px 95px 36px",
                       gap: "8px",
                       alignItems: "end",
                     }}
                   >
-                    <Input
-                      label={index === 0 ? "Descrição do Item" : undefined}
-                      placeholder="Ex: Película Solar G5, Serviço X..."
-                      value={item.title}
-                      onChange={(e) => handleItemChange(item.id, "title", e.target.value)}
-                    />
-                    <Input
-                      label={index === 0 ? "Preço Unit. (R$)" : undefined}
-                      placeholder="0,00"
-                      value={item.price}
-                      onChange={(e) => handleItemChange(item.id, "price", e.target.value)}
-                    />
-                    <Input
-                      label={index === 0 ? "Qtd" : undefined}
-                      placeholder="1"
-                      type="number"
-                      value={item.quantity}
-                      onChange={(e) => handleItemChange(item.id, "quantity", e.target.value)}
-                    />
-                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    <div style={{ minWidth: 0 }}>
+                      <Input
+                        label={index === 0 ? "Descrição do Item" : undefined}
+                        placeholder="Ex: Película Solar G5, Serviço X..."
+                        value={item.title}
+                        onChange={(e) => handleItemChange(item.id, "title", e.target.value)}
+                      />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <Input
+                        label={index === 0 ? "Preço Unit. (R$)" : undefined}
+                        placeholder="0,00"
+                        value={item.price}
+                        onChange={(e) => handleItemChange(item.id, "price", e.target.value)}
+                      />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <Input
+                        label={index === 0 ? "Qtd" : undefined}
+                        placeholder="1"
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => handleItemChange(item.id, "quantity", e.target.value)}
+                      />
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: 0 }}>
                       {index === 0 && (
                         <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>
                           Subtotal
@@ -672,12 +701,13 @@ export const CounterSaleDrawer: FC<CounterSaleDrawerProps> = ({
                           fontSize: "0.875rem",
                           fontWeight: 600,
                           color: "var(--text-primary)",
+                          whiteSpace: "nowrap",
                         }}
                       >
                         {formatCurrency(lineTotal)}
                       </div>
                     </div>
-                    <div>
+                    <div style={{ flexShrink: 0 }}>
                       {items.length > 1 && (
                         <Button
                           size="sm"
