@@ -31,12 +31,12 @@ export const MobileNav: FC<MobileNavProps> = ({
         height: "calc(var(--mobile-nav-h, 56px) + env(safe-area-inset-bottom, 0px))",
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
         backgroundColor: "var(--bg-surface, #FFFFFF)",
-        borderTop: "1px solid var(--border-default, #E2E8F0)",
+        borderTop: "1px solid var(--border-default, #CBD5E1)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-around",
         zIndex: 30,
-        boxShadow: "var(--shadow-sm)",
+        boxShadow: "0 -2px 10px rgba(15, 23, 42, 0.08)",
       }}
     >
       {displayItems.map((item) => {

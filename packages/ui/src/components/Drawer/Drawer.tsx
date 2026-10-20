@@ -78,9 +78,9 @@ export const Drawer: FC<DrawerProps> = ({
           fontFamily: "var(--font-sans, sans-serif)",
           zIndex: 1,
           borderRadius: isBottom ? "var(--radius-lg, 12px) var(--radius-lg, 12px) 0 0" : 0,
-          borderTop: isBottom ? "1px solid var(--border-default, #E2E8F0)" : "none",
-          borderLeft: isLeft ? "none" : isBottom ? "none" : "1px solid var(--border-default, #E2E8F0)",
-          borderRight: isLeft ? "1px solid var(--border-default, #E2E8F0)" : "none",
+          borderTop: isBottom ? "1px solid var(--border-default, #CBD5E1)" : "none",
+          borderLeft: isLeft ? "none" : isBottom ? "none" : "1px solid var(--border-default, #CBD5E1)",
+          borderRight: isLeft ? "1px solid var(--border-default, #CBD5E1)" : "none",
         }}
       >
         {/* Mobile drag handle for bottom sheet */}

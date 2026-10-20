@@ -47,13 +47,17 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       },
       primary: {
         backgroundColor: "var(--color-action, #008069)",
+        backgroundImage: "linear-gradient(180deg, #00A884 0%, #008069 100%)",
         color: "var(--text-inverse, #FFFFFF)",
-        border: "1px solid transparent",
+        border: "1px solid rgba(0, 100, 80, 0.45)",
+        boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 1px 2px rgba(15, 23, 42, 0.12)",
       },
       danger: {
         backgroundColor: "var(--color-danger, #DC2626)",
+        backgroundImage: "linear-gradient(180deg, #EF4444 0%, #DC2626 100%)",
         color: "var(--text-inverse, #FFFFFF)",
-        border: "1px solid transparent",
+        border: "1px solid rgba(185, 28, 28, 0.45)",
+        boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.20), 0 1px 2px rgba(15, 23, 42, 0.12)",
       },
     };
 

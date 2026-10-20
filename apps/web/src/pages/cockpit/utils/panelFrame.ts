@@ -1,13 +1,14 @@
 import type { CSSProperties } from "react";
 
-/** Framed panel on the canvas: gives each cockpit column its own card. Flush on mobile. */
 export const panelFrame = (isMobile: boolean): CSSProperties =>
   isMobile
-    ? {}
+    ? {
+        borderBottom: "1px solid var(--border-default, #CBD5E1)",
+      }
     : {
-        border: "1px solid var(--border-default)",
+        border: "1px solid var(--border-default, #CBD5E1)",
         borderRadius: "var(--radius-lg, 12px)",
-        boxShadow: "var(--shadow-sm)",
+        boxShadow: "var(--shadow-panel, 0 1px 3px rgba(15, 23, 42, 0.08), 0 6px 16px -4px rgba(15, 23, 42, 0.06))",
         overflow: "hidden",
       };
 

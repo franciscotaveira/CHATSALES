@@ -50,7 +50,7 @@ export const ListItem: FC<ListItemProps> = ({
         borderLeft: selected
           ? "3px solid var(--color-action, #008069)"
           : "3px solid transparent",
-        borderBottom: "1px solid var(--border-default, #E2E8F0)",
+        borderBottom: "1px solid var(--border-default, #CBD5E1)",
         cursor: disabled ? "not-allowed" : onClick ? "pointer" : "default",
         opacity: disabled ? 0.5 : 1,
         transition: "background-color var(--transition-fast, 150ms ease), border-color var(--transition-fast, 150ms ease)",

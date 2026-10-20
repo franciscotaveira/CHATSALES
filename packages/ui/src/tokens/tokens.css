@@ -7,10 +7,10 @@
   /* ==========================================================================
      1. COLOR PALETTE: LIGHT THEME (CANONICAL DEFAULT)
      ========================================================================== */
-  --bg-canvas: #F8FAFC;            /* Clean light canvas matching colors.canvas */
+  --bg-canvas: #EDF2F7;            /* Crisp light slate canvas with defined presence */
   --bg-surface: #FFFFFF;           /* Pure White card/panel surface */
-  --bg-surface-elevated: #F1F5F9;  /* Panel headers, hover & table headers */
-  --bg-surface-subtle: #F8FAFC;    /* Subtle inset container */
+  --bg-surface-elevated: #F8FAFC;  /* Panel headers, hover & table headers */
+  --bg-surface-subtle: #F1F5F9;    /* Subtle inset container */
 
   /* Structural Dark Navy (Sidebar & Continuity Ribbon) */
   --bg-sidebar: #0B132B;           /* Sovereign Dark Navy */
@@ -24,10 +24,10 @@
   --text-muted: #64748B;           /* Slate 500 (4.6:1 on #FFFFFF) */
   --text-inverse: #FFFFFF;         /* Pure White on action buttons */
 
-  /* Precision Borders & Lines */
-  --border-subtle: #F1F5F9;        /* Inset divider */
-  --border-default: #E2E8F0;       /* Panel container border */
-  --border-strong: #CBD5E1;        /* Control strong border */
+  /* Precision Borders & Lines (Elevated contrast) */
+  --border-subtle: #E2E8F0;        /* Inset divider */
+  --border-default: #CBD5E1;       /* Panel container border — crisp 1.5:1 ratio */
+  --border-strong: #94A3B8;        /* Control strong border */
   --border-focus: #008069;         /* Action green focus ring */
 
   /* Operational Semantic Accents */
@@ -119,6 +119,7 @@
   --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
   --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
   --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.10), 0 8px 10px -6px rgba(15, 23, 42, 0.05);
+  --shadow-panel: 0 1px 3px rgba(15, 23, 42, 0.08), 0 6px 16px -4px rgba(15, 23, 42, 0.06);
   --shadow-glow: 0 0 20px -2px rgba(0, 128, 105, 0.25);
 
   /* Transition timings */
@@ -145,9 +146,9 @@
   --text-muted: #64748B;
   --text-inverse: #070B19;
 
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-default: rgba(255, 255, 255, 0.12);
-  --border-strong: rgba(255, 255, 255, 0.2);
+  --border-subtle: rgba(255, 255, 255, 0.10);
+  --border-default: rgba(255, 255, 255, 0.18);
+  --border-strong: rgba(255, 255, 255, 0.32);
 
   --color-action-subtle: rgba(0, 168, 132, 0.15);
   --color-action-border: rgba(0, 168, 132, 0.3);
@@ -223,6 +224,7 @@
 .sos-button-primary:hover:not(:disabled),
 .sos-icon-button-primary:hover:not(:disabled) {
   background-color: var(--color-action-hover, #006E5A) !important;
+  background-image: linear-gradient(180deg, #00B58F 0%, #007D67 100%) !important;
   box-shadow: 0 4px 12px -2px rgba(0, 128, 105, 0.35), 0 2px 4px -2px rgba(0, 128, 105, 0.25) !important;
   transform: translateY(-1px);
 }

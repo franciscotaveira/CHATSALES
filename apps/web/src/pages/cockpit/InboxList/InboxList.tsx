@@ -230,7 +230,7 @@ export const InboxList: FC<InboxListProps> = ({
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        backgroundColor: "var(--bg-surface)",
+        backgroundColor: "var(--bg-surface-elevated, #F8FAFC)",
         boxSizing: "border-box",
         overflow: "hidden",
         ...panelFrame(isMobile),
