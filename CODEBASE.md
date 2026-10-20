@@ -1,4 +1,4 @@
-# CODEBASE.md — SOS Sales V3 (Greenfield Sovereign Architecture)
+# CODEBASE.md — SOS Vendas V3 (Greenfield Sovereign Architecture)
 
 > MCT OS v2.0 | Francisco Rios | 69.553.990 FRANCISCO TAVEIRA RIOS (CNPJ: 69.553.990/0001-91) | MCT LTDA | Chapecó, SC  
 > Filosofia: Poder invisível, simplicidade visível. Truth in Data.  
@@ -205,7 +205,7 @@ A infraestrutura de automações externas da MCT LTDA está centralizada em um d
   - Modelos Alternativos Homologados: `nvidia/nemotron-3.5-lightning-30b-a3b` (ultrarrápido), `nvidia/llama-3.1-nemotron-70b-instruct` (factual).
 - **Provedor Alternativo:** **OpenRouter** via `https://openrouter.ai/api/v1/chat/completions`.
   - Modelos Homologados: `anthropic/claude-3.5-sonnet` (alta precisão), `google/gemini-2.5-flash`, `deepseek/deepseek-chat`.
-  - Cabeçalhos de rastreabilidade obrigatórios: `HTTP-Referer: https://chat.automatizaprocessos.tech` e `X-Title: Chat Sales V3 Commercial Receptionist`.
+  - Cabeçalhos de rastreabilidade obrigatórios: `HTTP-Referer: https://chat.automatizaprocessos.tech` e `X-Title: SOS Vendas Commercial Receptionist`.
 - **Governança de Credenciais por Workspace:**
   - Colunas `ai_provider`, `ai_model`, `ai_api_key` em `public.workspaces`.
   - Resolução hierárquica fail-closed: Chave customizada do tenant -> Chave de ambiente do servidor (`NVIDIA_API_KEY` / `OPENROUTER_API_KEY`).
@@ -513,11 +513,11 @@ A infraestrutura de automações externas da MCT LTDA está centralizada em um d
   - Hardware: 4 vCPUs AMD EPYC, 16 GB RAM, 200 GB NVMe, swapfile de 4 GB ativado contra OOM.
   - Perímetro defensivo UFW: `default deny incoming`, apenas portas 22 (SSH), 80 (HTTP) e 443 (HTTPS) abertas no host. Portas de banco e Redis com zero exposição pública.
   - Preservação total de dados (Truth in Data):
-    - Base Chat Sales V3: 16.692 mensagens, 891 threads, 841 contatos, 30 workspaces restaurados com integridade RLS via backup criptografado AES-256.
+    - Base SOS Vendas V3: 16.692 mensagens, 891 threads, 841 contatos, 30 workspaces restaurados com integridade RLS via backup criptografado AES-256.
     - Base PLX n8n: 148 tabelas restauradas em container dedicado (`plx-n8n-db`).
     - Base LUMA OS: Inicializada e auditada em container dedicado (`luma-db`).
 - **Arquitetura Definitiva de 3 Ilhas Segregadas com Borda Unificada:**
-  - **Ilha 1 (Chat Sales V3):** Diretório `/opt/chat-sales-v3/`, rede `sos-sales-network` contendo `chat-sales-web` (Nginx), `chat-sales-api` (Fastify 5), `chat-sales-worker`, `sos-sales-postgres`, `sos-sales-redis` e `sos-sales-waha` (limite 7.5 GB RAM).
+  - **Ilha 1 (SOS Vendas V3):** Diretório `/opt/chat-sales-v3/`, rede `sos-sales-network` contendo `chat-sales-web` (Nginx), `chat-sales-api` (Fastify 5), `chat-sales-worker`, `sos-sales-postgres`, `sos-sales-redis` e `sos-sales-waha` (limite 7.5 GB RAM).
   - **Ilha 2 (PLX Automações):** Diretório `/opt/plx-documentos/`, rede `plx-network` contendo `n8n` (v2.43.8) e `plx-n8n-db` (limite 4.0 GB RAM).
   - **Ilha 3 (LUMA OS):** Diretório `/opt/luma-os/`, rede `luma-network` contendo `luma-app` (Fastify/Node.js) e `luma-db` (Postgres 16) (limite 2.0 GB RAM).
   - **Borda Unificada:** Container `sos-sales-caddy` conectado simultaneamente às 3 redes (`sos-sales-network`, `plx-network`, `luma-network`), gerenciando TLS automático Let's Encrypt para todos os domínios.

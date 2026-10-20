@@ -1,5 +1,5 @@
 /**
- * Chat Sales — Integration Suggestions Repository (F1.1-C Radar Hardening & Governance)
+ * SOS Vendas — Integration Suggestions Repository (F1.1-C Radar Hardening & Governance)
  * 
  * Provides tenant-scoped CRUD for integration suggestions with:
  * - Candidate-Suggestion link (mandatory opaque candidateRevision concurrency token)

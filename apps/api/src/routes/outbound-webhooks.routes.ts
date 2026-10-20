@@ -224,8 +224,8 @@ export const outboundWebhooksRoutes: FastifyPluginAsync = async (app) => {
         timestamp,
         workspace_id: workspaceId,
         data: {
-          message: "Ping de teste do Chat Sales",
-          system: "Chat Sales v3",
+          message: "Ping de teste do SOS Vendas",
+          system: "SOS Vendas v3",
           status: "connected",
         },
       };

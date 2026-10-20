@@ -106,7 +106,7 @@ export const enrichmentRoutes: FastifyPluginAsync = async (app) => {
           signal: controller.signal,
           headers: {
             "Accept": "application/json",
-            "User-Agent": "MCT-ChatSales-FiscalEnricher/3.0",
+            "User-Agent": "MCT-SOSVendas-FiscalEnricher/3.0",
           },
         });
         clearTimeout(timeout);
@@ -202,7 +202,7 @@ export const enrichmentRoutes: FastifyPluginAsync = async (app) => {
           signal: controller.signal,
           headers: {
             "Accept": "application/json",
-            "User-Agent": "MCT-ChatSales-FiscalEnricher/3.0",
+            "User-Agent": "MCT-SOSVendas-FiscalEnricher/3.0",
           },
         });
         clearTimeout(timeout);

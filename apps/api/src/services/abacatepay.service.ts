@@ -159,7 +159,7 @@ export async function createAbacatePayBilling(
     headers: {
       "Authorization": `Bearer ${req.apiKey}`,
       "Content-Type": "application/json",
-      "User-Agent": "MCT-ChatSales-V3/AbacatePay",
+      "User-Agent": "MCT-SOSVendas-V3/AbacatePay",
     },
     body: JSON.stringify(payload),
     signal: AbortSignal.timeout(10000),
@@ -242,7 +242,7 @@ export async function reconcileAbacatePaySettlement(
 
   if (!chargeRow) {
     logger.warn({ workspaceId, billingId, metadata }, "AbacatePay charge not found in pix_charges");
-    throw new Error(`COBRANCA_NOT_FOUND: Cobrança ${billingId} não encontrada no Chat Sales`);
+    throw new Error(`COBRANCA_NOT_FOUND: Cobrança ${billingId} não encontrada no SOS Vendas`);
   }
 
   const currentCharge: PixChargeRecord = chargeRow;

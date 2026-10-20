@@ -1,7 +1,7 @@
 {
-  "short_name": "SOS Sales",
-  "name": "SOS Sales V3 — Sistema Operacional Comercial",
-  "description": "Cockpit comercial com WhatsApp Dual-Engine, Funil e Atribuição Meta Ads (CAPI)",
+  "short_name": "SOS Vendas",
+  "name": "SOS Vendas — Sistema Operacional Comercial",
+  "description": "Cockpit comercial com WhatsApp Dual-Engine, Funil, Pix Nativo e Atribuição Meta Ads (CAPI)",
   "icons": [
     {
       "src": "/vite.svg",

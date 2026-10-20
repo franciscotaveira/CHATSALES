@@ -1,15 +1,15 @@
-# SOS Sales V3 — Sovereign Greenfield Commercial OS
+# SOS Vendas — Sistema Operacional Comercial para WhatsApp & Pix
 
 > Sistema Operacional Comercial Greenfield com Migração Segura (MCT OS v2.0)  
 > Titularidade: Francisco Taveira Rios | MCT LTDA  
-> Data: Setembro de 2026
+> Data: Outubro de 2026
 
 ---
 
 ## 1. Visão Geral
 
-O **SOS Sales V3** fecha o ciclo comercial de ponta a ponta:
-`Aquisição Meta Ads / CTWA / Lead Ads → Atendimento Cockpit (WhatsApp Dual Engine: WABA + WAHA) → Qualificação & Funil/Agenda → Fechamento com Prova → Feedback CAPI com Recibo`.
+O **SOS Vendas** fecha o ciclo comercial de ponta a ponta:
+`Aquisição Meta Ads / CTWA / Lead Ads → Atendimento Cockpit (WhatsApp Dual Engine: WABA + WAHA) → Qualificação & Funil/Agenda → Cobrança Pix Nativa (AbacatePay) → Fechamento com Prova → Feedback CAPI com Recibo`.
 
 ### Decisões Arquiteturais Fundamentais (ADRs)
 - [ADR-001: Fronteira e Escopo Fechado do MVP](docs/adr/ADR-001-mvp-frontier.md)

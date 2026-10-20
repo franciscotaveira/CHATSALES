@@ -159,7 +159,7 @@ export const broadcastsRoutes: FastifyPluginAsync<BroadcastsRoutesOptions> = asy
         billingNotice: {
           policy: "DIRECT_TO_META_CUSTOMER_ACCOUNT",
           description:
-            "O Chat Sales não cobra nem intermedeia custos de mensagens Meta. Todo envio ativo no canal oficial é debitado diretamente no cartão de crédito cadastrado na Meta pelo cliente.",
+            "O SOS Vendas não cobra nem intermedeia custos de mensagens Meta. Todo envio ativo no canal oficial é debitado diretamente no cartão de crédito cadastrado na Meta pelo cliente.",
         },
       });
     }

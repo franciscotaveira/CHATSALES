@@ -1,4 +1,4 @@
-# ATLAS SOBERANO — SOS SALES & MCT OS
+# ATLAS SOBERANO — SOS VENDAS & MCT OS
 
 > Francisco Rios | 69.553.990 FRANCISCO TAVEIRA RIOS (CNPJ: 69.553.990/0001-91) | MCT LTDA | Chapecó, SC  
 > Filosofia: Poder invisível, simplicidade visível. Truth in Data.  

@@ -827,8 +827,8 @@ export const workspaceRoutes: FastifyPluginAsync = async (app) => {
           : `🔑 Senha: ${tempPassword}`;
 
         const welcomeMessage = isExistingUser
-          ? `🚀 Olá, ${cleanOwnerName}! Seu acesso à nova empresa ${cleanName} no Chat Sales V3 foi vinculado à sua conta existente.\n\n🔗 Painel: https://chat.automatizaprocessos.tech\n👤 E-mail: ${cleanEmail}\n${passwordLine}\n\nFaça login para alternar para a nova empresa e conectar o WhatsApp!`
-          : `🚀 Olá, ${cleanOwnerName}! Seu acesso ao Chat Sales V3 (${cleanName}) está liberado.\n\n🔗 Painel: https://chat.automatizaprocessos.tech\n👤 E-mail: ${cleanEmail}\n${passwordLine}\n\nFaça login para conectar seu WhatsApp e cadastrar seus produtos!`;
+          ? `🚀 Olá, ${cleanOwnerName}! Seu acesso à nova empresa ${cleanName} no SOS Vendas foi vinculado à sua conta existente.\n\n🔗 Painel: https://chat.automatizaprocessos.tech\n👤 E-mail: ${cleanEmail}\n${passwordLine}\n\nFaça login para alternar para a nova empresa e conectar o WhatsApp!`
+          : `🚀 Olá, ${cleanOwnerName}! Seu acesso ao SOS Vendas (${cleanName}) está liberado.\n\n🔗 Painel: https://chat.automatizaprocessos.tech\n👤 E-mail: ${cleanEmail}\n${passwordLine}\n\nFaça login para conectar seu WhatsApp e cadastrar seus produtos!`;
 
         return reply.status(201).send({
           success: true,

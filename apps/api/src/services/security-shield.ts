@@ -64,7 +64,7 @@ const MALICIOUS_PATH_PATTERNS: RegExp[] = [
 /**
  * SecurityShield
  *
- * Sovereign enterprise security layer protecting Chat Sales V3:
+ * Sovereign enterprise security layer protecting SOS Vendas:
  * - Anti-Scanner / WAF Probes: Detects automated attack tooling and jailbreaks.
  * - IP Jail / Blacklist: Automatically jails malicious IPs with configurable TTL.
  * - Anti-Brute-Force & Credential Stuffing: Protects login per IP and per target email.

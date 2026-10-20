@@ -5,7 +5,7 @@
 
   function track(eventName, details = {}) {
     const payload = { event: eventName, ...details };
-    window.dispatchEvent(new CustomEvent('chatSales:conversion', { detail: payload }));
+    window.dispatchEvent(new CustomEvent('sosVendas:conversion', { detail: payload }));
     if (Array.isArray(window.dataLayer)) window.dataLayer.push(payload);
   }
 

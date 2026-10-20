@@ -87,7 +87,7 @@ export class SovereignLlmClient {
 
     if (provider === "openrouter") {
       headers["HTTP-Referer"] = "https://chat.automatizaprocessos.tech";
-      headers["X-Title"] = "Chat Sales V3 Commercial Receptionist";
+      headers["X-Title"] = "SOS Vendas Commercial Receptionist";
     }
 
     const controller = new AbortController();

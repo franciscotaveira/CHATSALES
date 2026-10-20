@@ -1,5 +1,5 @@
 /**
- * Chat Sales — Integration Routes (F1.1-C Radar Hardening & Governance)
+ * SOS Vendas — Integration Routes (F1.1-C Radar Hardening & Governance)
  * 
  * Capabilities:
  * 1. GET   /v1/workspaces/:workspaceId/integrations/candidates  — governed candidate snapshot with stable cursor and candidateRevision
