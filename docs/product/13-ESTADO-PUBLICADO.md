@@ -1,7 +1,7 @@
 # Estado Publicado e Evidências
 
 **Snapshot:** 2026-10-05
-**Ambiente:** `https://crm.iaparavendas.tech`
+**Ambiente:** `https://chat.automatizaprocessos.tech`
 **Regra:** documento temporal; atualizar após cada release.
 
 ## Evidência de infraestrutura

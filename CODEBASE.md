@@ -2,7 +2,7 @@
 
 > MCT OS v2.0 | Francisco Rios | MCT LTDA | Chapecó, BR  
 > Filosofia: Poder invisível, simplicidade visível. Truth in Data.  
-> Última atualização: 11 de outubro de 2026 (Auto-Heal de Sessões WAHA, Resiliência de Layouts no Cockpit & Topologia Dual-Push Git)
+> Última atualização: 20 de outubro de 2026 (Migração Hostinger KVM 4, Domínio automatizaprocessos.tech, Topologia de Ilhas e Governança Anti-Tampering VPS)
 
 ---
 
@@ -123,8 +123,9 @@
   - Fail-closed entre canais (zero fallback entre WAHA e Meta WABA).
   - Sanitização de erros allowlisted e ausência absoluta de PII telefônica em logs operacionais.
   - Reconciliação governada de timeouts ambíguos via `provider_delivery_events`.
-  - **Produção Ativa (VPS 179.197.72.221 - Chapecó/BR):**
-  - **Absorção de Dados V2 -> V3:** 100% concluída com zero data loss.
+  - **Produção (Migração para Hostinger KVM 4 — 4 vCPUs / 16 GB RAM):**
+    - Antiga VPS `179.197.72.221` descomissionada e destruída. Backups integrais preservados em `emergency_backups/`.
+  - **Absorção de Dados V2 -> V3:** 100% concluída com zero data loss (dump encriptado de 23 MB validado localmente).
     - 30 Workspaces consolidados (incluindo Haven Escovaria, SOS Sales Oficial, Sora Ritual Spa, Geral e Chapecó Matriz).
     - 759 Contatos com normalização E.164 estrita.
     - 851 Conversas Comerciais (`commercial_threads`).
@@ -138,7 +139,7 @@
     - `sos-sales-postgres`: PostgreSQL 16 Alpine com RLS estrito e roles segregadas.
     - `sos-sales-redis`: Redis 7 Alpine com caching e rate limiting.
     - `sos-sales-waha`: WAHA Core 2026.8.1 (Chromium com sessões ativas preservadas, `default` +554988447562 em status `WORKING`).
-    - `sos-sales-caddy`: Reverse proxy TLS automático gerenciando `crm.iaparavendas.tech` e `iaparavendas.tech`.
+    - `sos-sales-caddy`: Reverse proxy TLS automático gerenciando `chat.automatizaprocessos.tech`, `automacao.automatizaprocessos.tech` e `automatizaprocessos.tech`.
 
 ---
 
@@ -187,7 +188,7 @@ A infraestrutura de automações externas da MCT LTDA está centralizada em um d
   - Modelos Alternativos Homologados: `nvidia/nemotron-3.5-lightning-30b-a3b` (ultrarrápido), `nvidia/llama-3.1-nemotron-70b-instruct` (factual).
 - **Provedor Alternativo:** **OpenRouter** via `https://openrouter.ai/api/v1/chat/completions`.
   - Modelos Homologados: `anthropic/claude-3.5-sonnet` (alta precisão), `google/gemini-2.5-flash`, `deepseek/deepseek-chat`.
-  - Cabeçalhos de rastreabilidade obrigatórios: `HTTP-Referer: https://crm.iaparavendas.tech` e `X-Title: Chat Sales V3 Commercial Receptionist`.
+  - Cabeçalhos de rastreabilidade obrigatórios: `HTTP-Referer: https://chat.automatizaprocessos.tech` e `X-Title: Chat Sales V3 Commercial Receptionist`.
 - **Governança de Credenciais por Workspace:**
   - Colunas `ai_provider`, `ai_model`, `ai_api_key` em `public.workspaces`.
   - Resolução hierárquica fail-closed: Chave customizada do tenant -> Chave de ambiente do servidor (`NVIDIA_API_KEY` / `OPENROUTER_API_KEY`).
@@ -291,7 +292,7 @@ A infraestrutura de automações externas da MCT LTDA está centralizada em um d
 ### 10.3 Watchdog de Auto-Cura & Higiene de Recursos
 - **Sentinela (`scripts/healthcheck-watchdog.sh`):**
   - Executado a cada 5 minutos via crontab do host.
-  - Monitora `https://crm.iaparavendas.tech/ready` (validando conectividade de aplicação, banco Postgres e Redis).
+  - Monitora `https://chat.automatizaprocessos.tech/ready` (validando conectividade de aplicação, banco Postgres e Redis).
   - Auto-cura: em caso de 3 falhas consecutivas de probe, reinicia o container `chat-sales-api` automaticamente e registra log com timestamp em `/var/log/chat-sales-watchdog.log`.
   - Alerta de capacidade: emite alerta crítico se o disco ultrapassar 85% de uso.
 - **Higiene de Disco e Logs:**
@@ -489,3 +490,28 @@ A infraestrutura de automações externas da MCT LTDA está centralizada em um d
   - Seletor Multi-Canal no Inbox (`InboxList.tsx` / `useInbox.ts`): Filtro de canais dinâmico no cabeçalho do Inbox (`Todos os Canais` ou canal específico), eliminando a badge estática `META_WABA` quando conversas de instâncias WAHA estão sendo navegadas.
 - **Topologia de Repositórios Git (Dual-Push Soberano):**
   - Configuração do controle de versão local com `git remote set-url --add --push origin` para atualizar simultaneamente `https://github.com/franciscotaveira/CHATSALES.git` e `https://github.com/franciscotaveira/SOS-SALES.git`.
+
+### 13.7 Infraestrutura Soberana: Migração Hostinger KVM 4, Ilhas Isoladas e Automação DNS API (20 de outubro de 2026)
+- **Migração Turnkey para Hostinger Cloud KVM 4 (`200.141.17.99` — Campinas/SP):**
+  - Hardware: 4 vCPUs AMD EPYC, 16 GB RAM, 200 GB NVMe, swapfile de 4 GB ativado contra OOM.
+  - Perímetro defensivo UFW: `default deny incoming`, apenas portas 22 (SSH), 80 (HTTP) e 443 (HTTPS) abertas no host. Portas de banco e Redis com zero exposição pública.
+  - Preservação total de dados (Truth in Data):
+    - Base Chat Sales V3: 16.692 mensagens, 891 threads, 841 contatos, 30 workspaces restaurados com integridade RLS via backup criptografado AES-256.
+    - Base PLX n8n: 148 tabelas restauradas em container dedicado (`plx-n8n-db`).
+- **Arquitetura de Ilhas Segregadas com Borda Unificada:**
+  - **Ilha 1 (Chat Sales V3):** Rede `sos-sales-network` contendo `chat-sales-web` (Nginx), `chat-sales-api` (Fastify 5), `chat-sales-worker`, `sos-sales-postgres`, `sos-sales-redis` e `sos-sales-waha`.
+  - **Ilha 2 (PLX Automações):** Rede `plx-network` contendo `n8n` (v2.43.8) e `plx-n8n-db`.
+  - **Borda Unificada:** Container `sos-sales-caddy` conectado simultaneamente às redes `sos-sales-network` e `plx-network`, gerenciando TLS automático Let's Encrypt para todos os domínios.
+- **Domínio Oficial e Automação via Hostinger DNS API:**
+  - Migração de domínio legado (`iaparavendas.tech`) para o domínio soberano unificado: **`automatizaprocessos.tech`**.
+  - Integração direta com a API REST da Hostinger (`https://developers.hostinger.com/api/dns/v1/zones/automatizaprocessos.tech`):
+    - `chat.automatizaprocessos.tech` -> A `200.141.17.99`, AAAA `2a02:4780:6e:c5ee::1`
+    - `automacao.automatizaprocessos.tech` -> A `200.141.17.99`, AAAA `2a02:4780:6e:c5ee::1`
+    - `@` (`automatizaprocessos.tech`) -> A `200.141.17.99`, AAAA `2a02:4780:6e:c5ee::1`
+    - `www.automatizaprocessos.tech` -> CNAME `automatizaprocessos.tech.`
+  - Certificados SSL/TLS emitidos com sucesso e em operação ativa com HTTP/2.
+- **Governança Operacional Anti-Tampering para IAs (P0):**
+  - Guardrails e regras invioláveis instalados no host em `/root/SOVEREIGN_VPS_RULES.md`, `/root/README_IA.md`, `/etc/motd`, `/opt/README.md` e no monorepo em `docs/architecture/SOVEREIGN_VPS_OPERATING_MANUAL.md`.
+  - Comandos globais utilitários em `/usr/local/bin/`: `vps-status`, `vps-backup`, `chat-sales-restart`, `plx-restart`, `caddy-reload`.
+  - Crontab de produção com backup diário automático (03:00 AM) e sentinela watchdog a cada 5 minutos.
+

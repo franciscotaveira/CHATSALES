@@ -58,6 +58,10 @@ supabase/.temp/
 
 # Backups & Temp files
 backups/
+emergency_backups/
 *.backup*
 *.before-*
 ._*
+
+docs/construcao-guiada/laboratorio/backups/
+docs/construcao-guiada/evidencias/
