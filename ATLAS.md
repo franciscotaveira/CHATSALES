@@ -101,6 +101,21 @@
 - **Topologia de Repositórios Git (Dual-Push Soberano):**
   - `origin` configurado com push simultâneo para `https://github.com/franciscotaveira/CHATSALES.git` e `https://github.com/franciscotaveira/SOS-SALES.git`.
 
+### 2.10 Consolidação Soberana REA (Ciclos UX1 a UX449 & Migrações 037 a 063)
+- **Engenharia Reversa Semântica (REA):**
+  - Extração e análise de AST cobrindo os 27 grupos funcionais do ecossistema, eliminando coerções *truthy* cegas (`res.campo || []`), unificando contratos criptográficos em `channels.routes.ts` (`encryptedBase64/ivBase64/authTagBase64/keyVersion`) e impondo `workspace:manage` na configuração de IA.
+  - Mais de 1.300 testes Vitest automatizados cobrindo ciclos de vida de inbox, dossiê, funnel, templates, transmissões e sessões de canal.
+- **Banco de Dados de Produção Alinhado (44 Tabelas / Migrações 037 a 063):**
+  - Execução sequencial com rollback garantido no PostgreSQL 16 da VPS (`200.141.17.99`):
+    - `guided_agent_plans` (038), `integration_event_receipts` (040), `external_payment_confirmations` (044), `outbound_webhook_jobs` (045).
+    - `broadcast_preparations` (048), `broadcast_message_tests` (049), `pix_creation_requests` (050), `proposal_creation_requests` (051).
+    - `ai_agent_versions` (053), `ai_revision_test_runs` (056), `ai_checkout_requests` (058), `channel_session_bindings` (061).
+  - Menor privilégio ativo: revogados comandos destrutivos do worker sobre confirmações financeiras e histórico sem recibo.
+- **Resiliência de UI/UX & Validação de Mutações (UX448 e UX449):**
+  - Validação estrita de respostas de mutação em `useChannelQr` com `confirmedMutationResponse`, protegendo apresentação visual e estados de erro do provedor WAHA.
+  - Conformidade Meta App Review: páginas públicas [PublicLegalPage.tsx](file:///Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/apps/web/src/pages/PublicLegalPage.tsx) (`/legal/terms` e `/legal/privacy`) responsivas e auditadas com o e-mail de DPO `suporte@automatizaprocessos.tech`.
+  - Rebuild produtivo de `chat-sales-web` e reinicialização coordenada de `chat-sales-api` e `chat-sales-worker` na VPS, mantendo latência de banco em 7-14ms e Redis em 0-1ms.
+
 ---
 
 ## 3. Diretrizes de Segurança e Isolamento
