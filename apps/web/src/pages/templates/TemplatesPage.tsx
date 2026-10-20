@@ -9,13 +9,14 @@ import {
   SegmentedControl,
   useBreakpoint,
 } from "@sos-sales/ui";
-import { Plus, FileText, Search, Send } from "lucide-react";
+import { Plus, FileText, Search, Send, Sparkles } from "lucide-react";
 import { apiClient, type MessageTemplateSummary } from "../../services/api-client";
 import type { UseSessionReturn } from "../../hooks/useSession";
 import { CreateTemplateDialog } from "./CreateTemplateDialog";
 import { TemplateDetailDialog } from "./TemplateDetailDialog";
 import { BroadcastTemplateDialog } from "./BroadcastTemplateDialog";
 import { TemplatesTable } from "./TemplatesTable";
+import { TemplateLibrarySection } from "./TemplateLibrarySection";
 import {userFacingError} from "../../utils/user-facing-error";
 import { CampaignsList } from "./CampaignsList";
 
@@ -33,7 +34,7 @@ export const TemplatesPage: FC<TemplatesPageProps> = ({ session,broadcastRequest
   const sessionLoading=Boolean(session.isLoadingMe||session.isLoadingWorkspace);
   const canSyncTemplates=hasWorkspacePermission(workspaceRole,"workspace:manage");
 
-  const [activeTab, setActiveTab] = useState<"TEMPLATES" | "CAMPAIGNS">("TEMPLATES");
+  const [activeTab, setActiveTab] = useState<"TEMPLATES" | "LIBRARY" | "CAMPAIGNS">("TEMPLATES");
   const [templates, setTemplates] = useState<MessageTemplateSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoadedTemplates,setHasLoadedTemplates]=useState(false);
@@ -131,14 +132,41 @@ export const TemplatesPage: FC<TemplatesPageProps> = ({ session,broadcastRequest
         }}
       >
         <PageHeader
-          title={activeTab === "TEMPLATES" ? "Modelos WABA" : "Campanhas & Testes A/B"}
+          title={
+            activeTab === "TEMPLATES"
+              ? "Modelos WABA"
+              : activeTab === "LIBRARY"
+              ? "Biblioteca de Modelos (Prontos)"
+              : "Campanhas & Testes A/B"
+          }
           description={
             activeTab === "TEMPLATES"
               ? "Cadastre rascunhos e confira o estado de aprovação no provedor antes de usar em campanhas."
+              : activeTab === "LIBRARY"
+              ? "Modelos testados de alta conversão para 13 segmentos comerciais brasileiros com Pix e validação Meta WABA."
               : "Consulte os resultados registrados. Envio, entrega, leitura e cliques dependem das confirmações disponíveis em cada canal."
           }
           actions={
             <div style={{ display: "flex", gap: "8px", alignItems: "center",flexWrap:"wrap",maxWidth:"100%" }}>
+              {activeTab === "TEMPLATES" && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  prefixIcon={<Sparkles size={14} />}
+                  onClick={() => setActiveTab("LIBRARY")}
+                >
+                  Explorar Biblioteca (70+)
+                </Button>
+              )}
+              {activeTab === "LIBRARY" && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setActiveTab("TEMPLATES")}
+                >
+                  Meus Modelos ({templates.length})
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant={activeTab === "CAMPAIGNS" ? "primary" : "secondary"}
@@ -181,14 +209,15 @@ export const TemplatesPage: FC<TemplatesPageProps> = ({ session,broadcastRequest
           <Button disabled={!syncChannelId || syncing||loadingChannels||!!channelError} loading={syncing} onClick={()=>void syncTemplates()}>Sincronizar modelos da Meta</Button>
           {loadingChannels?<span role="status">Consultando canais...</span>:!channelError&&!syncChannels.length && <span>Conecte um canal Meta para consultar as aprovações reais.</span>}
         </div>}
-        {/* Tab Switch: Modelos vs Campanhas */}
+        {/* Tab Switch: Modelos vs Biblioteca vs Campanhas */}
         <div style={{ display: "flex", justifyContent: "flex-start" }}>
-          {isMobile?<label style={{display:"grid",gap:6,width:"100%"}}>Área de mensagens<select value={activeTab} onChange={e=>setActiveTab(e.target.value as typeof activeTab)} style={{minHeight:40,width:"100%"}}><option value="TEMPLATES">Modelos cadastrados</option><option value="CAMPAIGNS">Campanhas e testes A/B</option></select></label>:(
+          {isMobile?<label style={{display:"grid",gap:6,width:"100%"}}>Área de mensagens<select value={activeTab} onChange={e=>setActiveTab(e.target.value as typeof activeTab)} style={{minHeight:40,width:"100%"}}><option value="TEMPLATES">Modelos cadastrados</option><option value="LIBRARY">Biblioteca de modelos prontos</option><option value="CAMPAIGNS">Campanhas e testes A/B</option></select></label>:(
           <SegmentedControl aria-label="Área de mensagens"
             value={activeTab}
             onChange={(val) => setActiveTab(val as typeof activeTab)}
             options={[
               { value: "TEMPLATES", label: !workspaceId||!token?"Modelos cadastrados":!hasLoadedTemplates?(isLoading?"Modelos (carregando…)":"Modelos (consulta falhou)"):`Modelos cadastrados (${templates.length})` },
+              { value: "LIBRARY", label: "Biblioteca de Modelos (Prontos)" },
               { value: "CAMPAIGNS", label: "Campanhas & Testes A/B" },
             ]}
           />
@@ -231,16 +260,24 @@ export const TemplatesPage: FC<TemplatesPageProps> = ({ session,broadcastRequest
               <EmptyState
                 icon={<FileText size={48} />}
                 title={templates.length?"Nenhum modelo neste filtro":"Nenhum modelo cadastrado"}
-                description={templates.length?"Altere a busca ou a categoria para ver outros modelos.":"Crie um rascunho local ou sincronize os modelos de um canal Meta conectado."}
+                description={templates.length?"Altere a busca ou a categoria para ver outros modelos.":"Crie um rascunho local, explore nossa biblioteca com 70+ modelos prontos ou sincronize os modelos da Meta."}
                 action={templates.length?<Button onClick={()=>{setSearch("");setCategoryFilter("ALL");}}>Limpar filtros</Button>:
-                  <div style={{ display: "flex", gap: "8px" }}>
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
                     <Button
                       variant="primary"
+                      size="sm"
+                      prefixIcon={<Sparkles size={14} />}
+                      onClick={() => setActiveTab("LIBRARY")}
+                    >
+                      Explorar Biblioteca de Modelos
+                    </Button>
+                    <Button
+                      variant="secondary"
                       size="sm"
                       prefixIcon={<Plus size={14} />}
                       onClick={() => setIsCreateOpen(true)}
                     >
-                      Cadastrar Modelo
+                      Cadastrar Manualmente
                     </Button>
                   </div>
                 }
@@ -256,6 +293,17 @@ export const TemplatesPage: FC<TemplatesPageProps> = ({ session,broadcastRequest
               />
             )}
           </>
+        ) : activeTab === "LIBRARY" ? (
+          workspaceId && token && (
+            <TemplateLibrarySection
+              workspaceId={workspaceId}
+              token={token}
+              onImportSuccess={async () => {
+                await fetchTemplates();
+                setActiveTab("TEMPLATES");
+              }}
+            />
+          )
         ) : (
           workspaceId && token && (
             <CampaignsList

@@ -21,3 +21,4 @@ export * from "./ai-checkout";
 export * from "./permissions";
 
 export * from "./broadcast-block-reasons";
+export * from "./template-library";

@@ -1,7 +1,12 @@
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { safeFetchWithSsrfGuard } from "@sos-sales/application";
-import { META_GRAPH_API_VERSION } from "@sos-sales/contracts";
+import {
+  META_GRAPH_API_VERSION,
+  CANONICAL_TEMPLATE_LIBRARY,
+  TEMPLATE_SEGMENTS,
+  filterTemplateLibrary,
+} from "@sos-sales/contracts";
 import {
   withTenantTransaction,
   decryptPayload,
@@ -377,6 +382,117 @@ Explique a finalidade proposta e a necessidade de revisão e submissão ao prove
           createdAt: template.created_at.toISOString(),
           updatedAt: template.updated_at.toISOString(),
         },
+      });
+    }
+  );
+
+  // 3. Get Canonical Template Library with rich niches, CTWA, and Pix
+  app.get(
+    "/v1/workspaces/:workspaceId/templates/library",
+    {
+      preHandler: [
+        app.authenticate,
+        app.requireWorkspaceContext,
+        app.requirePermission("cockpit:access"),
+      ],
+    },
+    async (request, reply) => {
+      const parsedParams = workspaceParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        return reply.status(400).send({ detail: "Invalid workspaceId parameter" });
+      }
+      const query = request.query as Record<string, string | undefined>;
+      const items = filterTemplateLibrary({
+        category: (query.category as any) || "ALL",
+        segment: (query.segment as any) || "ALL",
+        search: query.search || "",
+      });
+      return reply.status(200).send({
+        items,
+        total: items.length,
+        segments: TEMPLATE_SEGMENTS,
+      });
+    }
+  );
+
+  // 4. One-Click Import from Canonical Library into Workspace
+  app.post(
+    "/v1/workspaces/:workspaceId/templates/library/import",
+    {
+      preHandler: [
+        app.authenticate,
+        app.requireWorkspaceContext,
+        app.requirePermission("cockpit:access"),
+      ],
+    },
+    async (request, reply) => {
+      const parsedParams = workspaceParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        return reply.status(400).send({ detail: "Invalid workspaceId parameter" });
+      }
+      const importSchema = z.object({
+        templateId: z.string().min(1),
+      });
+      const parsedBody = importSchema.safeParse(request.body);
+      if (!parsedBody.success) {
+        return reply.status(400).send({ detail: "Informe o templateId para importação" });
+      }
+      const { workspaceId } = parsedParams.data;
+      const { templateId } = parsedBody.data;
+
+      const found = CANONICAL_TEMPLATE_LIBRARY.find((t) => t.id === templateId);
+      if (!found) {
+        return reply.status(404).send({ detail: "Modelo não encontrado na biblioteca canônica" });
+      }
+
+      const imported = await withTenantTransaction(workspaceId, async (client) => {
+        const existing = (
+          await client.query(
+            `SELECT id, name FROM public.message_templates WHERE workspace_id = $1 AND name = $2`,
+            [workspaceId, found.name]
+          )
+        ).rows[0];
+
+        let targetName = found.name;
+        if (existing) {
+          targetName = `${found.name}_${Date.now().toString().slice(-4)}`;
+        }
+
+        const saved = await upsertMessageTemplate(client, {
+          workspaceId,
+          name: targetName,
+          category: found.category,
+          language: "pt_BR",
+          headerText: found.headerText,
+          bodyText: found.bodyText,
+          footerText: found.footerText,
+          buttons: found.buttons,
+          variables: found.variables,
+          status: "PENDING",
+          metaTemplateId: null,
+        });
+
+        return saved;
+      });
+
+      return reply.status(201).send({
+        template: {
+          id: imported.id,
+          workspaceId: imported.workspace_id,
+          name: imported.name,
+          category: imported.category,
+          language: imported.language,
+          headerText: imported.header_text,
+          bodyText: imported.body_text,
+          footerText: imported.footer_text,
+          buttons: imported.buttons,
+          variables: imported.variables,
+          status: imported.status,
+          metaTemplateId: imported.meta_template_id,
+          createdAt: imported.created_at.toISOString(),
+          updatedAt: imported.updated_at.toISOString(),
+        },
+        message: "Modelo importado para o seu workspace com sucesso!",
       });
     }
   );

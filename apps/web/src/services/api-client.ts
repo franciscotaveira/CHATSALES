@@ -1,7 +1,7 @@
 import { withReadDeadline } from "./read-deadline";
 import type {AiCheckoutSummaryPage} from '@sos-sales/contracts';
 import type {AiRevisionTestList,AiRevisionTestRun} from '@sos-sales/contracts';
-import type { GuidedDraft, GuidedRecord } from "@sos-sales/contracts";
+import type { GuidedDraft, GuidedRecord, TemplateLibraryItem } from "@sos-sales/contracts";
 /**
  * SOS Sales V3 — API Client (MCT OS v2.0)
  * Strict, typed Fastify client with AbortController, tenant headers & correlation tracking.
@@ -1772,6 +1772,37 @@ export class ApiClient {
       workspaceId,
       method: "POST",
       body: payload,
+    });
+  }
+
+  async getTemplateLibrary(
+    workspaceId: string,
+    query?: { category?: string; segment?: string; search?: string },
+    options?: RequestOptions
+  ): Promise<{ items: TemplateLibraryItem[]; total: number; segments: Array<{ key: string; label: string }> }> {
+    const params = new URLSearchParams();
+    if (query?.category && query.category !== "ALL") params.set("category", query.category);
+    if (query?.segment && query.segment !== "ALL") params.set("segment", query.segment);
+    if (query?.search) params.set("search", query.search);
+    const qs = params.toString() ? `?${params.toString()}` : "";
+
+    return this.request(`/v1/workspaces/${workspaceId}/templates/library${qs}`, {
+      ...options,
+      workspaceId,
+      method: "GET",
+    });
+  }
+
+  async importTemplateFromLibrary(
+    workspaceId: string,
+    templateId: string,
+    options?: RequestOptions
+  ): Promise<{ template: MessageTemplateSummary; message: string }> {
+    return this.request(`/v1/workspaces/${workspaceId}/templates/library/import`, {
+      ...options,
+      workspaceId,
+      method: "POST",
+      body: { templateId },
     });
   }
 
