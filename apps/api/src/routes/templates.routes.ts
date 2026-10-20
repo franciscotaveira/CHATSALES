@@ -1,7 +1,11 @@
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
+import { safeFetchWithSsrfGuard } from "@sos-sales/application";
+import { META_GRAPH_API_VERSION } from "@sos-sales/contracts";
 import {
   withTenantTransaction,
+  decryptPayload,
+  parseKeyringFromEnv,
   listMessageTemplates,
   upsertMessageTemplate,
   type TemplateCategory,
@@ -25,6 +29,7 @@ const templateButtonSchema = z.object({
 });
 
 const createTemplateBodySchema = z.object({
+  createOnly:z.boolean().default(true),
   name: z
     .string()
     .min(1)
@@ -37,7 +42,7 @@ const createTemplateBodySchema = z.object({
   footerText: z.string().max(60).nullable().optional(),
   buttons: z.array(templateButtonSchema).optional(),
   variables: z.array(z.string()).optional(),
-  status: z.enum(["APPROVED", "PENDING", "REJECTED", "PAUSED"]).default("APPROVED"),
+  status: z.enum(["APPROVED", "PENDING", "REJECTED", "PAUSED"]).default("PENDING"),
   metaTemplateId: z.string().optional(),
 });
 
@@ -60,6 +65,68 @@ const generatedTemplateSchema = z.object({
 });
 
 export const templatesRoutes: FastifyPluginAsync = async (app) => {
+  app.post("/v1/workspaces/:workspaceId/templates/sync", {
+    preHandler: [app.authenticate, app.requireWorkspaceContext, app.requirePermission("workspace:manage")],
+  }, async (request, reply) => {
+    const p = workspaceParamsSchema.safeParse(request.params);
+    const b = z.object({ channelId: z.string().uuid(), language: z.string().min(2).max(10).default("pt_BR") }).safeParse(request.body);
+    if (!p.success || !b.success) return reply.code(400).send({ detail: "Empresa, canal ou idioma inválido" });
+    const { workspaceId } = p.data;
+    const source = await withTenantTransaction(workspaceId, async client => (await client.query(
+      `SELECT c.id, pc.encrypted_payload, pc.iv, pc.auth_tag, pc.key_version
+       FROM public.channel_instances c JOIN public.provider_credentials pc ON pc.id=c.credential_id AND pc.workspace_id=c.workspace_id
+       WHERE c.workspace_id=$1 AND c.id=$2 AND c.provider='meta_waba' AND c.is_active=true
+         AND c.status='connected' AND pc.status='ACTIVE'`, [workspaceId, b.data.channelId]
+    )).rows[0]);
+    if (!source) return reply.code(422).send({ detail: "Selecione um canal Meta conectado com credenciais ativas" });
+    let token: string; let waba: string;
+    try {
+      const key = parseKeyringFromEnv()?.keyring || process.env.MCT_CREDENTIALS_MASTER_KEY;
+      if (!key) throw new Error("Missing encryption key");
+      const credentials = JSON.parse(decryptPayload(source.encrypted_payload, source.iv, source.auth_tag, key, { keyVersion: source.key_version }));
+      token = credentials.access_token; waba = credentials.waba_account_id;
+      if (!token || !waba) throw new Error("Missing provider credentials");
+    } catch { return reply.code(503).send({ detail: "Credenciais Meta indisponíveis para consulta" }); }
+    const remoteSchema = z.object({ id: z.string().regex(/^\d+$/), name: z.string().min(1), category: z.enum(["UTILITY","MARKETING","AUTHENTICATION"]), language: z.string(), status: z.string(), parameter_format:z.enum(["POSITIONAL","NAMED"]).default("POSITIONAL"), components: z.array(z.object({ type: z.string(), format:z.string().optional(), text: z.string().optional(), buttons: z.array(z.object({type:z.string(),text:z.string().optional(),url:z.string().optional(),phone_number:z.string().optional()})).optional() }).passthrough()).default([]) });
+    const collected: z.infer<typeof remoteSchema>[] = [];
+    let after: string | undefined;
+    try {
+      for (let page = 0; page < 10; page++) {
+        const url = new URL(`https://graph.facebook.com/${META_GRAPH_API_VERSION}/${encodeURIComponent(waba)}/message_templates`);
+        url.searchParams.set("fields", "id,name,status,category,language,components"); url.searchParams.set("limit", "100");
+        if (after) url.searchParams.set("after", after);
+        const response = await safeFetchWithSsrfGuard(url.toString(), { headers: { Authorization: `Bearer ${token}` } }, { timeoutMs: 10000, allowLocalTest: false, allowedProtocols: ["https:"] });
+        if (!response.ok) throw new Error("Provider query failed");
+        const payload = z.object({ data: z.array(remoteSchema), paging: z.object({ next: z.string().optional(), cursors: z.object({ after: z.string().optional() }).optional() }).optional() }).parse(await response.json());
+        collected.push(...payload.data);
+        if (!payload.paging?.next) break;
+        after = payload.paging.cursors?.after;
+        if (!after || page === 9) throw new Error("Provider pagination incomplete");
+      }
+    } catch { return reply.code(502).send({ detail: "Consulta Meta não concluída; nenhum estado de aprovação foi atualizado" }); }
+    const selected = collected.filter(tpl => tpl.language === b.data.language);
+    await withTenantTransaction(workspaceId, async client => {
+      // Invalidate previous proof from this channel, including templates removed at Meta.
+      await client.query("UPDATE public.message_templates SET status='PENDING',meta_verified_at=NULL WHERE workspace_id=$1 AND meta_verified_channel_id=$2", [workspaceId,b.data.channelId]);
+      for (const tpl of selected) {
+        const body = tpl.components.find(c => c.type === "BODY")?.text;
+        if (!body) continue;
+        const record = await upsertMessageTemplate(client, {
+          workspaceId, name: tpl.name, category: tpl.category, language: tpl.language,
+          headerText: tpl.components.find(c => c.type === "HEADER")?.text,
+          bodyText: body, footerText: tpl.components.find(c => c.type === "FOOTER")?.text,
+          buttons: tpl.components.find(c => c.type === "BUTTONS")?.buttons?.map(button=>({...button,text:button.text??button.type})),
+          providerComponents:tpl.components.map(c=>({type:c.type,...(c.format?{format:c.format}:{}),...(c.text?{text:c.text}:{}),...(c.buttons?{buttons:c.buttons}:{})})),
+          parameterFormat:tpl.parameter_format,
+          variables: Array.from(new Set([...body.matchAll(/\{\{(\d+)\}\}/g)].map(m => m[1]!))),
+          status: (["APPROVED","PAUSED","REJECTED"].includes(tpl.status) ? tpl.status : "PENDING") as TemplateStatus, metaTemplateId: tpl.id,
+        });
+        await client.query("UPDATE public.message_templates SET meta_verified_at=now(),meta_verified_channel_id=$3 WHERE workspace_id=$1 AND id=$2", [workspaceId,record.id,b.data.channelId]);
+      }
+    });
+    return { success: true, imported: selected.filter(t => t.components.some(c => c.type === "BODY" && c.text)).length, language: b.data.language };
+  });
+
   app.post(
     "/v1/workspaces/:workspaceId/templates/generate",
     {
@@ -98,33 +165,16 @@ export const templatesRoutes: FastifyPluginAsync = async (app) => {
       const { objective, audience, tone, strategy = "UTILITY_TROJAN" } = parsedBody.data;
       const model = process.env.NVIDIA_TEMPLATE_MODEL || "nvidia/nemotron-3-super-120b-a12b";
 
-      const systemPrompt = `Você é o maior especialista do Brasil em Engenharia de Templates WhatsApp Business da Meta (Meta Cloud API / WABA) e Otimização de Custos (MCT OS).
-
-DIRETRIZ DE CUSTOS DA META (2025/2026):
-- Marketing custa ~R$ 0,40 a R$ 0,45 por conversa.
-- Utility (Utilidade) custa ~R$ 0,03 a R$ 0,06 por conversa (Economia de 85% a 90%).
-- Service Window (Janela 24h): Quando o cliente clica no botão rápido ou responde, abre uma Janela de 24h GRATUITA (R$ 0,00) onde todas as mensagens de vendas, áudios e ofertas da IA têm CUSTO ZERO.
-
-ESTRATÉGIA SELECIONADA: ${strategy === "UTILITY_TROJAN" ? "CAVALO DE TROIA DA UTILIDADE (UTILITY TROJAN)" : "MARKETING DIRETO"}
-
-REGRAS DE CONSTRUÇÃO ${strategy === "UTILITY_TROJAN" ? "PARA APROVAÇÃO COMO UTILITY (ECONOMIA DE 85%)" : "PARA MARKETING DIRETO"}:
-${
-  strategy === "UTILITY_TROJAN"
-    ? `1. Enquadre a mensagem como notificação transacional, confirmação operacional, atualização de cadastro/crédito, aviso de reserva ou protocolo (ex: "reserva prioritária de horário", "atualização de proposta", "crédito de fidelidade pendente").
-2. NUNCA use palavras abertamente promocionais como "Compre já", "Mega promoção", "Black Friday", "X% de Desconto", pois a Meta rejeitaria a classificação Utility. Em vez disso, use "condição reservada", "benefício exclusivo liberado", "atualização do seu atendimento".
-3. Crie um botão de resposta rápida (QUICK_REPLY) irresistível de 1 clique (ex: "Confirmar Horário", "Ver Detalhes", "Consultar Saldo", "Tenho Interesse"). Ao clicar, destrava a Janela de 24h Grátis de Atendimento.
-4. Defina a category OBRIGATORIAMENTE como "UTILITY".`
-    : `1. Enquadre a mensagem com persuasão direta, escassez e apelo comercial.
-2. Defina a category como "MARKETING".`
-}
-
-REGRAS TÉCNICAS INVIOLÁVEIS DA META:
-1. Variáveis sequenciais {{1}}, {{2}}... A variável {{1}} DEVE ser sempre o nome do cliente (ex: Olá {{1}}, tudo bem?).
-2. Variáveis NUNCA podem estar no início isolado ou no final da mensagem sem texto/pontuação posterior.
-3. Botão rápido sem emojis, máximo de 25 caracteres.
-4. Retorne SOMENTE JSON válido com: name, category, headerText, bodyText, footerText, buttonText, variableLabels, explanation.
-- name deve usar snake_case com sufixo de versão (ex: confirmacao_reserva_v1).
-- explanation deve explicar sucintamente a tática utilizada, ressaltando o custo reduzido (~R$ 0,04) e o destravamento da Janela de 24h Grátis.`;
+      const systemPrompt = `Crie um rascunho de template WhatsApp fiel ao objetivo informado.
+Não prometa aprovação, categoria definitiva, economia ou preço do provedor.
+Não disfarce ofertas promocionais como avisos transacionais. Classifique pela finalidade real:
+UTILITY apenas para informação operacional solicitada ou ligada a uma transação real; MARKETING para divulgação comercial.
+Preferência de trabalho: ${strategy === "UTILITY_TROJAN" ? "avaliar se há finalidade transacional verdadeira; se não houver, usar MARKETING" : "mensagem comercial clara"}.
+Não invente reserva, crédito, benefício, urgência ou vínculo comercial existente.
+Use variáveis sequenciais {{1}}, {{2}} com finalidade indicada, botão curto e conteúdo claro.
+Retorne somente JSON com name (snake_case), category (UTILITY ou MARKETING), headerText, bodyText, footerText,
+buttonText, variableLabels (array) e explanation. Limites: headerText/footerText 60, bodyText 1024, buttonText 25 caracteres.
+Explique a finalidade proposta e a necessidade de revisão e submissão ao provedor, sem prometer resultado.`;
 
       try {
         const aiResponse = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
@@ -239,6 +289,8 @@ REGRAS TÉCNICAS INVIOLÁVEIS DA META:
           variables: t.variables,
           status: t.status,
           metaTemplateId: t.meta_template_id,
+          providerComponents:t.provider_components??[],parameterFormat:t.parameter_format??"POSITIONAL",
+          metaVerifiedAt:t.meta_verified_at?.toISOString()??null,metaVerifiedChannelId:t.meta_verified_channel_id??null,
           createdAt: t.created_at.toISOString(),
           updatedAt: t.updated_at.toISOString(),
         })),
@@ -289,7 +341,7 @@ REGRAS TÉCNICAS INVIOLÁVEIS DA META:
       const data = parsedBody.data;
 
       const template = await withTenantTransaction(workspaceId, async (client) => {
-        return upsertMessageTemplate(client, {
+        const saved = data.createOnly ? (await client.query(`INSERT INTO public.message_templates(workspace_id,name,category,language,header_text,body_text,footer_text,buttons,variables,status,meta_template_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'PENDING',NULL) ON CONFLICT(workspace_id,name) DO NOTHING RETURNING *`,[workspaceId,data.name,data.category,data.language,data.headerText??null,data.bodyText,data.footerText??null,JSON.stringify(data.buttons??[]),JSON.stringify(data.variables??[])])).rows[0] : await upsertMessageTemplate(client, {
           workspaceId,
           name: data.name,
           category: data.category as TemplateCategory,
@@ -299,11 +351,15 @@ REGRAS TÉCNICAS INVIOLÁVEIS DA META:
           footerText: data.footerText,
           buttons: data.buttons,
           variables: data.variables,
-          status: data.status as TemplateStatus,
-          metaTemplateId: data.metaTemplateId,
+          status: "PENDING",
+          metaTemplateId: null,
         });
+        if(!saved)return null;
+        await client.query("UPDATE public.message_templates SET meta_template_id=NULL,meta_verified_at=NULL,meta_verified_channel_id=NULL WHERE workspace_id=$1 AND id=$2", [workspaceId,saved.id]);
+        return { ...saved, meta_template_id: null };
       });
 
+      if(!template)return reply.code(409).send({detail:"Já existe um modelo com este identificador. Escolha outro nome para preservar o modelo existente."});
       return reply.status(201).send({
         template: {
           id: template.id,

@@ -67,6 +67,8 @@ export const AppShell: FC<AppShellProps> = ({
       className="sos-app-shell"
       style={{
         display: "flex",
+        flex: 1,
+        minHeight: 0,
         height: "100dvh",
         maxHeight: "100dvh",
         backgroundColor: "var(--bg-canvas, #F8FAFC)",
@@ -152,8 +154,10 @@ export const AppShell: FC<AppShellProps> = ({
           display: "flex",
           flexDirection: "column",
           minWidth: 0,
-          height: "100dvh",
-          maxHeight: "100dvh",
+          height: "100%",
+          maxHeight: "100%",
+          minHeight: 0,
+          boxSizing: "border-box",
           overflow: "hidden",
           paddingBottom: isMobile && !hideMobileNav
             ? "calc(var(--mobile-nav-h, 56px) + env(safe-area-inset-bottom, 0px))"

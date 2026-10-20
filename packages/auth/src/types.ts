@@ -1,22 +1,7 @@
 import type { Role } from "@sos-sales/contracts";
 
-export type Permission =
-  | "workspace:view"
-  | "workspace:manage"
-  | "workspace:invite"
-  | "cockpit:access"
-  | "cockpit:send_message"
-  | "cockpit:handoff"
-  | "journey:view"
-  | "journey:transition_stage"
-  | "outcome:register"
-  | "integration:view"
-  | "integration:manage"
-  | "integration:candidates:read"
-  | "integration:suggestions:create"
-  | "integration:suggestions:manage"
-  | "capi:dispatch"
-  | "audit:view";
+import type {Permission} from "@sos-sales/contracts";
+export type {Permission} from "@sos-sales/contracts";
 
 export interface AuthUser {
   id: string;

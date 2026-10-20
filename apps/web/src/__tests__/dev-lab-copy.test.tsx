@@ -1,0 +1,12 @@
+// @vitest-environment happy-dom
+import {act} from 'react';import {createRoot,type Root} from 'react-dom/client';import {it,expect,vi,afterEach,beforeEach} from 'vitest';import {DevLabToolbar} from '../components/DevLabToolbar';
+(globalThis as typeof globalThis&{IS_REACT_ACT_ENVIRONMENT:boolean}).IS_REACT_ACT_ENVIRONMENT=true;
+let root:Root,el:HTMLDivElement;const props={token:'SIM_NOT_A_REAL_TOKEN',onTokenChange:vi.fn(),onSimulateOffline:vi.fn(),onResetOffline:vi.fn(),isOfflineSimulated:false,activeView:'cockpit' as const,onToggleView:vi.fn(),onRefresh:vi.fn()};
+const button=(label:string)=>Array.from(el.querySelectorAll('button')).find(b=>b.getAttribute('aria-label')===label||b.textContent?.trim()===label)!;
+beforeEach(()=>{el=document.createElement('div');document.body.append(el);root=createRoot(el);});afterEach(async()=>{await act(async()=>root.unmount());el.remove();vi.restoreAllMocks();vi.unstubAllGlobals();});
+it('waits for clipboard confirmation and reports rejection without false success',async()=>{
+ let reject!:(reason:Error)=>void;const copy=vi.fn().mockReturnValueOnce(new Promise<void>((_,r)=>reject=r)).mockResolvedValueOnce(undefined);vi.stubGlobal('navigator',{clipboard:{writeText:copy}});await act(async()=>root.render(<DevLabToolbar {...props}/>));await act(async()=>button('LAB').click());await act(async()=>{button('Copiar JWT').click();button('Copiar JWT').click();});expect(copy).toHaveBeenCalledOnce();expect(button('Copiar JWT').disabled).toBe(true);expect(el.textContent).not.toContain('Token copiado');await act(async()=>reject(new Error('SIM denied')));expect(el.textContent).toContain('Não foi possível copiar');expect(el.textContent).not.toContain('Token copiado');await act(async()=>button('Copiar JWT').click());expect(el.querySelector('[role="status"]')?.textContent).toContain('Token copiado');
+});
+it('ignores old clipboard completion after token context changes',async()=>{
+ let resolve!:()=>void;vi.stubGlobal('navigator',{clipboard:{writeText:vi.fn().mockReturnValue(new Promise<void>(r=>resolve=r))}});await act(async()=>root.render(<DevLabToolbar {...props}/>));await act(async()=>button('LAB').click());await act(async()=>button('Copiar JWT').click());await act(async()=>root.render(<DevLabToolbar {...props} token="SIM_NEW_FAKE_TOKEN"/>));await act(async()=>resolve());expect(el.textContent).not.toContain('Token copiado');expect(button('Copiar JWT').disabled).toBe(false);
+});

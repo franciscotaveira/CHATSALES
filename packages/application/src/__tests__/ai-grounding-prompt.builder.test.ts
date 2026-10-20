@@ -17,6 +17,7 @@ describe("AI Grounding Prompt Builder & Handoff Parser", () => {
     const config: GroundedAiConfig = {
       name: "Sofia",
       personality: "cordial_comercial",
+      skills:{catalog_offers:true},
       systemPrompt: "Seja muito gentil e convide para agendar.",
       strictMode: true,
       businessRules: {
@@ -47,7 +48,7 @@ describe("AI Grounding Prompt Builder & Handoff Parser", () => {
 
     expect(prompt).toContain("Você é Sofia, atendente comercial oficial de WhatsApp da empresa.");
     expect(prompt).toContain("<catalog_truth>");
-    expect(prompt).toContain("Escova Lisa | Preço:");
+    expect(prompt).toContain("Escova Lisa | ID: prod-1 | Preço:");
     expect(prompt).toContain("<business_rules>");
     expect(prompt).toContain("Horário de Funcionamento: Seg-Sex 08h-19h");
     expect(prompt).toContain("<faq_truth>");
@@ -98,11 +99,12 @@ describe("AI Grounding Prompt Builder & Handoff Parser", () => {
     const config: GroundedAiConfig = {
       name: "Sofia",
       personality: "cordial_comercial",
-      strictMode: true,
+      strictMode: true,skills:{pix_charges:true},
     };
     const prompt = buildGroundedSystemPrompt(config, []);
     expect(prompt).toContain("<fechamento_comercial_pix>");
-    expect(prompt).toContain("[OFFER_PIX: id_do_produto]");
+    expect(prompt).toContain("[OFFER_PIX: id_do_produto; QTY=quantidade]");
+    expect(prompt).toContain("Não gera cobrança");
   });
 
   it("parses [OFFER_PIX: <productId>] and cleans customer-facing reply text", () => {
@@ -205,7 +207,7 @@ describe("AI Grounding Prompt Builder & Handoff Parser", () => {
     expect(prompt).toContain("[Se o cliente perguntar sobre prazos de entrega ou execução]:");
   });
 
-  it("injects WhatsApp Golden Rules with CTA closing requirement and emoji density", () => {
+  it("suggests contextual continuity and respects refusal instead of requiring a question in every answer", () => {
     const config: GroundedAiConfig = {
       name: "Rodrigo",
       personality: "direto_objetivo",
@@ -219,8 +221,29 @@ describe("AI Grounding Prompt Builder & Handoff Parser", () => {
     const prompt = buildGroundedSystemPrompt(config, []);
 
     expect(prompt).toContain("<regras_de_ouro_whatsapp>");
-    expect(prompt).toContain("REGRA DE OURO DO CTA FINAL: TODA mensagem sua DEVE OBRIGATORIAMENTE terminar com uma pergunta clara de avanço");
-    expect(prompt).toContain("vibrante e comercial, utilizando emojis estratégicos");
+    expect(prompt).toContain("Não repita perguntas já respondidas, não pressione quem quer pensar");
+    expect(prompt).toContain("sem excesso ou repetição");
   });
+  it('withholds catalog content and Pix protocol without explicit permissions',()=>{
+    const config:GroundedAiConfig={name:'SIM',personality:'cordial_comercial',strictMode:true};
+    const prompt=buildGroundedSystemPrompt(config,[{id:'SIM_PRIVATE_ID',title:'SIM_PRIVATE_TITLE',priceCents:12345}]);
+    expect(prompt).not.toContain('SIM_PRIVATE_ID');expect(prompt).not.toContain('SIM_PRIVATE_TITLE');expect(prompt).not.toContain('<fechamento_comercial_pix>');expect(prompt).toContain('Catálogo não disponibilizado');
+  });
+  it('allows billing context without authorizing catalog offers or pretending to execute other functions',()=>{
+    const prompt=buildGroundedSystemPrompt({name:'SIM',personality:'cordial_comercial',strictMode:true,skills:{pix_charges:true,appointments:true,qualify_lead:true,capi_tracking:true}},[{id:'SIM_PRODUCT',title:'SIM_ITEM',priceCents:10000}]);
+    expect(prompt).toContain('SIM_ITEM');expect(prompt).toContain('destinam-se somente à cobrança');expect(prompt).toContain('esta chamada não executa essas ações');expect(prompt).toContain('não permitido; não ofereça produtos');
+  });
+
+  it('extracts a quantity for the confirmation summary while keeping legacy markers at one unit',()=>{
+    expect(parseAiResponse('SIM [OFFER_PIX: prod-1; QTY=3]')).toMatchObject({offerPixProductId:'prod-1',offerPixQuantity:3,cleanReplyText:'SIM'});
+    expect(parseAiResponse('[OFFER_PIX: prod-1]').offerPixQuantity).toBe(1);
+    expect(Number.isNaN(parseAiResponse('[OFFER_PIX: prod-1; QTY=abc]').offerPixQuantity)).toBe(true);
+  });
+
+  it('matches optional moderate emoji guidance and permits a natural closing when continuity is off',()=>{
+    const prompt=buildGroundedSystemPrompt({name:'SIM',personality:'direto_objetivo',strictMode:true,businessRules:{ctaRule:false,emojiDensity:'moderate'}},[]);
+    expect(prompt).toContain('zero a 2 emojis');expect(prompt).toContain('Não acrescente uma pergunta de continuidade por padrão');expect(prompt).not.toContain('TODA mensagem');expect(prompt).toContain('não autorizam inventar condições');
+  });
+
 });
 

@@ -17,23 +17,27 @@ export async function enqueuePixConfirmationMessage(
     contact_phone: string;
   }>(
     `SELECT t.channel_instance_id, ci.provider, ci.phone_number_e164 as channel_phone, c.phone_e164 as contact_phone
-     FROM public.threads t
-     JOIN public.contacts c ON c.id = t.contact_id
-     JOIN public.channel_instances ci ON ci.id = t.channel_instance_id
-     WHERE t.id = $1 AND t.workspace_id = $2;`,
+     FROM public.commercial_threads t
+     JOIN public.contacts c ON c.id = t.contact_id AND c.workspace_id=t.workspace_id
+     JOIN public.channel_instances ci ON ci.id = t.channel_instance_id AND ci.workspace_id=t.workspace_id
+     WHERE t.id = $1 AND t.workspace_id = $2 AND ci.is_active=true AND ci.status='connected';`,
     [charge.thread_id, workspaceId]
   );
 
   if (!threadRes.rows[0]) return null;
 
   const tInfo = threadRes.rows[0];
+  if(!tInfo.channel_phone||!tInfo.contact_phone)return null;
   const amountFormatted = new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: charge.currency || "BRL",
   }).format(charge.amount_cents / 100);
 
-  const confirmText = `🎉 *PAGAMENTO CONFIRMADO!*\n\nRecebemos a confirmação do seu Pix no valor de *${amountFormatted}*.\nSeu pedido para *${charge.title}* foi confirmado com sucesso!\n\nQualquer dúvida ou suporte, basta nos chamar por aqui.`;
+  const confirmText = `🎉 *PAGAMENTO CONFIRMADO!*\n\nRecebemos a confirmação do seu Pix no valor de *${amountFormatted}*.\nPagamento referente a *${charge.title}*. A entrega ou execução do serviço seguirá o andamento do pedido.\n\nQualquer dúvida ou suporte, basta nos chamar por aqui.`;
   const idempotencyKey = `pix-confirm-${charge.id}`;
+  await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [`pix-confirm:${workspaceId}:${charge.id}`]);
+  const existing=await client.query<{message_id:string}>("SELECT message_id FROM public.outbound_commands WHERE workspace_id=$1 AND idempotency_key=$2", [workspaceId,idempotencyKey]);
+  if(existing.rows[0])return existing.rows[0].message_id;
   const payloadFingerprint = crypto
     .createHash("sha256")
     .update(
@@ -64,7 +68,7 @@ export async function enqueuePixConfirmationMessage(
       tInfo.channel_instance_id,
       charge.thread_id,
       tInfo.provider,
-      tInfo.channel_phone || "",
+      tInfo.channel_phone,
       tInfo.contact_phone,
       confirmText,
       JSON.stringify({

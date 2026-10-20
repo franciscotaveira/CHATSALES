@@ -1,6 +1,8 @@
 import type { FC } from "react";
 import { Dialog, Badge, Button } from "@sos-sales/ui";
-import type { MessageTemplateSummary, MessageTemplateButton } from "../../services/api-client";
+import {inspectTemplateLayout,isRecipientNameVariable} from "@sos-sales/contracts";
+import type { MessageTemplateSummary } from "../../services/api-client";
+import {templateStatus,templateCategory} from "./template-presentation";
 import { renderWhatsappMarkdown } from "../cockpit/utils/whatsappMarkdown";
 
 interface TemplateDetailDialogProps {
@@ -10,19 +12,19 @@ interface TemplateDetailDialogProps {
 
 export const TemplateDetailDialog: FC<TemplateDetailDialogProps> = ({ template, onClose }) => {
   if (!template) return null;
+  const state=templateStatus(template);
+  const layout=inspectTemplateLayout(template);
 
   return (
     <Dialog
       isOpen={Boolean(template)}
       onClose={onClose}
       title={`Modelo: ${template.name}`}
-      description={`Categoria: ${template.category} • Idioma: ${template.language}`}
+      description={`Categoria: ${templateCategory(template.category)} • Idioma: ${template.language}`}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <Badge variant={template.metaTemplateId ? "action" : "neutral"}>
-            {template.metaTemplateId ? "Meta Aprovado" : "Local — não submetido à Meta"}
-          </Badge>
+        <div style={{ display: "flex", gap: "8px",flexWrap:"wrap", alignItems: "center",overflowWrap:"anywhere" }}>
+          <Badge variant={state.variant}>{state.label}</Badge>
           {template.metaTemplateId && (
             <span style={{ fontSize: "var(--font-size-xs)", fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
               ID: {template.metaTemplateId}
@@ -30,8 +32,10 @@ export const TemplateDetailDialog: FC<TemplateDetailDialogProps> = ({ template, 
           )}
         </div>
 
+        {template.metaVerifiedAt&&Number.isFinite(Date.parse(template.metaVerifiedAt))&&<p style={{fontSize:12}}>Última verificação: {new Date(template.metaVerifiedAt).toLocaleString("pt-BR")}. A disponibilidade para envio também depende do canal escolhido.</p>}
         <div
           style={{
+            overflowWrap:"anywhere",
             backgroundColor: "var(--bg-canvas)",
             padding: "16px",
             borderRadius: "var(--radius-lg)",
@@ -49,9 +53,10 @@ export const TemplateDetailDialog: FC<TemplateDetailDialogProps> = ({ template, 
               gap: "8px",
             }}
           >
-            {template.headerText && (
+            {["IMAGE","VIDEO","DOCUMENT"].includes(layout.headerFormat)&&<p>Cabeçalho de {layout.headerFormat==="IMAGE"?"imagem":layout.headerFormat==="VIDEO"?"vídeo":"documento"}: a mídia será informada na preparação.</p>}
+            {layout.headerText && (
               <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--text-primary)" }}>
-                {template.headerText}
+                {layout.headerText}
               </div>
             )}
             <div style={{ fontSize: "var(--font-size-sm)", color: "var(--text-primary)", whiteSpace: "pre-wrap" }}>
@@ -62,9 +67,9 @@ export const TemplateDetailDialog: FC<TemplateDetailDialogProps> = ({ template, 
                 {template.footerText}
               </div>
             )}
-            {template.buttons && template.buttons.length > 0 && (
+            {layout.buttons.length > 0 && (
               <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "8px", borderTop: "1px solid var(--border-subtle)", paddingTop: "8px" }}>
-                {template.buttons.map((btn: MessageTemplateButton, idx: number) => (
+                {layout.buttons.map((btn, idx: number) => (
                   <div
                     key={idx}
                     style={{
@@ -74,7 +79,9 @@ export const TemplateDetailDialog: FC<TemplateDetailDialogProps> = ({ template, 
                       fontSize: "var(--font-size-xs)",
                     }}
                   >
-                    {btn.text}
+                    {btn.type==="URL"?"Link":btn.type==="PHONE_NUMBER"?"Telefone":btn.type==="QUICK_REPLY"?"Resposta rápida":`Botão ${btn.type}`}: {btn.text}
+                    {btn.url&&<div style={{fontWeight:400,overflowWrap:"anywhere"}}>{btn.url}</div>}
+                    {btn.phone_number&&<div style={{fontWeight:400}}>{btn.phone_number}</div>}
                   </div>
                 ))}
               </div>
@@ -82,6 +89,12 @@ export const TemplateDetailDialog: FC<TemplateDetailDialogProps> = ({ template, 
           </div>
         </div>
 
+        {layout.fields.length>0&&<section aria-label="Preenchimento do modelo" style={{fontSize:12}}>
+          <h3>Como os campos serão preenchidos</h3>
+          <ul>{layout.fields.map(field=><li key={field.key}>{field.label}: {isRecipientNameVariable(field.key)?"primeiro nome do contato, automático; sem nome cadastrado, usa cliente":field.required?"preenchimento obrigatório na preparação":"preenchimento opcional na preparação"}.</li>)}</ul>
+          <p>Confira todos os valores na prévia e no teste antes de liberar a campanha.</p>
+        </section>}
+        {layout.unsupported.map(reason=><p role="alert" key={reason}>{reason} A preparação deste formato ainda não está disponível.</p>)}
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <Button size="sm" variant="secondary" onClick={onClose}>
             Fechar

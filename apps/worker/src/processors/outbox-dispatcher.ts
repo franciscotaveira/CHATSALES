@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import {broadcastBlockCodes,encodeBroadcastBlockReason,aiCapabilitySignature,storedTemplateLayout,templateLayoutSignature,validateTemplateComponents,type WabaTemplateComponent} from "@sos-sales/contracts";
 import type { Pool } from "pg";
 import type {
   ChannelAdapterRegistry,
@@ -23,6 +24,8 @@ import {
   encryptPayload,
   DatabaseSigningSecretResolver,
   PostSendReconciliationOutcome,
+  resolveBroadcastAudience,
+  type BroadcastAudienceSelection,
 } from "@sos-sales/database";
 import { logger } from "@sos-sales/observability";
 
@@ -308,6 +311,84 @@ export class OutboxDispatcher {
         );
       }
 
+      const autonomous = await withWorkerTransaction(item.workspace_id,async client=>(await client.query<{source:string|null;status:string|null;enabled:boolean|null;handoff_ack:boolean|null;capability_signature:string|null;ai_skills:Record<string,unknown>|null}>(`SELECT m.metadata->>'source' AS source,(m.metadata->>'needsHandoff'='true') AS handoff_ack,ct.status,w.ai_receptionist_enabled AS enabled,m.metadata->>'capabilitySignature' AS capability_signature,w.ai_skills
+        FROM public.messages m JOIN public.workspaces w ON w.id=m.workspace_id
+        LEFT JOIN public.commercial_threads ct ON ct.id=m.thread_id AND ct.workspace_id=m.workspace_id
+        WHERE m.workspace_id=$1 AND m.id=$2`,[item.workspace_id,item.message_id])).rows[0],pool);
+      if(autonomous?.source==="ai_receptionist" && (!(autonomous.status==="active" || (autonomous.status==="waiting_human" && autonomous.handoff_ack===true)) || autonomous.enabled!==true || !autonomous.capability_signature || autonomous.capability_signature!==aiCapabilitySignature(autonomous.ai_skills))){
+        await withWorkerTransaction(item.workspace_id,async client=>{
+          await this.outboundRepo.markPermanentFailure(item.id,workerId,item.lease_token,"AI_REPLY_SUSPENDED: atendimento assumido, IA suspensa ou funções alteradas; revise a conversa",client);
+          await client.query("UPDATE public.messages SET delivery_status='failed',status_rank=-1,updated_at=now() WHERE workspace_id=$1 AND id=$2",[item.workspace_id,item.message_id]);
+        },pool);
+        return {success:false,status:"dead_letter"};
+      }
+
+      if(autonomous?.source==='ai_receptionist'){
+        const checkout=await withWorkerTransaction(item.workspace_id,async client=>(await client.query(`SELECT m.metadata->>'checkoutRequestId' AS request_id,m.metadata->>'generatedPixChargeId' AS charge_id,m.metadata->>'checkoutMessageKind' AS kind FROM messages m WHERE workspace_id=$1 AND id=$2`,[item.workspace_id,item.message_id])).rows[0],pool);
+        if(checkout?.request_id&&checkout.kind!=="status"){
+          const valid=await withWorkerTransaction(item.workspace_id,async client=>checkout.charge_id?
+            (await client.query("SELECT r.id FROM ai_checkout_requests r JOIN pix_charges p ON p.workspace_id=r.workspace_id AND p.id=r.charge_id WHERE r.workspace_id=$1 AND r.id=$2 AND p.id=$3 AND p.status='PENDING' AND p.expires_at>clock_timestamp()",[item.workspace_id,checkout.request_id,checkout.charge_id])).rows.length>0:
+            (await client.query("SELECT id FROM ai_checkout_requests WHERE workspace_id=$1 AND id=$2 AND summary_message_id=$3 AND status='pending' AND valid_until>clock_timestamp()",[item.workspace_id,checkout.request_id,item.message_id])).rows.length>0,pool);
+          if(!valid){await withWorkerTransaction(item.workspace_id,async client=>{await this.outboundRepo.markPermanentFailure(item.id,workerId,item.lease_token,'CHECKOUT_MESSAGE_STALE: resumo ou cobrança encerrados; revise o pedido antes de enviar',client);await client.query("UPDATE messages SET delivery_status='failed',status_rank=-1,updated_at=clock_timestamp() WHERE workspace_id=$1 AND id=$2",[item.workspace_id,item.message_id]);},pool);return {success:false,status:'dead_letter'};}
+        }
+      }
+
+      if(item.template_name){
+        const proof=await withWorkerTransaction(item.workspace_id,async client=>(await client.query(`SELECT ch.provider,m.metadata->>'systemTemplateLayoutHash' AS snapshot_hash,mt.* FROM messages m JOIN channel_instances ch ON ch.id=m.channel_instance_id AND ch.workspace_id=m.workspace_id LEFT JOIN message_templates mt ON mt.workspace_id=m.workspace_id AND mt.name=$3 AND mt.language=$4 WHERE m.workspace_id=$1 AND m.id=$2`,[item.workspace_id,item.message_id,item.template_name,item.template_language||"pt_BR"])).rows[0],pool);
+        if(!proof)throw new Error("TEMPLATE_CONTEXT_MISSING: a mensagem perdeu seu contexto de envio");
+        if(proof.provider==="meta_waba"){
+          const layout=storedTemplateLayout(proof),hash=crypto.createHash("sha256").update(templateLayoutSignature(layout)).digest("hex");
+          const components=(item.template_components||[]) as WabaTemplateComponent[];
+          if(!proof.snapshot_hash||proof.snapshot_hash!==hash||proof.status!=="APPROVED"||!proof.meta_template_id||proof.meta_verified_channel_id!==item.channel_instance_id||!proof.meta_verified_at||new Date(proof.meta_verified_at).getTime()<=Date.now()-86400000||validateTemplateComponents(layout,components).length){
+            await withWorkerTransaction(item.workspace_id,async client=>{await this.outboundRepo.markPermanentFailure(item.id,workerId,item.lease_token,"TEMPLATE_LAYOUT_CHANGED: confira o modelo e prepare o envio novamente",client);await client.query("UPDATE messages SET delivery_status='failed',status_rank=-1,updated_at=now() WHERE workspace_id=$1 AND id=$2",[item.workspace_id,item.message_id]);},pool);
+            return {success:false,status:"dead_letter"};
+          }
+        }
+      }
+
+      if(item.idempotency_key.startsWith("btest_")){
+        const valid=await withWorkerTransaction(item.workspace_id,async client=>(await client.query<{valid:boolean}>(`SELECT (p.expires_at>now() AND ch.is_active AND ch.status='connected' AND COALESCE(c.opt_out,false)=false AND mt.body_text=t.template_body AND mt.name=t.template_name AND mt.language=t.template_language AND (ch.provider<>'meta_waba' OR (ch.meta_billing_configured AND mt.status='APPROVED' AND mt.meta_template_id IS NOT NULL AND mt.meta_verified_channel_id=ch.id AND mt.meta_verified_at>now()-interval '24 hours'))) AS valid
+          FROM broadcast_message_tests t JOIN broadcast_preparations p ON p.id=t.preparation_id AND p.workspace_id=t.workspace_id JOIN message_templates mt ON mt.id=t.template_id AND mt.workspace_id=t.workspace_id JOIN channel_instances ch ON ch.id=$3 AND ch.workspace_id=t.workspace_id LEFT JOIN contacts c ON c.workspace_id=t.workspace_id AND c.phone_e164=t.phone_e164 WHERE t.workspace_id=$1 AND t.outbound_command_id=$2`,[item.workspace_id,item.id,item.channel_instance_id])).rows[0]?.valid===true,pool);
+        if(!valid){
+          await withWorkerTransaction(item.workspace_id,async client=>{
+            await this.outboundRepo.markPermanentFailure(item.id,workerId,item.lease_token,"BROADCAST_TEST_BLOCKED: expired review, changed template, opt-out or disconnected channel",client);
+            await client.query("UPDATE public.messages SET delivery_status='failed',status_rank=-1,updated_at=now() WHERE workspace_id=$1 AND id=$2",[item.workspace_id,item.message_id]);
+          },pool);
+          return {success:false,status:"dead_letter"};
+        }
+      }
+
+      // Campaign consent/cancellation is revalidated just before an external send.
+      const campaignGuard = await withWorkerTransaction(item.workspace_id, async client => {
+        const guard=(await client.query<{
+        id: string; campaign_id: string; status: string; opt_out: boolean | null; provider: string; verified: boolean; channel_active: boolean; channel_status: string; billing_declared: boolean; audience_type:BroadcastAudienceSelection["type"];audience_stage:string|null;phone_e164:string;contact_id:string|null;
+      }>(`SELECT br.id,br.campaign_id,bc.status,c.opt_out,ch.provider,ch.is_active AS channel_active,ch.status AS channel_status,ch.meta_billing_configured AS billing_declared,bc.audience_type,bc.audience_stage,br.phone_e164,br.contact_id,
+          (mt.status='APPROVED' AND mt.meta_template_id IS NOT NULL AND mt.meta_verified_channel_id=bc.channel_instance_id AND mt.meta_verified_at>now()-interval '24 hours') AS verified
+          FROM public.broadcast_recipients br JOIN public.broadcast_campaigns bc ON bc.id=br.campaign_id AND bc.workspace_id=br.workspace_id
+          JOIN public.channel_instances ch ON ch.id=bc.channel_instance_id AND ch.workspace_id=bc.workspace_id
+          LEFT JOIN public.contacts c ON c.id=br.contact_id AND c.workspace_id=br.workspace_id
+          JOIN public.message_templates mt ON mt.id=br.template_id AND mt.workspace_id=br.workspace_id
+          WHERE br.workspace_id=$1 AND br.outbound_command_id=$2`, [item.workspace_id,item.id])).rows[0];
+        if(!guard)return undefined;
+        const manual=["MANUAL","IMPORT_LIST"].includes(guard.audience_type);
+        const selection:BroadcastAudienceSelection={type:manual?"MANUAL":guard.audience_type,stage:guard.audience_stage||undefined,smartFilter:guard.audience_stage||undefined,customPhoneNumbers:[guard.phone_e164]};
+        let eligible=false;
+        if(guard.contact_id&&guard.opt_out===false&&["ALL_CONTACTS","BY_STAGE","MANUAL","IMPORT_LIST","SMART_FILTER"].includes(guard.audience_type)&&!(guard.audience_type==="SMART_FILTER"&&!["NON_BUYERS","PIX_ABANDONED","INACTIVE_30_DAYS","CTWA_RESCUE"].includes(guard.audience_stage||""))){
+          const matches=await resolveBroadcastAudience(client,item.workspace_id,selection,[{phone_e164:guard.phone_e164,contact_id:guard.contact_id}]);
+          eligible=matches.some(target=>!target.opt_out);
+        }
+        return {...guard,eligible};
+      }, pool);
+      if ((!campaignGuard && item.idempotency_key.startsWith("bcast_")) || (campaignGuard && (!["queued","partial","processing"].includes(campaignGuard.status) || !campaignGuard.channel_active || campaignGuard.channel_status !== "connected" || !campaignGuard.eligible || campaignGuard.opt_out !== false || (campaignGuard.provider === "meta_waba" && (!campaignGuard.verified || !campaignGuard.billing_declared))))) {
+        await withWorkerTransaction(item.workspace_id, async client => {
+          const reason = encodeBroadcastBlockReason(broadcastBlockCodes(campaignGuard));
+          await this.outboundRepo.markPermanentFailure(item.id,workerId,item.lease_token,reason,client);
+          await client.query("UPDATE public.messages SET delivery_status='failed',status_rank=-1,updated_at=now() WHERE workspace_id=$1 AND id=$2", [item.workspace_id,item.message_id]);
+          await client.query("UPDATE public.broadcast_recipients SET status='blocked',error_message=$3 WHERE workspace_id=$1 AND id=$2", [item.workspace_id,campaignGuard?.id ?? null,reason]);
+        }, pool);
+        return { success: false, status: "dead_letter" };
+      }
+
       // 2. Perform outbound dispatch via ChannelDispatchService
       let sendResult: ChannelSendResult;
       try {
@@ -479,11 +560,14 @@ export class OutboxDispatcher {
             }
 
             // Step 3.1: Reconcile broadcast_recipients if command was dispatched by a broadcast campaign
-            await client.query(
+            const sentRecipients = await client.query<{campaign_id:string}>(
               `UPDATE public.broadcast_recipients
-               SET external_message_id = $1, status = 'sent'
-               WHERE outbound_command_id = $2;`,
-              [sendResult.externalMessageId, item.id]
+               SET external_message_id=$1,status='sent',sent_at=$3
+               WHERE outbound_command_id=$2 AND sent_at IS NULL RETURNING campaign_id`,
+              [sendResult.externalMessageId,item.id,sendResult.sentAt ?? new Date()]
+            );
+            for (const recipient of sentRecipients.rows) await client.query(
+              "UPDATE public.broadcast_campaigns SET sent_count=sent_count+1,updated_at=now() WHERE workspace_id=$1 AND id=$2", [item.workspace_id,recipient.campaign_id]
             );
 
             // Step 4: Record delivery event append-only without swallowing errors
@@ -704,6 +788,9 @@ export class OutboxDispatcher {
 
       return { success: false, status: "failed" };
     } finally {
+      if(item.idempotency_key.startsWith("bcast_")){
+        try {await this.refreshCampaignProgress(pool,item);}catch{logger.error({commandId:item.id},"Campaign progress requires reconciliation");}
+      }
       if (heartbeatTimer) {
         clearInterval(heartbeatTimer);
         heartbeatTimer = null;
@@ -721,6 +808,19 @@ export class OutboxDispatcher {
   /**
    * Administrative reconciliation action for commands in 'reconciliation_required'.
    */
+  private async refreshCampaignProgress(pool:Pool,item:ClaimedOutboxItem):Promise<void>{
+    await withWorkerTransaction(item.workspace_id,async client=>{
+      const campaign=(await client.query<{id:string}>(`SELECT bc.id FROM public.broadcast_campaigns bc JOIN public.broadcast_recipients br ON br.campaign_id=bc.id AND br.workspace_id=bc.workspace_id WHERE br.workspace_id=$1 AND br.outbound_command_id=$2 FOR UPDATE OF bc`,[item.workspace_id,item.id])).rows[0];
+      if(!campaign)return;
+      await client.query(`UPDATE public.broadcast_recipients br SET status=CASE WHEN br.status='blocked' THEN 'blocked' WHEN oc.status='dead_letter' THEN 'failed' WHEN oc.status IN ('reconciliation_required','reconciling') THEN 'uncertain' ELSE br.status END
+        FROM public.outbound_commands oc WHERE br.workspace_id=$1 AND br.campaign_id=$2 AND oc.id=br.outbound_command_id AND oc.workspace_id=br.workspace_id`,[item.workspace_id,campaign.id]);
+      await client.query(`UPDATE public.broadcast_campaigns bc SET sent_count=s.sent,failed_count=s.failed,
+        status=CASE WHEN bc.status='cancelled' THEN 'cancelled' WHEN s.terminal>=bc.total_targeted THEN CASE WHEN s.failed>0 THEN 'partial' ELSE 'completed' END ELSE 'queued' END,updated_at=now()
+        FROM (SELECT count(*) FILTER(WHERE sent_at IS NOT NULL)::int AS sent,count(*) FILTER(WHERE status IN ('blocked','failed'))::int AS failed,count(*) FILTER(WHERE sent_at IS NOT NULL OR status IN ('blocked','failed'))::int AS terminal FROM public.broadcast_recipients WHERE workspace_id=$1 AND campaign_id=$2) s
+        WHERE bc.workspace_id=$1 AND bc.id=$2`,[item.workspace_id,campaign.id]);
+    },pool);
+  }
+
   async reconcileItem(
     pool: Pool,
     workspaceId: string,

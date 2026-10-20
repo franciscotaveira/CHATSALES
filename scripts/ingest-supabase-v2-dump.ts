@@ -581,7 +581,7 @@ export async function runIngestion(options: {
               `INSERT INTO public.products (
                  workspace_id, catalog_id, retailer_id, title, subtitle, description,
                  price_cents, currency, category, image_url, status, is_featured
-               ) VALUES ($1, 'meta_catalog_default', $2, $3, $4, $5, $6, 'BRL', 'Serviços', 'https://crm.iaparavendas.tech/assets/service.png', 'ACTIVE', true)
+               ) VALUES ($1, 'meta_catalog_default', $2, $3, $4, $5, $6, 'BRL', 'Serviços', 'https://chat.automatizaprocessos.tech/assets/service.png', 'ACTIVE', true)
                ON CONFLICT (workspace_id, retailer_id) DO UPDATE SET
                  title = EXCLUDED.title,
                  price_cents = EXCLUDED.price_cents,

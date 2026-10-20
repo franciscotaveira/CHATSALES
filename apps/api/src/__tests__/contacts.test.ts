@@ -240,4 +240,28 @@ describe("Contacts Routes Integration (Fastify + RLS)", () => {
     expect(patch.statusCode).toBe(403);
     expect(del.statusCode).toBe(403);
   });
+  it("rejects stale notes atomically and serializes competing writers", async () => {
+    const created = await createOrGetContact(ownerPool, {workspaceId:workspaceAId,phoneE164:"+5511977700011",name:"Original"});
+    const url = `/v1/workspaces/${workspaceAId}/contacts/${created.id}`;
+    const headers = {authorization:`Bearer ${operatorToken}`};
+    const results = await Promise.all(["SIM first", "SIM second"].map(notes => app.inject({method:"PATCH",url,headers,payload:{metadata:{notes},expectedNotes:null}})));
+    expect(results.map(r=>r.statusCode).sort()).toEqual([200,409]);
+    const winner=results.find(r=>r.statusCode===200)!.json().contact.metadata.notes;
+    const stale=await app.inject({method:"PATCH",url,headers,payload:{name:"Must not apply",metadata:{notes:"SIM stale",company:"Must not apply"},expectedNotes:null}});
+    expect(stale.statusCode).toBe(409); expect(stale.json().type).toContain("contact-notes-conflict");
+    const stored=await ownerPool.query("SELECT name,metadata FROM public.contacts WHERE id=$1",[created.id]);
+    expect(stored.rows[0].name).toBe("Original"); expect(stored.rows[0].metadata.notes).toBe(winner); expect(stored.rows[0].metadata.company).toBeUndefined();
+    const retry=await app.inject({method:"PATCH",url,headers,payload:{metadata:{notes:"SIM reviewed"},expectedNotes:winner}});
+    expect(retry.statusCode).toBe(200); expect(retry.json().contact.metadata.notes).toBe("SIM reviewed");
+  });
+  it("compares legacy JSON notes without coercion and rejects a detached precondition", async () => {
+    const contact=await createOrGetContact(ownerPool,{workspaceId:workspaceAId,phoneE164:"+5511977700012"});
+    await ownerPool.query("UPDATE public.contacts SET metadata=$2::jsonb WHERE id=$1",[contact.id,JSON.stringify({notes:{legacy:true},tags:["SIM"]})]);
+    const url=`/v1/workspaces/${workspaceAId}/contacts/${contact.id}`; const headers={authorization:`Bearer ${operatorToken}`};
+    expect((await app.inject({method:"PATCH",url,headers,payload:{expectedNotes:null,metadata:{notes:"wrong"}}})).statusCode).toBe(409);
+    const repaired=await app.inject({method:"PATCH",url,headers,payload:{expectedNotes:{legacy:true},metadata:{notes:"SIM repaired"}}});
+    expect(repaired.statusCode).toBe(200); expect(repaired.json().contact.metadata.tags).toEqual(["SIM"]);
+    expect((await app.inject({method:"PATCH",url,headers,payload:{expectedNotes:"SIM repaired",name:"Other"}})).statusCode).toBe(400);
+  });
+
 });

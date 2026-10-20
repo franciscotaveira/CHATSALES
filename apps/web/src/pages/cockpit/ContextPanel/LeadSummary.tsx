@@ -1,3 +1,5 @@
+import {STAGES} from '../../opportunities/stages';
+import {hasEstimatedValue,hasRecurringIndication} from '../../opportunities/opportunity-filters';
 import type { FC } from "react";
 import { Badge, Button } from "@sos-sales/ui";
 import { Sparkles, Edit3 } from "lucide-react";
@@ -12,6 +14,7 @@ interface LeadSummaryProps {
   onUpdateStage?: (newStage: string) => Promise<void> | void;
   customStages?: Record<string, string>;
   isUpdatingStage?: boolean;
+  error?:string|null;
   onEditLead?: () => void;
 }
 
@@ -22,28 +25,19 @@ export const LeadSummary: FC<LeadSummaryProps> = ({
   estimatedValueCents,
   onUpdateStage,
   customStages,
-  isUpdatingStage = false,
+  isUpdatingStage = false,error,
   onEditLead,
 }) => {
   const formattedPhone = formatPhone(thread.contactPhone);
-  const formattedValue =
-    estimatedValueCents != null
-      ? (estimatedValueCents / 100).toLocaleString("pt-BR", {
-          style: "currency",
-          currency: "BRL",
-        })
-      : "R$ 0,00";
-
-  const isRec = Boolean(
-    contact?.metadata?.isRecurring ||
-    (contact?.metadata?.totalOrders && Number(contact.metadata.totalOrders) > 0) ||
-    contact?.metadata?.tags?.includes("cliente_recorrente")
-  );
-  const totalOrders = contact?.metadata?.totalOrders ?? (isRec ? 1 : 0);
-  const totalSpentCents = contact?.metadata?.totalSpentCents ?? 0;
+  const currentContact=contact?.id===thread.contactId?contact:undefined;
+  const formattedValue=hasEstimatedValue(estimatedValueCents)?(estimatedValueCents/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'Não informado';
+  const isRec=hasRecurringIndication(currentContact);
+  const totalOrders=hasEstimatedValue(currentContact?.metadata?.totalOrders)?currentContact!.metadata.totalOrders!:null;
+  const totalSpentCents=hasEstimatedValue(currentContact?.metadata?.totalSpentCents)?currentContact!.metadata.totalSpentCents!:null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+      {error&&<p role="alert">{error}</p>}
       <div
         style={{
           display: "flex",
@@ -86,9 +80,9 @@ export const LeadSummary: FC<LeadSummaryProps> = ({
       >
         <span style={{ color: "var(--text-secondary)" }}>Etapa do Funil</span>
         <select
-          value={journeyStage || "lead"}
+          value={STAGES.some(stage=>stage.id===journeyStage)?journeyStage!:""}
           onChange={(e) => onUpdateStage?.(e.target.value)}
-          disabled={isUpdatingStage}
+          disabled={isUpdatingStage||!onUpdateStage}
           title="Clique para alterar a etapa deste lead no funil de vendas"
           style={{
             height: "26px",
@@ -103,6 +97,7 @@ export const LeadSummary: FC<LeadSummaryProps> = ({
             outline: "none",
           }}
         >
+          {!STAGES.some(stage=>stage.id===journeyStage)&&<option value="" disabled>Etapa não informada</option>}
           <option value="lead">🌱 {customStages?.lead || "Lead"}</option>
           <option value="qualified">🎯 {customStages?.qualified || "Qualificado"}</option>
           <option value="proposal">📄 {customStages?.proposal || "Proposta"}</option>
@@ -146,32 +141,33 @@ export const LeadSummary: FC<LeadSummaryProps> = ({
           gap: "6px",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",flexWrap:"wrap",gap:6 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: "11px", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase" }}>
             <Sparkles size={12} style={{ color: "var(--color-action)" }} />
-            Inteligência de Cliente
+            Histórico informado
           </div>
           {isRec ? (
-            <Badge variant="action">⭐ Recorrente</Badge>
+            <Badge variant="action">⭐ Recorrência informada</Badge>
           ) : (
-            <Badge variant="neutral">🌱 Novo Lead</Badge>
+            <Badge variant="neutral">Sem indicação de recorrência</Badge>
           )}
         </div>
 
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "var(--text-secondary)" }}>
-          <span>Compras anteriores:</span>
+        <div style={{ display: "flex", justifyContent: "space-between",flexWrap:"wrap",gap:"4px 8px", fontSize: "12px", color: "var(--text-secondary)" }}>
+          <span>Compras informadas:</span>
           <strong style={{ color: "var(--text-primary)" }}>
-            {totalOrders} {totalOrders === 1 ? "compra" : "compras"}
+            {totalOrders===null?'Não informado':`${totalOrders.toLocaleString('pt-BR')} ${totalOrders===1?'compra':'compras'}`}
           </strong>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "var(--text-secondary)" }}>
-          <span>LTV (Gasto acumulado):</span>
+        <div style={{ display: "flex", justifyContent: "space-between",flexWrap:"wrap",gap:"4px 8px", fontSize: "12px", color: "var(--text-secondary)" }}>
+          <span>Gasto acumulado informado:</span>
           <strong style={{ color: "var(--text-primary)" }}>
-            {(totalSpentCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+            {totalSpentCents===null?'Não informado':(totalSpentCents/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
           </strong>
         </div>
 
+        <p style={{margin:0,fontSize:11,color:"var(--text-secondary)"}}>Dados do cadastro; não substituem a confirmação de pagamentos.</p>
         {onEditLead && (
           <Button
             size="xs"

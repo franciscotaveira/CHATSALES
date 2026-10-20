@@ -34,6 +34,7 @@ const createActionBodySchema = z.object({
 const patchActionBodySchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("complete"),
+    reason: z.string().trim().min(1).max(1000).optional(),
   }),
   z.object({
     action: z.literal("cancel"),
@@ -51,6 +52,12 @@ const patchActionBodySchema = z.discriminatedUnion("action", [
 ]);
 
 export const commercialActionsRoutes: FastifyPluginAsync = async (app) => {
+  app.get('/v1/workspaces/:workspaceId/action-assignees',{preHandler:[app.authenticate,app.requireWorkspaceContext,app.requirePermission('cockpit:access')]},async(request,reply)=>{
+    const parsed=z.object({workspaceId:z.string().uuid()}).safeParse(request.params);if(!parsed.success)return reply.code(400).send({detail:'Empresa inválida.'});
+    const members=await withTenantTransaction(parsed.data.workspaceId,async client=>(await client.query<{user_id:string;name:string}>("SELECT m.user_id,u.name FROM workspace_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 AND m.role IN ('owner','admin','manager','operator') ORDER BY u.name,m.user_id",[parsed.data.workspaceId])).rows);
+    return {assignees:members.map(member=>({userId:member.user_id,name:member.name}))};
+  });
+
   // 1. List actions for a specific thread
   app.get(
     "/v1/workspaces/:workspaceId/threads/:threadId/actions",
@@ -261,6 +268,7 @@ export const commercialActionsRoutes: FastifyPluginAsync = async (app) => {
         const updated = await withTenantTransaction(workspaceId, async (client) => {
           if (payload.action === "complete") {
             return completeCommercialAction(client, workspaceId, actionId, {
+              reason: payload.reason,
               userId: request.user.id,
             });
           } else if (payload.action === "cancel") {

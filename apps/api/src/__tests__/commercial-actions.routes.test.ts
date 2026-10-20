@@ -297,6 +297,7 @@ describe("Commercial Actions (E2) API Routes Suite", () => {
       headers: { authorization: `Bearer ${tokenA}` },
       payload: {
         action: "complete",
+        reason: "  SIM avaliação concluída com decisão registrada  ",
       },
     });
 
@@ -315,6 +316,8 @@ describe("Commercial Actions (E2) API Routes Suite", () => {
       },
     });
     expect(res2.statusCode).toBe(200);
+    const history=await app.inject({method:"GET",url:`/v1/workspaces/${workspaceAId}/actions/${createdActionId}/history`,headers:{authorization:`Bearer ${tokenA}`}});
+    expect(history.statusCode).toBe(200);const events=history.json().history.filter((event:any)=>event.actionType==="completed");expect(events).toHaveLength(1);expect(events[0].reason).toBe("SIM avaliação concluída com decisão registrada");
   });
 
   it("11. GET /v1/workspaces/:id/threads — returns nextAction and respects needsAttention filter", async () => {
@@ -368,4 +371,36 @@ describe("Commercial Actions (E2) API Routes Suite", () => {
     expect(foundUrgent.nextAction).toBeDefined();
     expect(foundUrgent.nextAction.title).toBe("Ação Urgente Vencida");
   });
+  it('lists only operational assignees without private account fields and rejects an ineligible assignment',async()=>{
+    const outsider=crypto.randomUUID();await ownerPool.query("INSERT INTO users(id,email,name) VALUES($1,$2,'SIM Analyst')",[outsider,`${outsider}@example.invalid`]);await ownerPool.query("INSERT INTO workspace_memberships(workspace_id,user_id,role) VALUES($1,$2,'analyst')",[workspaceAId,outsider]);
+    const headers={authorization:`Bearer ${tokenA}`};const response=await app.inject({url:`/v1/workspaces/${workspaceAId}/action-assignees`,headers});expect(response.statusCode,response.body).toBe(200);expect(response.json().assignees.some((member:any)=>member.userId===userAId)).toBe(true);expect(response.json().assignees.some((member:any)=>member.userId===outsider)).toBe(false);expect(response.body).not.toContain('email');expect(response.body).not.toContain('password');
+    const created=await app.inject({method:'POST',url:`/v1/workspaces/${workspaceAId}/threads/${threadAId}/actions`,headers,payload:{title:'SIM eligibility',dueAt:'2099-01-01T12:00:00Z'}});expect(created.statusCode,created.body).toBe(201);
+    const denied=await app.inject({method:'PATCH',url:`/v1/workspaces/${workspaceAId}/actions/${created.json().action.id}`,headers,payload:{action:'assign',assigneeUserId:outsider}});expect(denied.statusCode,denied.body).toBe(400);
+    for(let attempt=0;attempt<2;attempt++){const assigned=await app.inject({method:'PATCH',url:`/v1/workspaces/${workspaceAId}/actions/${created.json().action.id}`,headers,payload:{action:'assign',assigneeUserId:userAId}});expect(assigned.statusCode,assigned.body).toBe(200);}
+    const history=await app.inject({url:`/v1/workspaces/${workspaceAId}/actions/${created.json().action.id}/history`,headers});expect(history.json().history.filter((item:any)=>item.actionType==='assigned')).toHaveLength(1);
+    const foreign=await app.inject({url:`/v1/workspaces/${workspaceBId}/action-assignees`,headers});expect(foreign.statusCode).toBe(403);
+  });
+
+  it('treats open as every nonclosed state and excludes closed tasks from attention; parses false explicitly',async()=>{
+    const cases=[['active',null],['waiting_client',null],['waiting_human',null],['closed','-1 hour'],['active','12 hours'],['active','48 hours'],['active','-1 hour']] as const;const ids:string[]=[];
+    for(let index=0;index<cases.length;index++){const [status,due]=cases[index]!;const c=(await ownerPool.query("INSERT INTO contacts(workspace_id,phone_e164,name) VALUES($1,$2,'SIM queue semantics') RETURNING id",[workspaceAId,'+559'+Date.now().toString().slice(-9)+index])).rows[0].id;const t=(await ownerPool.query("INSERT INTO commercial_threads(workspace_id,channel_instance_id,contact_id,status,last_message_at) VALUES($1,$2,$3,$4,now()) RETURNING id",[workspaceAId,channelAId,c,status])).rows[0].id;ids.push(t);if(due)await ownerPool.query("INSERT INTO commercial_actions(workspace_id,thread_id,title,due_at,status,origin) VALUES($1,$2,'SIM queue deadline',now()+$3::interval,'open','manual')",[workspaceAId,t,due]);}
+    const query=async(q:string)=>{const r=await app.inject({url:`/v1/workspaces/${workspaceAId}/threads?${q}`,headers:{authorization:`Bearer ${tokenA}`}});expect(r.statusCode,r.body).toBe(200);return r.json().threads.map((t:any)=>t.id).filter((id:string)=>ids.includes(id));};
+    expect((await query('status=open')).sort()).toEqual(ids.filter((_,index)=>index!==3).sort());expect((await query('needsAttention=true')).sort()).toEqual([ids[2],ids[4],ids[6]].sort());expect((await query('needsAttention=false')).sort()).toEqual([...ids].sort());expect(await query('status=closed&needsAttention=true')).toEqual([]);
+    expect((await app.inject({url:`/v1/workspaces/${workspaceAId}/threads?needsAttention=invalid`,headers:{authorization:`Bearer ${tokenA}`}})).statusCode).toBe(400);
+  });
+
+  it('paginates tied message timestamps and searches older conversations before pagination',async()=>{
+    await ownerPool.query("WITH c AS (INSERT INTO contacts(workspace_id,phone_e164,name) SELECT $1,'+55440000'||lpad(n::text,3,'0'),'SIM cursor '||n FROM generate_series(1,53)n RETURNING id) INSERT INTO commercial_threads(workspace_id,channel_instance_id,contact_id,status,last_message_at,created_at) SELECT $1,$2,id,'active','2026-10-17T12:00:00.123456Z'::timestamptz,'2026-10-17T12:00:00.123456Z'::timestamptz FROM c",[workspaceAId,channelAId]);
+    const headers={authorization:`Bearer ${tokenA}`},url=`/v1/workspaces/${workspaceAId}/threads`;const first=await app.inject({url:`${url}?search=SIM%20cursor&limit=50`,headers});expect(first.statusCode,first.body).toBe(200);expect(first.json().threads).toHaveLength(50);const cursor=first.json().pagination.nextCursor;expect(cursor.activityAt).toBe('2026-10-17T12:00:00.123456Z');const second=await app.inject({url:`${url}?${new URLSearchParams({search:'SIM cursor',limit:'50',beforeActivityAt:cursor.activityAt,beforeId:cursor.id})}`,headers});expect(second.statusCode,second.body).toBe(200);expect(second.json().threads).toHaveLength(3);expect(new Set([...first.json().threads,...second.json().threads].map((t:any)=>t.id)).size).toBe(53);expect(second.json().pagination.hasMore).toBe(false);
+    await ownerPool.query("UPDATE contacts SET name='SIM cursor 100%_literal' WHERE workspace_id=$1 AND id=(SELECT contact_id FROM commercial_threads WHERE workspace_id=$1 AND id=$2)",[workspaceAId,second.json().threads[0].id]);const literal=await app.inject({url:`${url}?${new URLSearchParams({search:'100%_literal'})}`,headers});expect(literal.statusCode,literal.body).toBe(200);expect(literal.json().threads).toHaveLength(1);const otherChannel=await app.inject({url:`${url}?channelInstanceId=${crypto.randomUUID()}`,headers});expect(otherChannel.json().threads).toHaveLength(0);
+    for(const q of ['beforeId='+crypto.randomUUID(),'beforeActivityAt=invalid','limit=1.5','search='+('x'.repeat(201))])expect((await app.inject({url:`${url}?${q}`,headers})).statusCode).toBe(400);
+  });
+
+  it('looks up a selected conversation independently of the list filters and protects tenant access',async()=>{
+    const headers={authorization:`Bearer ${tokenA}`};const selected=(await ownerPool.query("SELECT id FROM commercial_threads WHERE workspace_id=$1 AND status='closed' LIMIT 1",[workspaceAId])).rows[0].id;
+    const list=await app.inject({url:`/v1/workspaces/${workspaceAId}/threads?status=open&search=SIM_missing_selected`,headers});expect(list.json().threads).toHaveLength(0);
+    const detail=await app.inject({url:`/v1/workspaces/${workspaceAId}/threads/${selected}`,headers});expect(detail.statusCode,detail.body).toBe(200);expect(detail.json().thread).toMatchObject({id:selected,workspaceId:workspaceAId,status:'closed'});
+    expect((await app.inject({url:`/v1/workspaces/${workspaceAId}/threads/${crypto.randomUUID()}`,headers})).statusCode).toBe(404);expect((await app.inject({url:`/v1/workspaces/${workspaceBId}/threads/${selected}`,headers})).statusCode).toBe(403);expect((await app.inject({url:`/v1/workspaces/${workspaceAId}/threads/${selected}`})).statusCode).toBe(401);
+  });
+
 });

@@ -1,0 +1,3 @@
+export function isKnownProductStatus(value:unknown):value is 'ACTIVE'|'INACTIVE'|'OUT_OF_STOCK'{return value==='ACTIVE'||value==='INACTIVE'||value==='OUT_OF_STOCK';}
+export function productStatusLabel(value:unknown){return value==='ACTIVE'?'Ativo':value==='INACTIVE'?'Inativo':value==='OUT_OF_STOCK'?'Sem estoque':'Status não reconhecido';}
+export function productMatchesSearch(product:{title?:unknown;retailerId?:unknown;category?:unknown},search:string){const term=search.trim().toLocaleLowerCase('pt-BR');return !term||[product.title,product.retailerId,product.category].some(value=>typeof value==='string'&&value.toLocaleLowerCase('pt-BR').includes(term));}

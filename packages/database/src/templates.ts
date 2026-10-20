@@ -1,5 +1,7 @@
 import type { PoolClient } from "pg";
 
+export interface StoredTemplateComponent{type:string;format?:string;text?:string;buttons?:Array<{type:string;text?:string;url?:string;phone_number?:string}>;}
+
 export type TemplateCategory = "UTILITY" | "MARKETING" | "AUTHENTICATION";
 export type TemplateStatus = "APPROVED" | "PENDING" | "REJECTED" | "PAUSED";
 
@@ -23,6 +25,10 @@ export interface MessageTemplateRecord {
   variables: string[];
   status: TemplateStatus;
   meta_template_id: string | null;
+  provider_components?:StoredTemplateComponent[];
+  parameter_format?:string;
+  meta_verified_at?:Date|null;
+  meta_verified_channel_id?:string|null;
   created_at: Date;
   updated_at: Date;
 }
@@ -101,6 +107,7 @@ export async function listMessageTemplates(
       variables,
       status,
       meta_template_id,
+      provider_components,parameter_format,meta_verified_at,meta_verified_channel_id,
       created_at,
       updated_at
     FROM public.message_templates
@@ -122,13 +129,6 @@ export async function listMessageTemplates(
   query += ` ORDER BY category ASC, name ASC`;
 
   const result = await client.query(query, params);
-
-  // If no templates exist for this workspace yet, seed canonical templates and return them
-  if (result.rows.length === 0 && !options?.category && !options?.status) {
-    await seedMasterTemplates(client, workspaceId);
-    const recheck = await client.query(query, params);
-    return recheck.rows.map(mapRowToTemplate);
-  }
 
   return result.rows.map(mapRowToTemplate);
 }
@@ -152,6 +152,7 @@ export async function getMessageTemplateByName(
       variables,
       status,
       meta_template_id,
+      provider_components,parameter_format,meta_verified_at,meta_verified_channel_id,
       created_at,
       updated_at
     FROM public.message_templates
@@ -177,6 +178,8 @@ export async function upsertMessageTemplate(
     variables?: string[];
     status?: TemplateStatus;
     metaTemplateId?: string | null;
+    providerComponents?:StoredTemplateComponent[];
+    parameterFormat?:string;
   }
 ): Promise<MessageTemplateRecord> {
   const query = `
@@ -191,10 +194,10 @@ export async function upsertMessageTemplate(
       buttons,
       variables,
       status,
-      meta_template_id,
+      meta_template_id,provider_components,parameter_format,
       updated_at
     ) VALUES (
-      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now()
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13, now()
     )
     ON CONFLICT (workspace_id, name) DO UPDATE SET
       category = EXCLUDED.category,
@@ -206,6 +209,7 @@ export async function upsertMessageTemplate(
       variables = EXCLUDED.variables,
       status = EXCLUDED.status,
       meta_template_id = COALESCE(EXCLUDED.meta_template_id, public.message_templates.meta_template_id),
+      provider_components=EXCLUDED.provider_components,parameter_format=EXCLUDED.parameter_format,
       updated_at = now()
     RETURNING *
   `;
@@ -220,8 +224,9 @@ export async function upsertMessageTemplate(
     template.footerText || null,
     JSON.stringify(template.buttons || []),
     JSON.stringify(template.variables || []),
-    template.status || "APPROVED",
+    template.status || "PENDING",
     template.metaTemplateId || null,
+    JSON.stringify(template.providerComponents??[]),template.parameterFormat??"POSITIONAL",
   ];
 
   const result = await client.query(query, params);
@@ -243,7 +248,7 @@ export async function seedMasterTemplates(
       footerText: tpl.footer_text,
       buttons: tpl.buttons,
       variables: tpl.variables,
-      status: "APPROVED",
+      status: "PENDING",
     });
   }
 }
@@ -270,6 +275,10 @@ function mapRowToTemplate(row: Record<string, unknown>): MessageTemplateRecord {
       : []) as string[],
     status: row.status as TemplateStatus,
     meta_template_id: row.meta_template_id ? String(row.meta_template_id) : null,
+    provider_components:(Array.isArray(row.provider_components)?row.provider_components:[]) as StoredTemplateComponent[],
+    parameter_format:String(row.parameter_format??"POSITIONAL"),
+    meta_verified_at:row.meta_verified_at?new Date(row.meta_verified_at as string|Date):null,
+    meta_verified_channel_id:row.meta_verified_channel_id?String(row.meta_verified_channel_id):null,
     created_at: new Date(row.created_at as string | number | Date),
     updated_at: new Date(row.updated_at as string | number | Date),
   };

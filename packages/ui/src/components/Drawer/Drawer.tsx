@@ -1,6 +1,8 @@
-import { useEffect, useRef, useId, type FC } from "react";
+import { useRef, useId, type FC } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { useBreakpoint } from "../../hooks/useBreakpoint";
+import { useModalSurface } from "../../hooks/useModalSurface";
 import type { DrawerProps } from "./Drawer.types";
 
 export const Drawer: FC<DrawerProps> = ({
@@ -16,109 +18,11 @@ export const Drawer: FC<DrawerProps> = ({
 }) => {
   const { isMobile } = useBreakpoint();
   const drawerRef = useRef<HTMLDivElement>(null);
-  const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
-  const hasInitiallyFocusedRef = useRef(false);
-  const wasOpenRef = useRef(false);
-  const onCloseRef = useRef(onClose);
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
+  useModalSurface(isOpen, drawerRef, onClose);
 
   const idPrefix = useId();
   const titleId = `${idPrefix}-title`;
   const descId = `${idPrefix}-desc`;
-
-  // Focus restoration when drawer transitions from open -> closed
-  useEffect(() => {
-    if (isOpen) {
-      wasOpenRef.current = true;
-    } else if (wasOpenRef.current) {
-      wasOpenRef.current = false;
-      hasInitiallyFocusedRef.current = false;
-      previouslyFocusedElementRef.current?.focus();
-    }
-  }, [isOpen]);
-
-  // Clean-up on unmount if drawer was open
-  useEffect(() => {
-    return () => {
-      if (wasOpenRef.current) {
-        previouslyFocusedElementRef.current?.focus();
-      }
-    };
-  }, []);
-
-  // Keyboard trap & Escape listener & initial focus
-  useEffect(() => {
-    if (!isOpen) {
-      hasInitiallyFocusedRef.current = false;
-      return;
-    }
-
-    if (!hasInitiallyFocusedRef.current) {
-      previouslyFocusedElementRef.current = document.activeElement as HTMLElement;
-    }
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        onCloseRef.current();
-        return;
-      }
-
-      if (e.key === "Tab" && drawerRef.current) {
-        const focusableElements = drawerRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        if (focusableElements.length === 0) return;
-
-        const firstElement = focusableElements[0];
-        const lastElement = focusableElements[focusableElements.length - 1];
-
-        const isReverseTab = e.shiftKey;
-
-        if (isReverseTab) {
-          if (document.activeElement === firstElement && lastElement) {
-            e.preventDefault();
-            lastElement.focus();
-          }
-        } else {
-          if (document.activeElement === lastElement && firstElement) {
-            e.preventDefault();
-            firstElement.focus();
-          }
-        }
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    if (!hasInitiallyFocusedRef.current) {
-      hasInitiallyFocusedRef.current = true;
-      timer = setTimeout(() => {
-        if (drawerRef.current) {
-          // If user or browser already focused something inside the drawer, NEVER steal focus!
-          if (drawerRef.current.contains(document.activeElement)) {
-            return;
-          }
-          const firstFocusable = drawerRef.current.querySelector<HTMLElement>(
-            'button, input, select, textarea, [tabindex]:not([tabindex="-1"])'
-          );
-          if (firstFocusable) {
-            firstFocusable.focus();
-          } else {
-            drawerRef.current.focus();
-          }
-        }
-      }, 50);
-    }
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      if (timer) clearTimeout(timer);
-    };
-  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -126,8 +30,8 @@ export const Drawer: FC<DrawerProps> = ({
   const isLeft = effectivePosition === "left";
   const isBottom = effectivePosition === "bottom";
 
-  return (
-    <div
+  const drawerElement = (
+    <div data-sos-overlay="drawer"
       style={{
         position: "fixed",
         inset: 0,
@@ -159,7 +63,7 @@ export const Drawer: FC<DrawerProps> = ({
         aria-labelledby={titleId}
         aria-describedby={description ? descId : undefined}
         tabIndex={-1}
-        className={`sos-drawer sos-drawer-${position}`}
+        className={`sos-drawer sos-drawer-${effectivePosition}`}
         style={{
           position: "relative",
           width: "100%",
@@ -203,7 +107,7 @@ export const Drawer: FC<DrawerProps> = ({
             borderBottom: "1px solid var(--border-default, #E2E8F0)",
           }}
         >
-          <div>
+          <div style={{ minWidth: 0, overflowWrap: "anywhere" }}>
             <h2
               id={titleId}
               style={{
@@ -238,7 +142,12 @@ export const Drawer: FC<DrawerProps> = ({
               border: "none",
               cursor: "pointer",
               color: "var(--text-muted, #64748B)",
-              padding: "4px",
+              padding: "8px",
+              minWidth: "40px",
+              minHeight: "40px",
+              flexShrink: 0,
+              alignItems: "center",
+              justifyContent: "center",
               borderRadius: "var(--radius-sm, 6px)",
               display: "inline-flex",
             }}
@@ -252,6 +161,8 @@ export const Drawer: FC<DrawerProps> = ({
           style={{
             padding: "20px",
             overflowY: "auto",
+            overflowX: "auto",
+            minHeight: 0,
             flex: 1,
             color: "var(--text-primary, #0F172A)",
             fontSize: "var(--font-size-sm, 0.875rem)",
@@ -273,6 +184,8 @@ export const Drawer: FC<DrawerProps> = ({
               display: "flex",
               justifyContent: "flex-end",
               gap: "10px",
+            flexWrap: "wrap",
+            flexShrink: 0,
             }}
           >
             {footer}
@@ -281,4 +194,5 @@ export const Drawer: FC<DrawerProps> = ({
       </div>
     </div>
   );
+  return typeof document === "undefined" ? drawerElement : createPortal(drawerElement, document.body);
 };

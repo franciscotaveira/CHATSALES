@@ -1,6 +1,7 @@
-import { useEffect, useRef, useId, type FC } from "react";
+import { useRef, useId, type FC } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import { useModalSurface } from "../../hooks/useModalSurface";
 import type { DialogProps } from "./Dialog.types";
 
 export const Dialog: FC<DialogProps> = ({
@@ -13,116 +14,17 @@ export const Dialog: FC<DialogProps> = ({
   maxWidth = "520px",
 }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
-  const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
-  const hasInitiallyFocusedRef = useRef(false);
-  const wasOpenRef = useRef(false);
-  const onCloseRef = useRef(onClose);
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
+  useModalSurface(isOpen, dialogRef, onClose);
 
   const idPrefix = useId();
   const titleId = `${idPrefix}-title`;
   const descId = `${idPrefix}-desc`;
 
-  // Focus restoration when dialog transitions from open -> closed
-  useEffect(() => {
-    if (isOpen) {
-      wasOpenRef.current = true;
-    } else if (wasOpenRef.current) {
-      wasOpenRef.current = false;
-      hasInitiallyFocusedRef.current = false;
-      previouslyFocusedElementRef.current?.focus();
-    }
-  }, [isOpen]);
-
-  // Clean-up on unmount if dialog was open
-  useEffect(() => {
-    return () => {
-      if (wasOpenRef.current) {
-        previouslyFocusedElementRef.current?.focus();
-      }
-    };
-  }, []);
-
-  // Focus trap & Escape listener
-  useEffect(() => {
-    if (!isOpen) {
-      hasInitiallyFocusedRef.current = false;
-      return;
-    }
-
-    // Store active element to restore focus on close (only once upon open)
-    if (!hasInitiallyFocusedRef.current) {
-      previouslyFocusedElementRef.current = document.activeElement as HTMLElement;
-    }
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        onCloseRef.current();
-        return;
-      }
-
-      if (e.key === "Tab" && dialogRef.current) {
-        const focusableElements = dialogRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        if (focusableElements.length === 0) return;
-
-        const firstElement = focusableElements[0];
-        const lastElement = focusableElements[focusableElements.length - 1];
-
-        const isReverseTab = e.shiftKey;
-
-        if (isReverseTab) {
-          if (document.activeElement === firstElement && lastElement) {
-            e.preventDefault();
-            lastElement.focus();
-          }
-        } else {
-          if (document.activeElement === lastElement && firstElement) {
-            e.preventDefault();
-            firstElement.focus();
-          }
-        }
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-
-    // Initial focus on dialog container or first focusable ONLY ONCE on opening
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    if (!hasInitiallyFocusedRef.current) {
-      hasInitiallyFocusedRef.current = true;
-      timer = setTimeout(() => {
-        if (dialogRef.current) {
-          // If user or browser already focused something inside the dialog, do not steal it
-          if (dialogRef.current.contains(document.activeElement)) {
-            return;
-          }
-          const firstFocusable = dialogRef.current.querySelector<HTMLElement>(
-            'input, select, textarea, button, [tabindex]:not([tabindex="-1"])'
-          );
-          if (firstFocusable) {
-            firstFocusable.focus();
-          } else {
-            dialogRef.current.focus();
-          }
-        }
-      }, 50);
-    }
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      if (timer) clearTimeout(timer);
-    };
-  }, [isOpen]);
-
   if (!isOpen) return null;
 
   const dialogElement = (
     <div
+      data-sos-overlay="dialog"
       style={{
         position: "fixed",
         inset: 0,
@@ -168,7 +70,7 @@ export const Dialog: FC<DialogProps> = ({
           boxShadow: "var(--shadow-lg)",
           display: "flex",
           flexDirection: "column",
-          maxHeight: "calc(100vh - 32px)",
+          maxHeight: "calc(100dvh - 32px)",
           outline: "none",
           fontFamily: "var(--font-sans, sans-serif)",
           zIndex: 1,
@@ -185,7 +87,7 @@ export const Dialog: FC<DialogProps> = ({
             flexShrink: 0,
           }}
         >
-          <div>
+          <div style={{ minWidth: 0, overflowWrap: "anywhere" }}>
             <h2
               id={titleId}
               style={{
@@ -220,7 +122,12 @@ export const Dialog: FC<DialogProps> = ({
               border: "none",
               cursor: "pointer",
               color: "var(--text-muted, #64748B)",
-              padding: "4px",
+              padding: "8px",
+              minWidth: "40px",
+              minHeight: "40px",
+              flexShrink: 0,
+              alignItems: "center",
+              justifyContent: "center",
               borderRadius: "var(--radius-sm, 6px)",
               display: "inline-flex",
             }}
@@ -234,6 +141,8 @@ export const Dialog: FC<DialogProps> = ({
           style={{
             padding: "20px 24px",
             overflowY: "auto",
+            minHeight: 0,
+            flex: 1,
             overflowX: "hidden",
             width: "100%",
             boxSizing: "border-box",
@@ -255,6 +164,7 @@ export const Dialog: FC<DialogProps> = ({
               display: "flex",
               justifyContent: "flex-end",
               gap: "12px",
+              flexWrap: "wrap",
               borderBottomLeftRadius: "var(--radius-lg, 12px)",
               borderBottomRightRadius: "var(--radius-lg, 12px)",
               flexShrink: 0,

@@ -420,6 +420,9 @@ describe("CH-12: Full Omnichannel Messaging E2E Lifecycle", () => {
   });
 
   it("AC-CH12-004: should produce an official WABA template outbound message via Fastify API and persist template metadata", async () => {
+    await ownerPool.query(`INSERT INTO message_templates
+      (workspace_id,name,category,body_text,status,language,meta_template_id,meta_verified_at,meta_verified_channel_id)
+      VALUES($1,'order_confirmation_v1','UTILITY','Pedido {{1}}, valor {{2}}','APPROVED','pt_BR','SIM_ORDER_TEMPLATE',NOW(),$2)`,[workspaceAId,wabaChannelAId]);
     const templateIdempKey = `idemp-template-${crypto.randomUUID()}`;
     const templatePayload = {
       recipientPhoneE164: "+5511988887777",

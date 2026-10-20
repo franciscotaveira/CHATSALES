@@ -1,7 +1,9 @@
-import { useState, useCallback, useEffect, type FC } from "react";
-import { Dialog, Button, Input, SegmentedControl, Alert } from "@sos-sales/ui";
+import { useState, useCallback, useEffect, useRef, type FC, type CSSProperties } from "react";
+import { Dialog, Button, Input, SegmentedControl, Alert, useBreakpoint } from "@sos-sales/ui";
 import { Check, ArrowRight, ArrowLeft, QrCode } from "lucide-react";
-import { apiClient } from "../../services/api-client";
+import { apiClient, ApiError } from "../../services/api-client";
+import { userFacingError } from "../../utils/user-facing-error";
+import { UnsavedChangesNotice, useDiscardChanges } from "../UnsavedChangesNotice";
 
 interface ChannelWizardDialogProps {
   isOpen: boolean;
@@ -9,8 +11,18 @@ interface ChannelWizardDialogProps {
   workspaceId?: string;
   token?: string;
   onChannelCreated: () => void;
+  onReviewChannels?:()=>void;
   onOpenQr?: (channelId: string, channelName: string) => void;
   initialProvider?: "meta_waba" | "waha" | "evolution";
+}
+
+export function sanitizeChannelPhoneE164(raw:string):string|undefined{
+ const value=raw.trim(),digits=value.replace(/\D/g,"");
+ if(!value)return undefined;
+ if(value.startsWith("+"))return /^\+[1-9][0-9]{8,14}$/.test(`+${digits}`)?`+${digits}`:undefined;
+ if(digits.length===10||digits.length===11)return `+55${digits}`;
+ if((digits.length===12||digits.length===13)&&digits.startsWith("55"))return `+${digits}`;
+ return undefined;
 }
 
 export const ChannelWizardDialog: FC<ChannelWizardDialogProps> = ({
@@ -19,9 +31,12 @@ export const ChannelWizardDialog: FC<ChannelWizardDialogProps> = ({
   workspaceId,
   token,
   onChannelCreated,
+  onReviewChannels,
   onOpenQr,
   initialProvider = "meta_waba",
 }) => {
+  const {isMobile}=useBreakpoint();
+  const mobileActionStyle:CSSProperties|undefined=isMobile?{width:"100%",height:"auto",minHeight:44,whiteSpace:"normal",overflowWrap:"anywhere",lineHeight:1.35}:undefined;
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [provider, setProvider] = useState<"meta_waba" | "waha" | "evolution">(initialProvider);
   const [displayName, setDisplayName] = useState("");
@@ -32,6 +47,8 @@ export const ChannelWizardDialog: FC<ChannelWizardDialogProps> = ({
   const [wabaAccountId, setWabaAccountId] = useState("");
   const [appSecret, setAppSecret] = useState("");
   // WAHA / Evolution credentials
+  const [sessionName,setSessionName]=useState("");
+  const [instanceName,setInstanceName]=useState("");
   const [apiKey, setApiKey] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
 
@@ -39,45 +56,56 @@ export const ChannelWizardDialog: FC<ChannelWizardDialogProps> = ({
   const [createdChannelName, setCreatedChannelName] = useState<string>("");
   const [wabaMode, setWabaMode] = useState<"manual" | "embedded">("manual");
   const [isEmbeddedLoading, setIsEmbeddedLoading] = useState(false);
+  const scope=useRef("");scope.current=`${workspaceId ?? ""}:${token ?? ""}:${isOpen}`;
+  const embeddedAttempt=useRef(0);
+  const embeddedCleanup=useRef<()=>void>(()=>{});
+  const cancelEmbedded=useCallback(()=>{embeddedAttempt.current++;embeddedCleanup.current();embeddedCleanup.current=()=>{};setIsEmbeddedLoading(false);},[]);
+  useEffect(()=>()=>{embeddedAttempt.current++;embeddedCleanup.current();},[]);
+  const contextGeneration=useRef(0),creationBusy=useRef(false),lookupBusy=useRef(false);
+  const credentialsRevision=useRef(0);
+  const testRequest=useRef(0);
+  const credentialsChanged=()=>{credentialsRevision.current++;setTestResult(null);setErrorMsg(null);};
 
   // Sync initialProvider when dialog opens
   useEffect(() => {
+    contextGeneration.current++;creationBusy.current=false;lookupBusy.current=false;
+    cancelEmbedded();
+    setIsSubmitting(false);setRegistrationUncertain(false);setWabaMode("manual");
     if (isOpen) {
+      credentialsRevision.current++;
+      testRequest.current++;setIsTesting(false);
+      setStep(1);setDisplayName("");setPhoneNumber("");setCreatedChannelId(null);setSetupMessage(null);setCreatedChannelName("");setTestResult(null);setErrorMsg(null);
       setProvider(initialProvider);
-      if (initialProvider === "waha") {
-        setBaseUrl("http://sos-sales-waha:3000");
-        setApiKey("mct_sos_waha_master_2026");
-      }
+      setBaseUrl("");setApiKey("");setSessionName("");setInstanceName("");setPhoneNumberId("");setAccessToken("");setWabaAccountId("");setAppSecret("");
+
     }
-  }, [isOpen, initialProvider]);
+    return()=>{contextGeneration.current++;testRequest.current++;};
+  }, [isOpen, initialProvider,workspaceId,token,cancelEmbedded]);
 
   const handleProviderChange = (newProvider: "meta_waba" | "waha" | "evolution") => {
+    credentialsChanged();
     setProvider(newProvider);
-    if (newProvider === "waha" && (!baseUrl || baseUrl === "http://seu-servidor:3000")) {
-      setBaseUrl("http://sos-sales-waha:3000");
-      setApiKey("mct_sos_waha_master_2026");
-    }
+    setBaseUrl("");setApiKey("");setSessionName("");setInstanceName("");setPhoneNumberId("");setAccessToken("");setWabaAccountId("");setAppSecret("");setTestResult(null);setErrorMsg(null);
   };
 
   const [isTesting, setIsTesting] = useState(false);
+  const [setupMessage,setSetupMessage]=useState<string|null>(null);
   const [testResult, setTestResult] = useState<{ success: boolean; message?: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [registrationUncertain,setRegistrationUncertain]=useState(false);
+  const fieldsRef=useRef<HTMLFieldSetElement>(null);
+  const hasUnsavedChanges=step!==3&&[displayName,phoneNumber,phoneNumberId,accessToken,wabaAccountId,appSecret,sessionName,instanceName,apiKey,baseUrl].some(value=>value.length>0);
+  const discardChanges=useDiscardChanges(hasUnsavedChanges,`${workspaceId??""}:${token??""}:${isOpen}:${initialProvider}`,()=>fieldsRef.current?.querySelector<HTMLInputElement>("input")??null,isOpen);
 
-function sanitizePhoneE164(raw: string): string | undefined {
-  const trimmed = raw.trim();
-  if (!trimmed) return undefined;
-  const digits = trimmed.replace(/\D/g, "");
-  if (!digits) return undefined;
-  if (digits.length === 10 || digits.length === 11) {
-    return `+55${digits}`;
-  }
-  return `+${digits}`;
-}
+
 
   const handleTestConnection = async () => {
-    if (!workspaceId || !token) return;
-    setIsTesting(true);
+    if (!isOpen || !workspaceId || !token || lookupBusy.current || creationBusy.current || isTesting || discardChanges.isPending) return;
+    const requestedScope=scope.current,revision=credentialsRevision.current,context=contextGeneration.current;
+    const isCurrent=()=>requestedScope===scope.current&&revision===credentialsRevision.current&&context===contextGeneration.current;
+    const request=++testRequest.current;
+    lookupBusy.current=true;setIsTesting(true);
     setTestResult(null);
 
     try {
@@ -92,27 +120,47 @@ function sanitizePhoneE164(raw: string): string | undefined {
             appSecret: appSecret.trim() || undefined,
             apiKey: apiKey.trim() || undefined,
             baseUrl: baseUrl.trim() || undefined,
+            session: provider === "waha" ? sessionName.trim() || undefined : undefined,
+            instanceName: provider === "evolution" ? instanceName.trim() || undefined : undefined,
           },
         },
         { token }
       );
-      setTestResult(res);
+      if(!isCurrent())return;
+      if(!res||typeof res.success!=='boolean'||[res.message,res.error,res.displayPhoneNumber].some(value=>value!=null&&typeof value!=='string'))throw new Error('O servidor não confirmou um resultado válido para o teste. Revise os dados e consulte novamente.');
+      setTestResult({
+        success: res.success,
+        message: res.success
+          ? res.message || "Consulta ao provedor concluída. Sessão, envio e recebimento ainda precisam de verificação."
+          : res.error || res.message || "O provedor não confirmou a consulta. Revise os dados e tente novamente.",
+      });
       if (res.success && res.displayPhoneNumber && !phoneNumber.trim()) {
         setPhoneNumber(res.displayPhoneNumber);
       }
     } catch (err: unknown) {
+      if(!isCurrent())return;
       setTestResult({
         success: false,
-        message: err instanceof Error ? err.message : "Falha ao testar conexão.",
+        message: userFacingError(err,"Falha ao testar conexão."),
       });
     } finally {
-      setIsTesting(false);
+      if(request===testRequest.current&&context===contextGeneration.current){lookupBusy.current=false;setIsTesting(false);}
     }
   };
 
+  const recordRegistrationFailure=(error:unknown)=>{
+    const rejected=error instanceof ApiError&&error.status>=400&&error.status<500&&error.status!==408;
+    if(rejected)setErrorMsg(userFacingError(error,"O servidor recusou o cadastro. Revise os dados antes de tentar novamente."));
+    else {setRegistrationUncertain(true);setErrorMsg(null);}
+  };
+
   const handleCreateChannel = async () => {
-    if (!workspaceId || !token || !displayName.trim()) return;
-    setIsSubmitting(true);
+    if (!isOpen || !workspaceId || !token || !displayName.trim() || creationBusy.current || isSubmitting || registrationUncertain || discardChanges.isPending) return;
+    if(provider === "evolution" && !instanceName.trim()){setErrorMsg("Informe o nome exato da instância Evolution fornecido pelo responsável técnico.");return;}
+    if(phoneNumber.trim()&&!sanitizeChannelPhoneE164(phoneNumber)){setErrorMsg("Informe um telefone válido: número brasileiro com DDD ou formato internacional com + e código do país.");return;}
+    const requestedScope=scope.current,revision=credentialsRevision.current,context=contextGeneration.current;
+    const isCurrent=()=>requestedScope===scope.current&&revision===credentialsRevision.current&&context===contextGeneration.current;
+    creationBusy.current=true;setIsSubmitting(true);
     setErrorMsg(null);
 
     try {
@@ -121,7 +169,7 @@ function sanitizePhoneE164(raw: string): string | undefined {
         {
           provider,
           displayName: displayName.trim(),
-          phoneNumberE164: sanitizePhoneE164(phoneNumber),
+          phoneNumberE164: sanitizeChannelPhoneE164(phoneNumber),
           credentials: {
             accessToken: accessToken.trim() || undefined,
             phoneNumberId: phoneNumberId.trim() || undefined,
@@ -129,162 +177,129 @@ function sanitizePhoneE164(raw: string): string | undefined {
             appSecret: appSecret.trim() || undefined,
             apiKey: apiKey.trim() || undefined,
             baseUrl: baseUrl.trim() || undefined,
+            session: provider === "waha" ? sessionName.trim() || undefined : undefined,
+            instanceName: provider === "evolution" ? instanceName.trim() || undefined : undefined,
           },
         },
         { token }
       );
-
+      if(!isCurrent())return;
+      if (typeof res?.channel?.id!=='string'||!res.channel.id.trim()||typeof res.channel.displayName!=='string'||res.channel.displayName!==displayName.trim()||res.channel.provider!==provider||res.channel.workspaceId!==workspaceId||typeof res.channel.isActive!=='boolean')throw new Error("O cadastro não confirmou o canal solicitado. Confira a lista antes de tentar novamente.");
       if (res?.channel?.id) {
         setCreatedChannelId(res.channel.id);
         setCreatedChannelName(res.channel.displayName);
       }
       setStep(3);
-      onChannelCreated();
+      try{await onChannelCreated();}catch{if(isCurrent())setSetupMessage("Cadastro salvo, mas a lista não pôde ser atualizada. Atualize os canais ao concluir.");}
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Falha ao registrar canal.");
+      if(isCurrent())recordRegistrationFailure(err);
     } finally {
-      setIsSubmitting(false);
+      if(isCurrent()){creationBusy.current=false;setIsSubmitting(false);}
     }
   };
 
   const handleLaunchFacebookLogin = () => {
-    setIsEmbeddedLoading(true);
-    setErrorMsg(null);
-
-    // Timeout guard so button never gets permanently stuck
-    const safetyTimer = window.setTimeout(() => {
-      setIsEmbeddedLoading(false);
-      setErrorMsg("O pop-up da Meta não concluiu ou foi bloqueado pelo navegador. Verifique se há um aviso de 'Pop-up bloqueado' na barra de endereços.");
-    }, 45000);
-
-    const messageListener = (event: MessageEvent) => {
-      if (event.origin !== "https://www.facebook.com" && event.origin !== "https://web.facebook.com") return;
-      try {
-        const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-        if (data.type === "WA_EMBEDDED_SIGNUP" && data.data) {
-          if (data.data.phone_number_id) setPhoneNumberId(data.data.phone_number_id);
-          if (data.data.waba_id) setWabaAccountId(data.data.waba_id);
-        }
-      } catch {}
+    if(!workspaceId||!token||!displayName.trim()||isEmbeddedLoading||isSubmitting||registrationUncertain)return;
+    cancelEmbedded();
+    const attempt=++embeddedAttempt.current,requestedScope=scope.current;
+    const valid=()=>attempt===embeddedAttempt.current&&requestedScope===scope.current;
+    let provisioning=false;
+    let ids={phone:"",waba:""};
+    setPhoneNumberId("");setWabaAccountId("");
+    let auth:{code?:string;accessToken?:string}|null=null;
+    let script:HTMLScriptElement|null=null;
+    setIsEmbeddedLoading(true);setErrorMsg(null);setSetupMessage(null);
+    const cleanup=()=>{
+      window.clearTimeout(timer);window.removeEventListener("message",messageListener);
+      if(script){script.onload=null;script.onerror=null;script.remove();}
     };
-    window.addEventListener("message", messageListener);
-
-    const executeLogin = () => {
-      try {
-        (window as any).FB.login(
-          (response: any) => {
-            window.clearTimeout(safetyTimer);
-            setIsEmbeddedLoading(false);
-            window.removeEventListener("message", messageListener);
-
-            void (async () => {
-              if (response?.authResponse?.code || response?.authResponse?.accessToken) {
-                setIsSubmitting(true);
-                try {
-                  const res = await apiClient.metaEmbeddedSignup(
-                    workspaceId!,
-                    {
-                      displayName: displayName.trim(),
-                      code: response.authResponse?.code,
-                      accessToken: response.authResponse?.accessToken,
-                      wabaAccountId: wabaAccountId.trim() || response.authResponse?.waba_id || "",
-                      phoneNumberId: phoneNumberId.trim() || response.authResponse?.phone_number_id || "",
-                    },
-                    { token }
-                  );
-
-                  if (res?.channel?.id) {
-                    setCreatedChannelId(res.channel.id);
-                    setCreatedChannelName(res.channel.displayName);
-                  }
-                  setStep(3);
-                  onChannelCreated();
-                } catch (err: unknown) {
-                  setErrorMsg(err instanceof Error ? err.message : "Falha ao provisionar canal via Embedded Signup");
-                } finally {
-                  setIsSubmitting(false);
-                }
-              } else {
-                setErrorMsg("Autenticação da Meta cancelada pelo usuário ou janela fechada.");
-              }
-            })();
-          },
-          {
-            scope: "whatsapp_business_management,whatsapp_business_messaging",
-            response_type: "code",
-            override_default_response_type: true,
-            extras: {
-              feature: "whatsapp_embedded_signup",
-              version: 2,
-            },
-          }
-        );
-      } catch (err) {
-        window.clearTimeout(safetyTimer);
-        setIsEmbeddedLoading(false);
-        window.removeEventListener("message", messageListener);
-        setErrorMsg("Erro ao abrir janela de login da Meta: " + (err instanceof Error ? err.message : String(err)));
-      }
+    embeddedCleanup.current=cleanup;
+    const fail=(message:string)=>{if(!valid()||provisioning)return;cleanup();embeddedAttempt.current++;setIsEmbeddedLoading(false);setErrorMsg(message);};
+    const maybeProvision=()=>{
+      if(!valid()||provisioning||!auth||!ids.phone||!ids.waba)return;
+      provisioning=true;cleanup();setIsEmbeddedLoading(false);setIsSubmitting(true);
+      void apiClient.metaEmbeddedSignup(workspaceId,{displayName:displayName.trim(),...auth,wabaAccountId:ids.waba,phoneNumberId:ids.phone},{token})
+        .then(async res=>{if(!valid())return;if(typeof res?.channel?.id!=="string"||!res.channel.id.trim()||res.channel.workspaceId!==workspaceId||res.channel.provider!=="meta_waba"||res.channel.displayName!==displayName.trim()||res.channel.isActive!==false||!res.setup||!["confirmed","failed","uncertain"].includes(res.setup.subscriptionStatus)||res.setup.requiresConnectionApproval!==true||typeof res.setup.message!=="string")throw new Error("O retorno não confirmou o cadastro Meta solicitado. Confira os canais antes de tentar novamente.");setCreatedChannelId(res.channel.id);setCreatedChannelName(res.channel.displayName);setSetupMessage(res.setup.message||"Cadastro salvo. Confira a assinatura de webhooks e confirme a conexão antes de usar a linha.");setStep(3);try{await onChannelCreated();}catch{if(valid())setSetupMessage("Cadastro salvo, mas a lista não pôde ser atualizada. Atualize os canais ao concluir.");}})
+        .catch(error=>{if(valid())recordRegistrationFailure(error);})
+        .finally(()=>{if(valid())setIsSubmitting(false);});
     };
-
-    if ((window as any).FB) {
-      executeLogin();
-    } else {
-      // Dynamic fallback
-      const script = document.createElement("script");
-      script.src = "https://connect.facebook.net/pt_BR/sdk.js";
-      script.async = true;
-      script.defer = true;
-      script.crossOrigin = "anonymous";
-      script.onload = () => {
-        try {
-          (window as any).FB.init({
-            appId: "2294262161340902",
-            autoLogAppEvents: true,
-            xfbml: true,
-            version: "v21.0",
-          });
-          executeLogin();
-        } catch {
-          window.clearTimeout(safetyTimer);
-          setIsEmbeddedLoading(false);
-          setErrorMsg("Falha ao inicializar o SDK da Meta. Verifique se extensões de adblock estão ativas.");
-        }
-      };
-      script.onerror = () => {
-        window.clearTimeout(safetyTimer);
-        setIsEmbeddedLoading(false);
-        setErrorMsg("Bloqueador de conteúdo detectado. Desative o adblock nesta página para carregar o login oficial da Meta.");
-      };
-      document.body.appendChild(script);
-    }
+    const messageListener=(event:MessageEvent)=>{
+      if(!valid()||provisioning||!["https://www.facebook.com","https://web.facebook.com"].includes(event.origin))return;
+      try{
+        const data=typeof event.data==="string"?JSON.parse(event.data):event.data;
+        if(!data||data.type!=="WA_EMBEDDED_SIGNUP")return;
+        if(data.event==="CANCEL"){fail("Conexão cancelada na Meta. Você pode tentar novamente.");return;}
+        if(data.event==="ERROR"){fail("A Meta não concluiu a conexão. Confira a conta e tente novamente.");return;}
+        if(!data.data||typeof data.data!=="object")return;
+        if(typeof data.data.phone_number_id==="string"&&/^\d+$/.test(data.data.phone_number_id)){ids.phone=data.data.phone_number_id;setPhoneNumberId(ids.phone);}
+        if(typeof data.data.waba_id==="string"&&/^\d+$/.test(data.data.waba_id)){ids.waba=data.data.waba_id;setWabaAccountId(ids.waba);}
+        maybeProvision();
+      }catch{ /* Malformed provider messages do not change this attempt. */ }
+    };
+    const timer=window.setTimeout(()=>fail(auth?"A autorização chegou sem os identificadores da linha. Confira a seleção na Meta e tente novamente.":"A Meta não concluiu o login. Confira se o navegador bloqueou a janela e tente novamente."),45000);
+    window.addEventListener("message",messageListener);
+    const executeLogin=()=>{
+      if(!valid())return;
+      try{
+        (window as any).FB.login((response:any)=>{
+          if(!valid()||provisioning)return;
+          if(!response?.authResponse?.code&&!response?.authResponse?.accessToken){fail("Autenticação da Meta cancelada ou janela fechada.");return;}
+          auth={code:response.authResponse.code,accessToken:response.authResponse.accessToken};
+          if(!ids.phone&&/^\d+$/.test(response.authResponse.phone_number_id||""))ids.phone=response.authResponse.phone_number_id;
+          if(!ids.waba&&/^\d+$/.test(response.authResponse.waba_id||""))ids.waba=response.authResponse.waba_id;
+          maybeProvision();
+        },{scope:"whatsapp_business_management,whatsapp_business_messaging",response_type:"code",override_default_response_type:true,extras:{feature:"whatsapp_embedded_signup",version:2}});
+      }catch{fail("Não foi possível abrir o login da Meta. Confira o bloqueio de janelas e tente novamente.");}
+    };
+    if((window as any).FB){executeLogin();return;}
+    script=document.createElement("script");script.src="https://connect.facebook.net/pt_BR/sdk.js";script.async=true;script.defer=true;script.crossOrigin="anonymous";
+    script.onload=()=>{if(!valid())return;try{(window as any).FB.init({appId:"2294262161340902",autoLogAppEvents:true,xfbml:true,version:"v21.0"});executeLogin();}catch{fail("Não foi possível inicializar o login da Meta. Tente novamente ou use a configuração manual.");}};
+    script.onerror=()=>fail("Não foi possível carregar o login da Meta. Confira sua conexão e as extensões do navegador.");
+    document.body.appendChild(script);
   };
 
   const handleClose = useCallback(() => {
+    if(isSubmitting)return;
+    cancelEmbedded();
+    credentialsRevision.current++;
+    testRequest.current++;lookupBusy.current=false;setIsTesting(false);
     setStep(1);
     setDisplayName("");
     setPhoneNumber("");
     setAccessToken("");
     setPhoneNumberId("");
-    setTestResult(null);
+    setApiKey("");setSessionName("");setBaseUrl("");setAppSecret("");setWabaAccountId("");setCreatedChannelId(null);setSetupMessage(null);setCreatedChannelName("");
+    setTestResult(null);setRegistrationUncertain(false);
     setErrorMsg(null);
     onClose();
-  }, [onClose]);
+  }, [onClose,isSubmitting,cancelEmbedded]);
+
+  const requestClose=()=>{
+    if(isSubmitting)return;
+    cancelEmbedded();
+    discardChanges.requestExit(handleClose);
+  };
 
   return (
     <Dialog
       isOpen={isOpen}
-      onClose={handleClose}
-      title={step === 3 ? "Canal Conectado com Sucesso!" : "Conectar Nova Linha WhatsApp"}
+      onClose={requestClose}
+      title={step === 3 ? "Canal cadastrado" : "Conectar Nova Linha WhatsApp"}
       description={
         step === 1
           ? "Escolha o tipo de integração e identifique a nova linha."
           : step === 2
           ? "Insira as credenciais de autenticação da instância."
-          : "Sua instância está configurada e pronta para receber mensagens no Cockpit."
+          : "Confira a conexão e as permissões antes de iniciar o atendimento."
       }
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "8px 0" }}>
+      {registrationUncertain&&<Alert variant="warning" title="Cadastro sem confirmação">
+        <p>O servidor pode ter salvo este canal. Não repita o cadastro antes de conferir a lista. Os campos permanecem nesta janela; encerrar o rascunho os descarta.</p>
+        <Button variant="secondary" onClick={()=>{handleClose();onReviewChannels?.();}}>Encerrar rascunho e conferir canais</Button>
+      </Alert>}
+      {isEmbeddedLoading&&<Button style={mobileActionStyle} variant="secondary" onClick={()=>{cancelEmbedded();setErrorMsg(null);}}>Cancelar login da Meta</Button>}
+      {discardChanges.isPending&&<UnsavedChangesNotice onKeep={discardChanges.keepEditing} onDiscard={discardChanges.discard} disabled={isSubmitting}/>}
+      <fieldset ref={fieldsRef} disabled={isSubmitting||isEmbeddedLoading||discardChanges.isPending} style={{ border:0,margin:0,minWidth:0,display: "flex", flexDirection: "column", gap: "16px", padding: "8px 0" }}>
         {errorMsg && (
           <Alert variant="danger" title="Erro no Provisionamento">
             {errorMsg}
@@ -297,7 +312,8 @@ function sanitizePhoneE164(raw: string): string | undefined {
               <label style={{ display: "block", fontSize: "var(--font-size-xs, 0.75rem)", fontWeight: 500, marginBottom: "6px" }}>
                 Provedor WhatsApp
               </label>
-              <SegmentedControl
+              {isMobile?<select aria-label="Provedor WhatsApp" value={provider} onChange={event=>handleProviderChange(event.target.value as typeof provider)} style={{width:"100%",minHeight:44}}><option value="meta_waba">Meta Cloud API</option><option value="waha">WAHA (QR Code)</option><option value="evolution">Evolution API</option></select>:(
+              <SegmentedControl aria-label="Provedor WhatsApp"
                 value={provider}
                 onChange={(val) => handleProviderChange(val as any)}
                 options={[
@@ -306,6 +322,7 @@ function sanitizePhoneE164(raw: string): string | undefined {
                   { value: "evolution", label: "Evolution API" },
                 ]}
               />
+              )}
             </div>
 
             <Input
@@ -324,15 +341,16 @@ function sanitizePhoneE164(raw: string): string | undefined {
             />
             {provider === "meta_waba" && (
               <span style={{ fontSize: "11px", color: "var(--text-tertiary)", marginTop: "-10px", display: "block" }}>
-                💡 Para Meta Cloud API, o número é detectado e verificado automaticamente na Meta se deixado em branco.
+                💡 Use Testar Conexão na próxima etapa para consultar o número na Meta. Salvar o cadastro não consulta nem ativa a linha automaticamente.
               </span>
             )}
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "8px" }}>
-              <Button size="sm" variant="secondary" onClick={handleClose}>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "8px",flexDirection:isMobile?"column":"row" }}>
+              <Button style={mobileActionStyle} size="sm" variant="secondary" onClick={requestClose}>
                 Cancelar
               </Button>
               <Button
+                style={mobileActionStyle}
                 size="sm"
                 variant="primary"
                 disabled={!displayName.trim()}
@@ -349,14 +367,16 @@ function sanitizePhoneE164(raw: string): string | undefined {
           <>
             {provider === "meta_waba" ? (
               <>
-                <SegmentedControl
+                {isMobile?<label style={{display:"grid",gap:6,fontSize:"var(--font-size-xs)"}}>Método de conexão Meta<select value={wabaMode} onChange={event=>setWabaMode(event.target.value as typeof wabaMode)} style={{width:"100%",minHeight:44}}><option value="manual">Configuração manual</option><option value="embedded">Login com Facebook</option></select></label>:(
+                <SegmentedControl aria-label="Método de conexão Meta"
                   value={wabaMode}
                   onChange={(val) => setWabaMode(val as "manual" | "embedded")}
                   options={[
                     { value: "manual", label: "🔑 Inserir Token & IDs (Manual)" },
-                    { value: "embedded", label: "🔵 Login com Facebook (1-Clique Meta)" },
+                    { value: "embedded", label: "🔵 Login com Facebook" },
                   ]}
                 />
+                )}
 
                 {wabaMode === "embedded" ? (
                   <div
@@ -390,10 +410,10 @@ function sanitizePhoneE164(raw: string): string | undefined {
                       </div>
                       <div>
                         <h4 style={{ margin: 0, fontSize: "14px", fontWeight: 600, color: "var(--text-primary)" }}>
-                          WhatsApp Onboarding com Meta (1-Clique)
+                          Conectar WhatsApp pela Meta
                         </h4>
                         <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--text-secondary)", lineHeight: 1.4 }}>
-                          Ideal para novos clientes: abre o pop-up oficial do Facebook Login para escolher a empresa, vincular a conta do WhatsApp Business e validar o número por SMS/Ligação sem precisar criar System User nem compartilhar ativos no Gerenciador de Negócios.
+                          Uma janela oficial da Meta será aberta para você escolher a empresa e a linha do WhatsApp. Confira a conta e as permissões antes de autorizar. Ao concluir, confira o resultado da assinatura de webhooks. O cadastro permanece inativo até confirmar a conexão.
                         </p>
                       </div>
                     </div>
@@ -411,8 +431,8 @@ function sanitizePhoneE164(raw: string): string | undefined {
                         gap: "4px",
                       }}
                     >
-                      <div><strong>Meta App Vinculado:</strong> CRM TX APP (ID: <code>2294262161340902</code>)</div>
-                      <div><strong>Permissões Solicitadas:</strong> <code>whatsapp_business_management</code>, <code>whatsapp_business_messaging</code></div>
+                      <div>O aplicativo poderá gerenciar a conta do WhatsApp Business e enviar mensagens pela linha autorizada.</div>
+                      <details style={{overflowWrap:"anywhere"}}><summary>Detalhes das permissões</summary><code>whatsapp_business_management</code>, <code>whatsapp_business_messaging</code></details>
                     </div>
 
                     <div style={{ display: "flex", gap: "8px" }}>
@@ -429,24 +449,14 @@ function sanitizePhoneE164(raw: string): string | undefined {
                           fontWeight: 600,
                           color: "#fff",
                           flex: 1,
+                          ...mobileActionStyle,
                         }}
                         onClick={handleLaunchFacebookLogin}
-                        disabled={isEmbeddedLoading || isSubmitting}
+                        disabled={isEmbeddedLoading || isSubmitting || registrationUncertain}
                       >
-                        {isEmbeddedLoading ? "Iniciando Login Meta..." : "Conectar com Facebook (Embedded Signup)"}
+                        {isEmbeddedLoading ? "Iniciando Login Meta..." : "Conectar com Facebook"}
                       </Button>
-                      {isEmbeddedLoading && (
-                        <Button
-                          size="md"
-                          variant="secondary"
-                          onClick={() => {
-                            setIsEmbeddedLoading(false);
-                            setErrorMsg(null);
-                          }}
-                        >
-                          Cancelar
-                        </Button>
-                      )}
+
                     </div>
                   </div>
                 ) : (
@@ -468,29 +478,31 @@ function sanitizePhoneE164(raw: string): string | undefined {
                       label="Token de Acesso Permanente (System User Token)"
                       placeholder="EAAB..."
                       type="password"
+                  autoComplete="new-password"
                       value={accessToken}
-                      onChange={(e) => setAccessToken(e.target.value)}
+                      onChange={(e) => {credentialsChanged();setAccessToken(e.target.value);}}
                       required
                     />
                     <Input
                       label="Phone Number ID"
                       placeholder="Ex: 1049283749283"
                       value={phoneNumberId}
-                      onChange={(e) => setPhoneNumberId(e.target.value)}
+                      onChange={(e) => {credentialsChanged();setPhoneNumberId(e.target.value);}}
                       required
                     />
                     <Input
-                      label="WABA Account ID (WhatsApp Business Account)"
+                      label="WABA Account ID (necessário para confirmar a conexão)"
                       placeholder="Ex: 1982736452819"
                       value={wabaAccountId}
-                      onChange={(e) => setWabaAccountId(e.target.value)}
+                      onChange={(e) => {credentialsChanged();setWabaAccountId(e.target.value);}}
                     />
                     <Input
                       label="App Secret (Meta App)"
                       placeholder="Opcional..."
                       type="password"
+                  autoComplete="new-password"
                       value={appSecret}
-                      onChange={(e) => setAppSecret(e.target.value)}
+                      onChange={(e) => {credentialsChanged();setAppSecret(e.target.value);}}
                     />
                   </>
                 )}
@@ -508,38 +520,57 @@ function sanitizePhoneE164(raw: string): string | undefined {
                     lineHeight: 1.5,
                   }}
                 >
-                  <strong>💡 Servidor WAHA Nativo na VPS:</strong> A URL interna e chave de autenticação já vêm configuradas para a sua instância local. Ao salvar o canal, você poderá escanear o <strong>QR Code</strong> instantaneamente pelo WhatsApp do seu celular (<em>Aparelhos Conectados</em>).
+                  <strong>Conexão WAHA:</strong> Informe o servidor e as credenciais fornecidos pelo responsável técnico. Salvar o cadastro não conecta o aparelho. Depois, consulte ou crie a sessão, leia o QR Code e confirme o número.
                 </div>
                 <Input
                   label="URL Base da Instância WAHA (Servidor Interno)"
-                  placeholder="http://sos-sales-waha:3000"
+                  placeholder="https://whatsapp.suaempresa.com"
+                  type="url"
+                  name="waha-provider-base-url"
+                  autoComplete="off"
                   value={baseUrl}
-                  onChange={(e) => setBaseUrl(e.target.value)}
+                  onChange={(e) => {credentialsChanged();setBaseUrl(e.target.value);}}
                   required
                 />
                 <Input
                   label="API Key / Chave de Acesso WAHA"
-                  placeholder="mct_sos_waha_master_2026"
+                  placeholder="Chave da sua instância"
                   type="password"
+                  autoComplete="new-password"
                   value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
+                  onChange={(e) => {credentialsChanged();setApiKey(e.target.value);}}
                 />
+                {provider === "waha" && <Input label="Nome de uma sessão existente (opcional)" placeholder="Deixe vazio para criar uma sessão exclusiva" value={sessionName} onChange={event=>{credentialsChanged();setSessionName(event.target.value);}} />}
               </>
             ) : (
               <>
+                <Alert variant="info">Informe o servidor e o nome exato da instância fornecidos pelo responsável técnico. Consultar o servidor não confirma qual linha está conectada nem autoriza envio.</Alert>
                 <Input
-                  label="URL Base da Instância Evolution"
+                  label="Nome da instância Evolution"
+                  placeholder="Nome exato no servidor"
+                  name="evolution-instance-name"
+                  autoComplete="off"
+                  value={instanceName}
+                  onChange={event=>{credentialsChanged();setInstanceName(event.target.value);}}
+                  required
+                />
+                <Input
+                  label="URL do servidor Evolution"
                   placeholder="http://seu-servidor:8080"
+                  type="url"
+                  name="evolution-provider-base-url"
+                  autoComplete="off"
                   value={baseUrl}
-                  onChange={(e) => setBaseUrl(e.target.value)}
+                  onChange={(e) => {credentialsChanged();setBaseUrl(e.target.value);}}
                   required
                 />
                 <Input
                   label="API Key / Chave Global Evolution"
                   placeholder="Sua chave de acesso..."
                   type="password"
+                  autoComplete="new-password"
                   value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
+                  onChange={(e) => {credentialsChanged();setApiKey(e.target.value);}}
                 />
               </>
             )}
@@ -555,21 +586,21 @@ function sanitizePhoneE164(raw: string): string | undefined {
                   border: testResult.success ? "1px solid var(--color-action-border)" : "1px solid var(--color-danger-border)",
                 }}
               >
-                {testResult.success ? "Conexão testada com sucesso!" : testResult.message || "Falha na conexão com o provedor."}
+                {testResult.message || "O provedor não confirmou a consulta."}
               </div>
             )}
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px" }}>
-              <Button size="sm" variant="ghost" prefixIcon={<ArrowLeft size={14} />} onClick={() => setStep(1)}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems:isMobile?"stretch":"center", marginTop: "8px",gap:8,flexDirection:isMobile?"column":"row" }}>
+              <Button style={mobileActionStyle} size="sm" variant="ghost" prefixIcon={<ArrowLeft size={14} />} onClick={() => setStep(1)}>
                 Voltar
               </Button>
-              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <div style={{ display: "flex", gap: "8px", alignItems:isMobile?"stretch":"center",flexDirection:isMobile?"column":"row" }}>
                 {!(provider === "meta_waba" && wabaMode === "embedded") ? (
                   <>
-                    <Button size="sm" variant="secondary" onClick={handleTestConnection} disabled={isTesting}>
+                    <Button style={mobileActionStyle} size="sm" variant="secondary" onClick={handleTestConnection} disabled={isTesting}>
                       {isTesting ? "Testando..." : "Testar Conexão"}
                     </Button>
-                    <Button size="sm" variant="primary" onClick={handleCreateChannel} disabled={isSubmitting}>
+                    <Button style={mobileActionStyle} size="sm" variant="primary" onClick={handleCreateChannel} disabled={isSubmitting||registrationUncertain}>
                       {isSubmitting ? "Salvando..." : "Salvar Canal"}
                     </Button>
                   </>
@@ -600,16 +631,17 @@ function sanitizePhoneE164(raw: string): string | undefined {
               <Check size={24} />
             </div>
             <div style={{ fontSize: "var(--font-size-base)", fontWeight: 600 }}>
-              Instância conectada com sucesso!
+              Cadastro do canal concluído
             </div>
             <p style={{ fontSize: "var(--font-size-sm)", color: "var(--text-secondary)", textAlign: "center", margin: 0 }}>
-              {provider === "waha"
-                ? "A sessão WAHA foi criada no servidor. Agora você precisa ler o QR Code com o aplicativo WhatsApp no seu celular."
-                : "O canal agora está sincronizado e ativo para atendimento no Cockpit."}
+              {setupMessage || (provider === "waha"
+                ? "Consulte a sessão, inicie-a se necessário e leia o QR Code quando disponível. Depois confira o número e confirme a conexão. Cadastrar não ativa o atendimento."
+                : "Confira o estado da conexão na lista de canais. O cadastro não confirma a entrega de mensagens nem libera a IA automaticamente.")}
             </p>
-            <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
+            <div style={{ display: "flex", gap: "10px", marginTop: "8px",width:isMobile?"100%":undefined,flexDirection:isMobile?"column":"row" }}>
               {provider === "waha" && onOpenQr && createdChannelId && (
                 <Button
+                  style={mobileActionStyle}
                   size="sm"
                   variant="primary"
                   prefixIcon={<QrCode size={16} />}
@@ -620,16 +652,16 @@ function sanitizePhoneE164(raw: string): string | undefined {
                     onOpenQr(chId, chName);
                   }}
                 >
-                  Escanear QR Code Agora
+                  Consultar conexão
                 </Button>
               )}
-              <Button size="sm" variant={provider === "waha" ? "secondary" : "primary"} onClick={handleClose}>
+              <Button style={mobileActionStyle} size="sm" variant={provider === "waha" ? "secondary" : "primary"} onClick={handleClose}>
                 {provider === "waha" ? "Fazer Isso Mais Tarde" : "Concluir"}
               </Button>
             </div>
           </div>
         )}
-      </div>
+      </fieldset>
     </Dialog>
   );
 };

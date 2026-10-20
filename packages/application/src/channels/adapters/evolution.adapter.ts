@@ -79,19 +79,11 @@ export function validateEvolutionBaseUrl(urlStr: string, allowLocalTest = false)
 export class EvolutionAdapter implements IChannelAdapter {
   readonly provider = "evolution" as const;
 
-  private readonly baseUrl?: string;
-  private readonly defaultApiKey?: string;
-  private readonly defaultInstance?: string;
   private readonly fetchFn: typeof fetch;
   private readonly timeoutMs: number;
   private readonly allowLocalTest: boolean;
 
   constructor(options: EvolutionAdapterOptions = {}) {
-    this.baseUrl = options.baseUrl
-      ? validateEvolutionBaseUrl(options.baseUrl, options.allowLocalTest ?? process.env.NODE_ENV === "test")
-      : undefined;
-    this.defaultApiKey = options.defaultApiKey || process.env.EVOLUTION_API_KEY || "mothership_master_2026";
-    this.defaultInstance = options.defaultInstance || process.env.EVOLUTION_DEFAULT_INSTANCE || "mct-soberana";
     this.fetchFn = options.fetchFn ?? fetch;
     this.timeoutMs = options.timeoutMs ?? 15_000;
     this.allowLocalTest = options.allowLocalTest ?? (process.env.NODE_ENV === "test" || process.env.ALLOW_LOCAL_TEST_SERVICES === "true");
@@ -101,25 +93,25 @@ export class EvolutionAdapter implements IChannelAdapter {
     params: OutboundSendParams,
     secretResolver: ISigningSecretResolver
   ): Promise<ChannelSendResult> {
-    // 1. Resolve credentials from database or environment
-    let apiKey = this.defaultApiKey;
-    let targetBaseUrl = this.baseUrl || process.env.EVOLUTION_BASE_URL || "http://evolution:8080";
-    let instance = this.defaultInstance || "default";
-
-    if ("resolveChannelSecret" in secretResolver && typeof (secretResolver as any).resolveChannelSecret === "function") {
-      try {
-        const resolved = await (secretResolver as any).resolveChannelSecret(
-          params.channelInstanceId,
-          params.workspaceId
-        );
-        if (resolved?.apiKey) apiKey = resolved.apiKey;
-        if (resolved?.baseUrl) targetBaseUrl = validateEvolutionBaseUrl(resolved.baseUrl, this.allowLocalTest);
-        if (resolved?.instance) instance = resolved.instance;
-      } catch {
-        // Fallback to configured defaults
-      }
+    if (!secretResolver.useCredentials) {
+      return {success:false,category:"permanent",errorCode:"CREDENTIALS_NOT_FOUND",errorMessage:"Evolution requires credentials scoped to this channel and workspace."};
     }
+    try {
+      const result = await secretResolver.useCredentials(params.channelInstanceId, params.workspaceId, async credentials => {
+        const apiKey = typeof credentials.api_key === "string" ? credentials.api_key.trim() : "";
+        const baseUrl = typeof credentials.base_url === "string" ? credentials.base_url.trim() : "";
+        const instance = typeof credentials.instance_name === "string" ? credentials.instance_name.trim() : "";
+        if (!apiKey || !baseUrl || !instance) return {success:false,category:"permanent",errorCode:"CREDENTIALS_NOT_FOUND",errorMessage:"Evolution requires api_key, base_url and instance_name for this channel."} as ChannelSendResult;
+        return this.sendWithCredentials(params,apiKey,baseUrl,instance);
+      });
+      return result ?? {success:false,category:"permanent",errorCode:"CREDENTIALS_NOT_FOUND",errorMessage:"Evolution channel credentials were not found."};
+    } catch (error) {
+      if(params.signal?.aborted)throw error;
+      return {success:false,category:"permanent",errorCode:"CREDENTIALS_NOT_FOUND",errorMessage:"Evolution channel credentials could not be resolved."};
+    }
+  }
 
+  private async sendWithCredentials(params:OutboundSendParams,apiKey:string,targetBaseUrl:string,instance:string):Promise<ChannelSendResult> {
     if (!apiKey) {
       return {
         success: false,
@@ -128,6 +120,9 @@ export class EvolutionAdapter implements IChannelAdapter {
         errorMessage: "Evolution API key is strictly required for outbound dispatch.",
       };
     }
+
+    try { targetBaseUrl=validateEvolutionBaseUrl(targetBaseUrl,this.allowLocalTest); }
+    catch { return {success:false,category:"permanent",errorCode:"INVALID_BASE_URL",errorMessage:"Evolution channel URL did not pass validation."}; }
 
     const cleanDigits = params.recipientE164.replace(/\D/g, "");
 
@@ -148,7 +143,7 @@ export class EvolutionAdapter implements IChannelAdapter {
       }
 
       const mediaType = detectMediaType(params.mediaUrl);
-      endpoint = `${targetBaseUrl}/message/sendMedia/${instance}`;
+      endpoint = `${targetBaseUrl}/message/sendMedia/${encodeURIComponent(instance)}`;
       payload = {
         number: cleanDigits,
         mediatype: mediaType,
@@ -156,7 +151,7 @@ export class EvolutionAdapter implements IChannelAdapter {
         caption: params.body || undefined,
       };
     } else {
-      endpoint = `${targetBaseUrl}/message/sendText/${instance}`;
+      endpoint = `${targetBaseUrl}/message/sendText/${encodeURIComponent(instance)}`;
       payload = {
         number: cleanDigits,
         text: params.body,
@@ -181,15 +176,15 @@ export class EvolutionAdapter implements IChannelAdapter {
 
       if (response.ok) {
         const resBody = (await response.json()) as Record<string, any>;
-        const externalId =
-          resBody?.key?.id ||
-          resBody?.id ||
-          resBody?.messageId ||
-          `evo-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+        const candidates = [resBody?.key?.id,resBody?.id,resBody?.messageId];
+        const externalId = candidates.find(value=>typeof value === "string" && value.trim().length>0);
+        if (!externalId) {
+          return {success:false,category:"ambiguous",errorCode:"PROVIDER_MESSAGE_ID_MISSING",errorMessage:"Evolution responded without a valid message identifier. Check the provider before repeating the send."};
+        }
 
         return {
           success: true,
-          externalMessageId: String(externalId),
+          externalMessageId: externalId.trim(),
           sentAt: new Date(),
         };
       }

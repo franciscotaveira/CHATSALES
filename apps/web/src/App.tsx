@@ -5,21 +5,26 @@
  * Truth in Data: Zero fictitious fallbacks, laboratory controls quarantined to DEV.
  */
 
-import { useState, useEffect, useCallback, useMemo, type FC } from "react";
-import { AppShell, CommandPalette, type CommandItem } from "@sos-sales/ui";
+import { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense, type FC } from "react";
+import { AppShell, CommandPalette, EmptyState, LoadingState, Button, type CommandItem } from "@sos-sales/ui";
+import {pushAppHistory,installAppHistory} from "./utils/app-history";
+import {requestNavigation,collectNavigationReviews} from "./utils/request-navigation";
+import {userFacingError} from "./utils/user-facing-error";
+import {canAccessPage} from "./utils/navigation-access";
+import {canUseCommand,canCreateCompany} from "./utils/command-access";
 import { useSession } from "./hooks/useSession";
 import { useConnectivity } from "./hooks/useConnectivity";
 import { apiClient } from "./services/api-client";
 import { DevLabToolbar } from "./components/DevLabToolbar";
-import { CockpitPage } from "./pages/CockpitPage";
-import { ContactsPage } from "./pages/ContactsPage";
-import { CampaignsPage } from "./pages/CampaignsPage";
-import { TemplatesPage } from "./pages/TemplatesPage";
-import { ProductsPage } from "./pages/ProductsPage";
-import { SettingsPage } from "./pages/SettingsPage";
-import { CatalogPage } from "./pages/CatalogPage";
-import { OpportunitiesPage } from "./pages/opportunities/OpportunitiesPage";
-import { PublicLegalPage } from "./pages/PublicLegalPage";
+const CockpitPage=lazy(()=>import("./pages/CockpitPage").then(module=>({default:module.CockpitPage})));
+const ContactsPage=lazy(()=>import("./pages/ContactsPage").then(module=>({default:module.ContactsPage})));
+const CampaignsPage=lazy(()=>import("./pages/CampaignsPage").then(module=>({default:module.CampaignsPage})));
+const TemplatesPage=lazy(()=>import("./pages/TemplatesPage").then(module=>({default:module.TemplatesPage})));
+const ProductsPage=lazy(()=>import("./pages/ProductsPage").then(module=>({default:module.ProductsPage})));
+const SettingsPage=lazy(()=>import("./pages/SettingsPage").then(module=>({default:module.SettingsPage})));
+const CatalogPage=lazy(()=>import("./pages/CatalogPage").then(module=>({default:module.CatalogPage})));
+const OpportunitiesPage=lazy(()=>import("./pages/opportunities/OpportunitiesPage").then(module=>({default:module.OpportunitiesPage})));
+const PublicLegalPage=lazy(()=>import("./pages/PublicLegalPage").then(module=>({default:module.PublicLegalPage})));
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { CreateWorkspaceModal } from "./components/CreateWorkspaceModal";
 import {
@@ -36,7 +41,7 @@ import {
   PlusCircle,
   Smartphone,
 } from "lucide-react";
-import { LoginPage } from "./pages/LoginPage";
+const LoginPage=lazy(()=>import("./pages/LoginPage").then(module=>({default:module.LoginPage})));
 
 import { extractHashAccessToken } from "./services/supabase-auth";
 
@@ -151,11 +156,19 @@ export const App: FC = () => {
   });
   const [isOfflineSimulated, setIsOfflineSimulated] = useState<boolean>(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState<boolean>(false);
+  const [broadcastIntentScope,setBroadcastIntentScope]=useState<string|null>(null);
+  const [productIntentScope,setProductIntentScope]=useState<string|null>(null);
+  const [broadcastRequest,setBroadcastRequest]=useState(0);
+  const [productRequest,setProductRequest]=useState(0);
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState<boolean>(false);
+  const [editorReset,setEditorReset]=useState(0);
+  const creationTransition=useRef<symbol|null>(null);
+  const creationActor=useRef<{token:string;userId:string}|null>(null);
 
   // Global ⌘K / Ctrl+K keyboard shortcut listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if(e.isComposing||e.repeat||e.defaultPrevented)return;
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setIsCommandPaletteOpen((prev) => !prev);
@@ -165,13 +178,14 @@ export const App: FC = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const handleNavigate = useCallback((id: string) => {
-    setActiveNavId(id);
-    setActiveView("cockpit");
+  const handleNavigate = useCallback((id: string, onEntered?:()=>void) => {
     const targetPath = id === "cockpit" ? "/" : `/${id}`;
-    if (typeof window !== "undefined" && window.location.pathname !== targetPath) {
-      window.history.pushState({}, "", targetPath);
-    }
+    const navigate=()=>{
+      const entered=()=>{setActiveNavId(id);setActiveView("cockpit");onEntered?.();};
+      if(window.location.pathname!==targetPath)pushAppHistory(targetPath,window,entered);
+      else entered();
+    };
+    if(window.location.pathname===targetPath&&!onEntered)navigate();else requestNavigation(navigate);
   }, []);
 
   // Synchronize URL and hash changes with active views
@@ -185,12 +199,7 @@ export const App: FC = () => {
         setActiveView("cockpit");
       }
     };
-    window.addEventListener("popstate", handleLocationChange);
-    window.addEventListener("hashchange", handleLocationChange);
-    return () => {
-      window.removeEventListener("popstate", handleLocationChange);
-      window.removeEventListener("hashchange", handleLocationChange);
-    };
+    return installAppHistory(handleLocationChange);
   }, [isLab]);
 
   // Real-time Fastify /ready health polling
@@ -198,8 +207,19 @@ export const App: FC = () => {
 
   // Tenant & Session Hook with atomic switching, session generation & AbortController
   const session = useSession(token);
+  const companyCreationAllowed=!session.isLoadingMe&&!session.error&&canCreateCompany(session.workspaces||[],session.user?.activeRole);
+  const commandRole=session.isLoadingMe||session.isLoadingWorkspace||session.error?undefined:session.activeWorkspace?.role;
+  const commandScope=useRef("");
+  commandScope.current=`${session.activeWorkspace?.id??""}:${commandRole??""}:${token??""}:${companyCreationAllowed}`;
+  const previousCommandScope=useRef(commandScope.current),commandEpoch=useRef(0);
+  if(previousCommandScope.current!==commandScope.current){previousCommandScope.current=commandScope.current;commandEpoch.current++;}
+  const commandAuthority=useRef({role:commandRole,canCreate:companyCreationAllowed});
+  commandAuthority.current={role:commandRole,canCreate:companyCreationAllowed};
+  useEffect(()=>{setIsCommandPaletteOpen(false);setBroadcastRequest(0);setProductRequest(0);setBroadcastIntentScope(null);setProductIntentScope(null);},[session.activeWorkspace?.id,session.activeWorkspace?.role,token,companyCreationAllowed]);
+
 
   const handleTokenChange = useCallback((newToken: string | null) => {
+    creationActor.current=null;creationTransition.current=null;setIsCreateWorkspaceOpen(false);
     setToken(newToken);
     if (typeof window !== "undefined") {
       if (newToken) {
@@ -218,7 +238,79 @@ export const App: FC = () => {
     }
   }, [isLab]);
 
+  const latestSession=useRef(session);latestSession.current=session;
+  const workspaceSwitch=useRef<{id:string;key:symbol}|null>(null);
+  const workspaceSwitchLive=useRef(true);
+  const [workspaceSwitchError,setWorkspaceSwitchError]=useState<{scope:string;message:string}|null>(null);
+  useEffect(()=>{workspaceSwitchLive.current=true;return()=>{workspaceSwitchLive.current=false;};},[]);
+  useEffect(()=>{workspaceSwitch.current=null;setWorkspaceSwitchError(null);},[token]);
+  const handleWorkspaceSelect=useCallback((id:string)=>{
+    const current=latestSession.current;
+    if(current.isLoadingMe||!current.workspaces?.some(workspace=>workspace.id===id)||workspaceSwitch.current?.id===id)return;
+    if(current.activeWorkspace?.id===id&&!workspaceSwitch.current)return;
+    const observedScope=commandScope.current,observedEpoch=commandEpoch.current;
+    requestNavigation(()=>{
+      const latest=latestSession.current;
+      if(!workspaceSwitchLive.current||commandScope.current!==observedScope||commandEpoch.current!==observedEpoch||latest.isLoadingMe||!latest.workspaces?.some(workspace=>workspace.id===id)||workspaceSwitch.current?.id===id)return;
+      creationActor.current=null;creationTransition.current=null;setIsCreateWorkspaceOpen(false);
+      const request={id,key:Symbol()};workspaceSwitch.current=request;setWorkspaceSwitchError(null);
+      const origin=latest.activeWorkspace?.id,sessionToken=latest.token;
+      void (async()=>{
+        try{await latest.selectWorkspace(id);}
+        catch(error){const now=latestSession.current;if(workspaceSwitchLive.current&&workspaceSwitch.current===request&&now.token===sessionToken&&[origin,id].includes(now.activeWorkspace?.id))setWorkspaceSwitchError({scope:commandScope.current,message:userFacingError(error,"Não foi possível trocar de empresa. Confira a empresa selecionada antes de tentar novamente.")});}
+        finally{if(workspaceSwitch.current===request)workspaceSwitch.current=null;}
+      })();
+    });
+  },[]);
+
+  const voluntaryLogout=useRef(false);
+  useEffect(()=>{voluntaryLogout.current=false;},[token]);
+  const handleRequestLogout=useCallback(()=>{
+    if(voluntaryLogout.current)return;
+    const observedScope=commandScope.current,observedEpoch=commandEpoch.current;
+    requestNavigation(()=>{
+      if(!workspaceSwitchLive.current||voluntaryLogout.current||commandScope.current!==observedScope||commandEpoch.current!==observedEpoch)return;
+      voluntaryLogout.current=true;
+      latestSession.current.logout();handleTokenChange(null);
+    });
+  },[handleTokenChange]);
+
+  const closeCreation=()=>{creationActor.current=null;setIsCreateWorkspaceOpen(false);};
+  useEffect(()=>{creationActor.current=null;setIsCreateWorkspaceOpen(false);},[token,session.user?.id,activeNavId]);
+  useEffect(()=>{if(!creationTransition.current){creationActor.current=null;setIsCreateWorkspaceOpen(false);}},[session.activeWorkspace?.id]);
+  useEffect(()=>{
+    if(session.error?.type==="auth"||(!session.isLoadingMe&&!session.isLoadingWorkspace&&!session.error&&!canCreateCompany(session.workspaces||[],session.user?.activeRole))){creationActor.current=null;setIsCreateWorkspaceOpen(false);}
+  },[session.isLoadingMe,session.isLoadingWorkspace,session.error,session.workspaces,session.user?.activeRole]);
+  const handleRequestCreateWorkspace=useCallback(()=>{
+    if(!commandAuthority.current.canCreate)return;
+    const observedScope=commandScope.current,observedEpoch=commandEpoch.current,reviews=collectNavigationReviews();
+    requestNavigation(()=>{
+      const current=latestSession.current;
+      if(!workspaceSwitchLive.current||commandScope.current!==observedScope||commandEpoch.current!==observedEpoch||!commandAuthority.current.canCreate||!current.token||!current.user?.id)return;
+      creationActor.current={token:current.token,userId:current.user?.id};
+      if(reviews.length)setEditorReset(value=>value+1);
+      setIsCreateWorkspaceOpen(true);
+    },reviews);
+  },[]);
+  const enterCreatedWorkspace=async(id:string)=>{
+    const actor=creationActor.current;
+    const valid=()=>workspaceSwitchLive.current&&creationActor.current===actor&&actor?.token===latestSession.current.token&&actor?.userId===latestSession.current.user?.id;
+    if(!actor||!valid())throw new Error("Sua sessão mudou. Confira a empresa criada antes de entrar.");
+    const request=Symbol();creationTransition.current=request;
+    try{
+      const current=await apiClient.getMe({token:actor.token});
+      if(!valid())return;
+      if(current.user.id!==actor.userId)throw new Error("Sua identidade não foi confirmada. Atualize a sessão antes de entrar na empresa criada.");
+      if(!current.workspaces.some(workspace=>workspace.id===id))throw new Error("A empresa já foi criada, mas seu acesso a ela não foi confirmado. Confira os acessos ou entre com a conta do proprietário.");
+      await latestSession.current.refreshSession();
+      if(!valid())return;
+      await latestSession.current.selectWorkspace(id,{throwOnError:true});
+    }finally{if(creationTransition.current===request)creationTransition.current=null;}
+  };
+
+  const normalApiBase=useRef(apiClient.getBaseUrl());
   const handleSimulateOffline = useCallback(() => {
+    normalApiBase.current=apiClient.getBaseUrl();
     apiClient.setBaseUrl("http://localhost:9999"); // Intentionally invalid port
     setIsOfflineSimulated(true);
     session.refreshWorkspace();
@@ -226,7 +318,7 @@ export const App: FC = () => {
   }, [session, connectivity]);
 
   const handleResetOffline = useCallback(() => {
-    apiClient.setBaseUrl("http://localhost:4400"); // Normal API port
+    apiClient.setBaseUrl(normalApiBase.current);
     setIsOfflineSimulated(false);
     session.refreshWorkspace();
     connectivity.checkNow();
@@ -236,21 +328,25 @@ export const App: FC = () => {
     {
       id: "cockpit",
       label: "Cockpit Geral",
+      mobileLabel: "Chat",
       icon: <MessageSquare size={18} />,
     },
     {
       id: "contacts",
       label: "Contatos & Leads",
+      mobileLabel: "Contatos",
       icon: <Users size={18} />,
     },
     {
       id: "oportunidades",
       label: "Oportunidades",
+      mobileLabel: "Funil",
       icon: <TrendingUp size={18} />,
     },
     {
       id: "modelos",
       label: "Modelos WABA",
+      mobileLabel: "Modelos",
       icon: <FileText size={18} />,
     },
     {
@@ -279,17 +375,15 @@ export const App: FC = () => {
         subtitle: "Chats, inbox e atendimento em tempo real",
         category: "navigation",
         icon: <MessageSquare size={16} />,
-        shortcut: "⌘1",
         keywords: ["chat", "conversas", "inbox", "mensagens", "atendimento", "waha", "waba"],
         onSelect: () => handleNavigate("cockpit"),
       },
       {
         id: "nav-contacts",
         title: "Contatos & Leads",
-        subtitle: "Base unificada de contatos e opt-outs",
+        subtitle: "Cadastros de clientes e preferências de mensagens comerciais",
         category: "navigation",
         icon: <Users size={16} />,
-        shortcut: "⌘2",
         keywords: ["leads", "clientes", "telefones", "optout", "opt-out"],
         onSelect: () => handleNavigate("contacts"),
       },
@@ -299,38 +393,34 @@ export const App: FC = () => {
         subtitle: "Funil de vendas, estágios e negociações",
         category: "navigation",
         icon: <TrendingUp size={16} />,
-        shortcut: "⌘3",
         keywords: ["funil", "pipeline", "negocios", "vendas", "leads"],
         onSelect: () => handleNavigate("oportunidades"),
       },
       {
         id: "nav-modelos",
-        title: "Modelos WABA (HSM)",
-        subtitle: "Templates oficiais e aprovações da Meta",
+        title: "Modelos WABA",
+        subtitle: "Rascunhos de mensagem e consulta de aprovação na Meta",
         category: "navigation",
         icon: <FileText size={16} />,
-        shortcut: "⌘4",
         keywords: ["templates", "meta", "whatsapp oficial", "hsm", "mensagens"],
         onSelect: () => handleNavigate("modelos"),
       },
       {
         id: "nav-produtos",
         title: "Catálogo de Produtos",
-        subtitle: "Gestão de produtos, ofertas e checkout Cakto",
+        subtitle: "Produtos e serviços para propostas e cobranças Pix",
         category: "navigation",
         icon: <Package size={16} />,
-        shortcut: "⌘5",
-        keywords: ["precos", "ofertas", "planos", "cakto", "pix"],
+        keywords: ["precos", "ofertas", "servicos", "catalogo", "pix"],
         onSelect: () => handleNavigate("produtos"),
       },
       {
         id: "nav-conversoes",
-        title: "Conversões & Transmissões",
-        subtitle: "Campanhas de disparos em massa e métricas",
+        title: "Conversões",
+        subtitle: "Eventos comerciais e seus resultados de envio",
         category: "navigation",
         icon: <Send size={16} />,
-        shortcut: "⌘6",
-        keywords: ["disparos", "broadcasts", "campanhas", "massa"],
+        keywords: ["conversoes", "eventos", "meta", "capi"],
         onSelect: () => handleNavigate("conversoes"),
       },
       {
@@ -339,7 +429,6 @@ export const App: FC = () => {
         subtitle: "Instâncias WhatsApp, membros da equipe e chaves de API",
         category: "navigation",
         icon: <Settings size={16} />,
-        shortcut: "⌘7",
         keywords: ["ajustes", "conexoes", "qrcode", "api", "tokens", "equipe"],
         onSelect: () => handleNavigate("settings"),
       },
@@ -349,18 +438,18 @@ export const App: FC = () => {
       {
         id: "act-new-broadcast",
         title: "Nova Campanha de Transmissão",
-        subtitle: "Iniciar disparo em massa para contatos segmentados",
+        subtitle: "Preparar público e mensagem para revisão antes do envio",
         category: "actions",
         icon: <PlusCircle size={16} />,
-        onSelect: () => handleNavigate("conversoes"),
+        onSelect: () => handleNavigate("modelos",()=>{setBroadcastIntentScope(`${session.activeWorkspace?.id}:${token}:${session.activeWorkspace?.role}`);setBroadcastRequest(v=>v+1);}),
       },
       {
         id: "act-new-product",
         title: "Cadastrar Novo Produto",
-        subtitle: "Adicionar item com link de checkout Cakto",
+        subtitle: "Cadastrar preço, descrição e disponibilidade do item",
         category: "actions",
         icon: <PlusCircle size={16} />,
-        onSelect: () => handleNavigate("produtos"),
+        onSelect: () => handleNavigate("produtos",()=>{setProductIntentScope(`${session.activeWorkspace?.id}:${token}:${session.activeWorkspace?.role}`);setProductRequest(v=>v+1);}),
       },
       {
         id: "act-whatsapp-instances",
@@ -373,10 +462,10 @@ export const App: FC = () => {
       {
         id: "act-create-workspace",
         title: "Criar Nova Empresa / Negócio",
-        subtitle: "Cadastrar nova empresa e liberar acesso ao cliente",
+        subtitle: "Cadastrar uma empresa; convites e acessos são etapas separadas",
         category: "actions",
         icon: <Building2 size={16} />,
-        onSelect: () => setIsCreateWorkspaceOpen(true),
+        onSelect: handleRequestCreateWorkspace,
       },
       {
         id: "act-sync-session",
@@ -395,10 +484,7 @@ export const App: FC = () => {
         subtitle: `Conectado como ${session.user?.email || "operador"}`,
         category: "actions",
         icon: <LogOut size={16} />,
-        onSelect: () => {
-          session.logout();
-          handleTokenChange(null);
-        },
+        onSelect: handleRequestLogout,
       },
     ];
 
@@ -411,12 +497,18 @@ export const App: FC = () => {
         badge: isCurrent ? "Ativo" : ws.role || "Membro",
         category: "workspaces",
         icon: <Building2 size={16} />,
-        onSelect: () => session.selectWorkspace(ws.id),
+        onSelect: () => handleWorkspaceSelect(ws.id),
       };
     });
 
-    return [...navCommands, ...actionCommands, ...workspaceCommands];
-  }, [session, connectivity, handleNavigate, handleTokenChange]);
+    const observedScope=commandScope.current,observedEpoch=commandEpoch.current;
+    return [...navCommands,...actionCommands,...workspaceCommands]
+      .filter(item=>canUseCommand(item.id,commandRole,companyCreationAllowed))
+      .map(item=>({...item,onSelect:()=>{
+        if(commandScope.current!==observedScope||commandEpoch.current!==observedEpoch||!canUseCommand(item.id,commandAuthority.current.role,commandAuthority.current.canCreate))return;
+        item.onSelect();
+      }}));
+  }, [session, connectivity, handleNavigate, handleTokenChange,handleWorkspaceSelect,handleRequestLogout,handleRequestCreateWorkspace,companyCreationAllowed,commandRole]);
 
   // Verified system status badge (Truth in Data)
   const systemStatus = {
@@ -439,7 +531,7 @@ export const App: FC = () => {
       ? "Instável"
       : "...",
     tooltip:
-      connectivity.dbLatencyMs !== null && connectivity.dbLatencyMs !== undefined
+      !isOfflineSimulated && connectivity.status === "connected" && connectivity.dbLatencyMs !== null && connectivity.dbLatencyMs !== undefined
         ? `Sistema online (latência: ${connectivity.dbLatencyMs}ms)`
         : undefined,
     variant:
@@ -455,20 +547,22 @@ export const App: FC = () => {
   // Public Legal Routes (Always accessible without authentication for Meta App Review and compliance)
   const currentPath = typeof window !== "undefined" ? window.location.pathname.toLowerCase() : "";
   if (currentPath === "/privacidade" || currentPath === "/privacy") {
-    return <PublicLegalPage type="privacy" />;
+    return <ErrorBoundary><Suspense fallback={<LoadingState variant="spinner" text="Carregando página…"/>}><PublicLegalPage type="privacy" /></Suspense></ErrorBoundary>;
   }
   if (currentPath === "/termos" || currentPath === "/terms") {
-    return <PublicLegalPage type="terms" />;
+    return <ErrorBoundary><Suspense fallback={<LoadingState variant="spinner" text="Carregando página…"/>}><PublicLegalPage type="terms" /></Suspense></ErrorBoundary>;
   }
 
   // If unauthenticated or token expired, show Sovereign Login Portal
   if (!token || session.error?.type === "auth") {
     return (
       <ErrorBoundary fallbackTitle="Falha de Autenticação">
+        <Suspense fallback={<LoadingState variant="spinner" text="Carregando acesso…"/>}>
         <LoginPage
           onLoginSuccess={handleTokenChange}
           initialError={session.error?.type === "auth" ? session.error.detail : null}
         />
+        </Suspense>
       </ErrorBoundary>
     );
   }
@@ -485,7 +579,7 @@ export const App: FC = () => {
             onResetOffline={handleResetOffline}
             isOfflineSimulated={isOfflineSimulated}
             activeView={activeView}
-            onToggleView={setActiveView}
+            onToggleView={(view)=>{if(view!==activeView)requestNavigation(()=>setActiveView(view));}}
             onRefresh={() => {
               session.refreshSession();
               connectivity.checkNow();
@@ -495,42 +589,50 @@ export const App: FC = () => {
 
         {/* Main Responsive Sovereign Shell */}
         <AppShell
-          navItems={navItems}
+          navItems={navItems.filter(item=>canAccessPage(commandRole,item.id))}
           activeNavId={activeNavId}
           onNavSelect={handleNavigate}
           onSearchClick={() => setIsCommandPaletteOpen(true)}
           workspaces={session.workspaces}
           activeWorkspace={session.activeWorkspace}
-          onWorkspaceSelect={(ws) => session.selectWorkspace(ws.id)}
-          isLoadingWorkspaces={session.isLoadingMe}
-          onCreateWorkspaceClick={() => setIsCreateWorkspaceOpen(true)}
+          onWorkspaceSelect={(ws) => handleWorkspaceSelect(ws.id)}
+          isLoadingWorkspaces={session.isLoadingMe||session.isLoadingWorkspace}
+          onCreateWorkspaceClick={companyCreationAllowed?handleRequestCreateWorkspace:undefined}
           userEmail={session.user?.email || undefined}
-          userRole={session.user?.activeRole || undefined}
-          onLogout={() => {
-            session.logout();
-            handleTokenChange(null);
-          }}
+          userRole={commandRole}
+          onLogout={handleRequestLogout}
           systemStatus={systemStatus}
           noPadding={activeNavId === "cockpit"}
         >
-          <ErrorBoundary fallbackTitle="Falha no Módulo Ativo">
+          {workspaceSwitchError?.scope===commandScope.current&&<p role="alert" style={{margin:12}}>{workspaceSwitchError.message}</p>}
+          <ErrorBoundary key={`${activeNavId}:${session.activeWorkspace?.id}:${session.activeWorkspace?.role}:${token}:${editorReset}`} fallbackTitle="Falha no Módulo Ativo">
+            <Suspense fallback={<LoadingState variant="spinner" text="Carregando página…"/>}>
             {isLab && activeView === "catalog" ? (
-              <CatalogPage onClose={() => setActiveView("cockpit")} />
+              <CatalogPage onClose={() => requestNavigation(()=>setActiveView("cockpit"))} />
+            ) : activeNavId!=="settings"&&(session.isLoadingMe||session.isLoadingWorkspace) ? (
+              <LoadingState variant="spinner" text="Conferindo seu acesso à empresa…"/>
+            ) : activeNavId!=="settings"&&session.error ? (
+              <EmptyState title="Não foi possível confirmar seu acesso" description="Tente atualizar a sessão. Seus dados salvos não foram apagados." action={<div style={{display:"flex",gap:8,flexWrap:"wrap"}}><Button onClick={()=>void session.refreshSession()}>Tentar novamente</Button><Button variant="secondary" onClick={()=>handleNavigate("settings")}>Abrir configurações</Button></div>}/>
+            ) : activeNavId!=="settings"&&!session.activeWorkspace ? (
+              <EmptyState title="Selecione uma empresa" description="Escolha uma empresa no seletor para abrir esta página." action={<Button onClick={()=>handleNavigate("settings")}>Abrir configurações</Button>}/>
+            ) : !canAccessPage(session.activeWorkspace?.role,activeNavId) ? (
+              <EmptyState title="Seu perfil não tem acesso a esta página" description="O acesso depende do seu perfil na empresa selecionada. Se precisar, fale com o responsável." action={<Button onClick={()=>handleNavigate("settings")}>Abrir configurações</Button>}/>
             ) : activeNavId === "contacts" ? (
               <ContactsPage session={session} />
             ) : activeNavId === "oportunidades" ? (
               <OpportunitiesPage session={session} />
             ) : activeNavId === "modelos" ? (
-              <TemplatesPage session={session} />
+              <TemplatesPage session={session} broadcastRequest={broadcastRequest} broadcastRequestScope={broadcastIntentScope??undefined} />
             ) : activeNavId === "produtos" ? (
-              <ProductsPage session={session} />
+              <ProductsPage session={session} createRequest={productRequest} createRequestScope={productIntentScope??undefined} />
             ) : activeNavId === "conversoes" || activeNavId === "campaigns" ? (
               <CampaignsPage session={session} />
             ) : activeNavId === "settings" ? (
-              <SettingsPage session={session} />
+              <SettingsPage session={session.error||session.isLoadingMe||session.isLoadingWorkspace?{...session,activeWorkspace:null}:session} />
             ) : (
               <CockpitPage session={session} />
             )}
+            </Suspense>
           </ErrorBoundary>
         </AppShell>
 
@@ -545,11 +647,9 @@ export const App: FC = () => {
         {/* Create Workspace Modal */}
         <CreateWorkspaceModal
           isOpen={isCreateWorkspaceOpen}
-          onClose={() => setIsCreateWorkspaceOpen(false)}
-          onCreated={async (newWsId) => {
-            await session.refreshSession();
-            await session.selectWorkspace(newWsId);
-          }}
+          accessPending={session.isLoadingMe||session.isLoadingWorkspace||Boolean(session.error)}
+          onClose={closeCreation}
+          onCreated={enterCreatedWorkspace}
         />
       </div>
     </ErrorBoundary>

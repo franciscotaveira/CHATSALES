@@ -10,12 +10,15 @@ export const SegmentedControl: FC<SegmentedControlProps> = ({
   style,
   "aria-label": ariaLabel = "Filtros de Segmento",
 }) => {
+  const enabled=options.filter(option=>!option.disabled);
+  const selected=enabled.some(option=>option.value===value)?value:enabled[0]?.value;
   const isCompact = size === "sm" || options.length >= 4;
 
   return (
     <div
       role="radiogroup"
       aria-label={ariaLabel}
+      aria-orientation="horizontal"
       className={`sos-segmented-control ${className}`}
       style={{
         display: "flex",
@@ -41,6 +44,17 @@ export const SegmentedControl: FC<SegmentedControlProps> = ({
             role="radio"
             aria-checked={isSelected}
             disabled={option.disabled}
+            tabIndex={!option.disabled&&option.value===selected?0:-1}
+            onKeyDown={event=>{
+              if(event.defaultPrevented||event.nativeEvent.isComposing||event.altKey||event.ctrlKey||event.metaKey||!enabled.length)return;
+              const index=enabled.findIndex(item=>item.value===option.value);
+              const target=event.key==="Home"?enabled[0]:event.key==="End"?enabled[enabled.length-1]:["ArrowRight","ArrowDown"].includes(event.key)?enabled[(index+1)%enabled.length]:["ArrowLeft","ArrowUp"].includes(event.key)?enabled[(index-1+enabled.length)%enabled.length]:undefined;
+              if(!target)return;
+              event.preventDefault();
+              const targetIndex=options.findIndex(item=>item.value===target.value);
+              event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('button[role="radio"]')[targetIndex]?.focus();
+              if(target.value!==value)onChange(target.value);
+            }}
             className={`sos-segmented-item ${isSelected ? "sos-segmented-item-selected" : ""}`}
             onClick={() => !option.disabled && onChange(option.value)}
             style={{

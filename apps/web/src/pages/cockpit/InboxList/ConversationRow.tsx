@@ -1,11 +1,13 @@
 import type { FC } from "react";
 import { Avatar, ListItem } from "@sos-sales/ui";
 import type { CommercialThreadSummary } from "../../../services/api-client";
+import {STAGES,getStageLabel,type CustomStagesMap} from "../../opportunities/stages";
 import { formatTime } from "../utils/formatTime";
 import { formatPhone } from "../utils/formatPhone";
 import { renderWhatsappMarkdown } from "../utils/whatsappMarkdown";
 
 interface ConversationRowProps {
+  customStages?:CustomStagesMap;
   thread: CommercialThreadSummary;
   selected: boolean;
   onSelect: (threadId: string) => void;
@@ -15,14 +17,18 @@ export const ConversationRow: FC<ConversationRowProps> = ({
   thread,
   selected,
   onSelect,
+  customStages={},
 }) => {
   const hasName = Boolean(thread.contactName && thread.contactName.trim());
   const displayName = hasName
     ? thread.contactName
     : formatPhone(thread.contactPhone) || "Contato sem nome";
 
-  const rawSnippet = thread.lastMessage?.body || "Sem mensagens";
+  const rawSnippet = thread.lastMessage
+    ? thread.lastMessage.body?.trim() ? thread.lastMessage.body : "Mensagem sem texto"
+    : "Sem mensagens";
   const formattedTime = formatTime(thread.lastMessageAt || thread.updatedAt);
+  const attention=thread.status!=="closed"&&(thread.status==="waiting_human"||Boolean(thread.nextAction?.status==="open"&&thread.nextAction.dueAt&&Date.parse(thread.nextAction.dueAt)<=Date.now()+86400000));
   const isUnread = thread.status === "waiting_human" || thread.lastMessage?.direction === "inbound";
 
   return (
@@ -65,7 +71,7 @@ export const ConversationRow: FC<ConversationRowProps> = ({
                 flexShrink: 0,
               }}
             >
-              {thread.journeyStage}
+              {STAGES.some(stage=>stage.id===thread.journeyStage)?getStageLabel(thread.journeyStage,customStages):"Etapa não reconhecida"}
             </span>
           )}
         </div>
@@ -83,13 +89,14 @@ export const ConversationRow: FC<ConversationRowProps> = ({
           }}
         >
           {renderWhatsappMarkdown(rawSnippet, { singleLine: true })}
+          {attention&&<small style={{display:"block",fontSize:11,overflow:"hidden",textOverflow:"ellipsis"}}>{thread.status==="waiting_human"?"Aguardando atendimento humano":"Tarefa vencida ou com prazo nas próximas 24h"}{thread.nextAction?.status==="open"&&thread.nextAction.dueAt?` · ${thread.nextAction.title} (${new Date(thread.nextAction.dueAt).toLocaleString("pt-BR")})`:""}</small>}
         </span>
       }
       meta={formattedTime}
       trailing={
         thread.status === "waiting_human" ? (
           <span
-            title="Transbordo Solicitado pela IA"
+            title="Atendimento humano solicitado"
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -103,7 +110,7 @@ export const ConversationRow: FC<ConversationRowProps> = ({
               flexShrink: 0,
             }}
           >
-            IA ⚠️
+            Pessoa
           </span>
         ) : isUnread ? (
           <span
@@ -115,7 +122,7 @@ export const ConversationRow: FC<ConversationRowProps> = ({
               display: "inline-block",
               flexShrink: 0,
             }}
-            aria-label="Aguardando atendimento"
+            aria-label="Última mensagem recebida do cliente"
           />
         ) : undefined
       }

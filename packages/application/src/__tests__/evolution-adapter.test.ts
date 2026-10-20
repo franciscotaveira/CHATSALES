@@ -15,11 +15,11 @@ describe("EvolutionAdapter (Evolution API v2 Outbound)", () => {
 
   const mockSecretResolver = {
     resolveSigningSecret: vi.fn(),
-    resolveChannelSecret: vi.fn().mockResolvedValue({
-      apiKey: "test-evolution-key",
-      baseUrl: "http://evolution:8080",
-      instance: "test-instance",
-    }),
+    useCredentials: vi.fn(async (_channel, _workspace, fn) => fn({
+      api_key: "test-evolution-key",
+      base_url: "http://evolution:8080",
+      instance_name: "test-instance",
+    })),
   };
 
   it("sends a text message successfully", async () => {
@@ -94,4 +94,37 @@ describe("EvolutionAdapter (Evolution API v2 Outbound)", () => {
     const valid = validateEvolutionBaseUrl("http://evolution:8080");
     expect(valid).toBe("http://evolution:8080");
   });
+  it("never falls back to global credentials when channel lookup is absent or fails",async()=>{
+    const fetchFn=vi.fn();const adapter=new EvolutionAdapter({fetchFn:fetchFn as any,defaultApiKey:"SIM-global",defaultInstance:"SIM-other",allowLocalTest:true});
+    for(const resolver of [{},{useCredentials:vi.fn().mockResolvedValue(null)},{useCredentials:vi.fn().mockRejectedValue(new Error("SIM failure"))}]){
+      const result=await adapter.sendMessage(dummyParams,resolver as any);expect(result).toMatchObject({success:false,errorCode:"CREDENTIALS_NOT_FOUND"});
+    }
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+  it("refuses incomplete tenant credentials and uses encoded instance paths",async()=>{
+    const fetchFn=vi.fn().mockResolvedValue({ok:true,status:200,json:async()=>({key:{id:"SIM-id"}})});
+    const adapter=new EvolutionAdapter({fetchFn:fetchFn as any,allowLocalTest:true});
+    const resolver={useCredentials:vi.fn(async(channel,workspace,fn)=>{expect(channel).toBe(dummyParams.channelInstanceId);expect(workspace).toBe(dummyParams.workspaceId);return fn({api_key:"SIM-key",base_url:"http://evolution:8080"});})};
+    expect(await adapter.sendMessage(dummyParams,resolver as any)).toMatchObject({success:false,errorCode:"CREDENTIALS_NOT_FOUND"});expect(fetchFn).not.toHaveBeenCalled();
+    resolver.useCredentials.mockImplementation(async(_c: any,_w: any,fn: any)=>fn({api_key:"SIM-key",base_url:"http://evolution:8080",instance_name:"SIM sales/#2"}));
+    await adapter.sendMessage(dummyParams,resolver as any);expect(fetchFn.mock.calls[0]?.[0]).toBe("http://evolution:8080/message/sendText/SIM%20sales%2F%232");
+  });
+
+  it("blocks invalid scoped URLs without sending or using defaults",async()=>{
+    const fetchFn=vi.fn();const adapter=new EvolutionAdapter({fetchFn:fetchFn as any,allowLocalTest:true});
+    const result=await adapter.sendMessage(dummyParams,{useCredentials:async(_c: any,_w: any,fn: any)=>fn({api_key:"SIM-key",instance_name:"SIM-instance",base_url:"http://169.254.169.254"})} as any);
+    expect(result).toMatchObject({success:false,errorCode:"INVALID_BASE_URL"});expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it.each([{}, {key:{id:""}}, {id:42}, {id:{}}, {messageId:"   "}])("does not fabricate confirmation for a response without a usable ID: %j",async body=>{
+    const fetchFn=vi.fn().mockResolvedValue({ok:true,status:200,json:async()=>body});
+    const adapter=new EvolutionAdapter({fetchFn:fetchFn as any,allowLocalTest:true});
+    expect(await adapter.sendMessage(dummyParams,mockSecretResolver as any)).toMatchObject({success:false,category:"ambiguous",errorCode:"PROVIDER_MESSAGE_ID_MISSING"});expect(fetchFn).toHaveBeenCalledOnce();
+  });
+  it.each([{id:"SIM-root"},{messageId:"SIM-message"},{key:{id:" SIM-key "}}])("accepts provider-issued string identifiers: %j",async body=>{
+    const fetchFn=vi.fn().mockResolvedValue({ok:true,status:200,json:async()=>body});
+    const adapter=new EvolutionAdapter({fetchFn:fetchFn as any,allowLocalTest:true});
+    expect(await adapter.sendMessage(dummyParams,mockSecretResolver as any)).toMatchObject({success:true,externalMessageId:expect.stringMatching(/^SIM-/)});
+  });
+
 });

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type FC, type ReactNode } from "react";
+import { useState, useRef, useEffect, useId, type KeyboardEvent, type FC, type ReactNode } from "react";
 import { Building2, ChevronDown, Check, Menu, Search, LogOut, Plus } from "lucide-react";
 import type { WorkspaceItem } from "./AppShell.types";
 
@@ -30,7 +30,7 @@ export const Header: FC<HeaderProps> = ({
   isLoadingWorkspaces = false,
   onCreateWorkspaceClick,
   userEmail,
-  userRole = "owner",
+  userRole,
   onLogout,
   systemStatus,
   onOpenMobileMenu,
@@ -42,6 +42,28 @@ export const Header: FC<HeaderProps> = ({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const workspaceRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const workspaceTrigger=useRef<HTMLButtonElement>(null),userTrigger=useRef<HTMLButtonElement>(null);
+  const workspaceMenuId=useId(),userMenuId=useId();
+  const openEdge=useRef<"first"|"last"|"selected">("selected");
+  const menuKeys=(event:KeyboardEvent<HTMLDivElement>,kind:"workspace"|"user")=>{
+    const opened=kind==="workspace"?isWorkspaceDropdownOpen:isUserMenuOpen;
+    const root=kind==="workspace"?workspaceRef.current:userMenuRef.current;
+    const trigger=kind==="workspace"?workspaceTrigger.current:userTrigger.current;
+    if(event.key==="Escape"&&opened){event.preventDefault();event.stopPropagation();if(kind==="workspace")setIsWorkspaceDropdownOpen(false);else setIsUserMenuOpen(false);trigger?.focus();return;}
+    if(!["ArrowDown","ArrowUp","Home","End"].includes(event.key))return;
+    if(!opened){if(event.key!=="ArrowDown"&&event.key!=="ArrowUp")return;event.preventDefault();openEdge.current=event.key==="ArrowUp"?"last":"first";if(kind==="workspace"){setIsUserMenuOpen(false);setIsWorkspaceDropdownOpen(true);}else{setIsWorkspaceDropdownOpen(false);setIsUserMenuOpen(true);}return;}
+    const entries=Array.from(root?.querySelectorAll<HTMLButtonElement>(kind==="workspace"?'[role="option"], [data-workspace-create]':'[role="menuitem"]')||[]).filter(item=>!item.disabled);
+    if(!entries.length)return;event.preventDefault();const current=entries.indexOf(document.activeElement as HTMLButtonElement);
+    const next=event.key==="Home"?0:event.key==="End"?entries.length-1:event.key==="ArrowDown"?(current+1)%entries.length:(current<=0?entries.length:current)-1;entries[next]?.focus();
+  };
+  useEffect(()=>{
+    if(!isWorkspaceDropdownOpen)return;
+    const items=Array.from(workspaceRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"], [data-workspace-create]')||[]).filter(item=>!item.disabled);
+    const selected=items.find(item=>item.getAttribute("aria-selected")==="true");
+    (openEdge.current==="last"?items.at(-1):openEdge.current==="selected"?selected||items[0]:items[0])?.focus();openEdge.current="selected";
+  },[isWorkspaceDropdownOpen]);
+  useEffect(()=>{if(isUserMenuOpen){const items=Array.from(userMenuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')||[]);(openEdge.current==="last"?items.at(-1):items[0])?.focus();openEdge.current="selected";}},[isUserMenuOpen]);
+
 
   const isMobileView = isMobile || Boolean(onOpenMobileMenu);
 
@@ -77,9 +99,15 @@ export const Header: FC<HeaderProps> = ({
       ? "var(--color-warning, #D97706)"
       : "var(--color-operational, #2563EB)";
 
-  const formattedRole = userRole
-    ? userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase()
-    : "Owner";
+  const roleNames:Record<string,string>={owner:"Proprietário",admin:"Administrador",manager:"Gestor",operator:"Atendente",analyst:"Analista",integration_service:"Integração",support_auditor:"Auditoria"};
+  const roleLabel=(role?:string)=>role&&Object.hasOwn(roleNames,role)?roleNames[role]:"Não confirmado";
+  const formattedRole=isLoadingWorkspaces?"Em conferência":!activeWorkspace?"Sem empresa selecionada":roleLabel(userRole);
+  useEffect(()=>{
+    const focused=document.activeElement;
+    if(isWorkspaceDropdownOpen&&focused&&workspaceRef.current?.contains(focused))workspaceTrigger.current?.focus();
+    else if(isUserMenuOpen&&focused&&userMenuRef.current?.contains(focused))userTrigger.current?.focus();
+    setIsWorkspaceDropdownOpen(false);setIsUserMenuOpen(false);
+  },[activeWorkspace?.id,userRole,isLoadingWorkspaces,userEmail]);
 
   return (
     <header
@@ -110,7 +138,8 @@ export const Header: FC<HeaderProps> = ({
           alignItems: "center",
           gap: "8px",
           minWidth: 0,
-          flexShrink: 0,
+          flexShrink: 1,
+          flex: isMobileView ? 1 : undefined,
         }}
       >
         {onOpenMobileMenu && (
@@ -139,12 +168,14 @@ export const Header: FC<HeaderProps> = ({
         )}
 
         {/* Workspace Selector Dropdown (sm: 32px) */}
-        <div ref={workspaceRef} style={{ position: "relative", minWidth: 0 }}>
+        <div ref={workspaceRef} onKeyDown={event=>menuKeys(event,"workspace")} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget as Node|null))setIsWorkspaceDropdownOpen(false);}} style={{ position: "relative", minWidth: 0 }}>
           <button
             type="button"
-            onClick={() => setIsWorkspaceDropdownOpen((prev) => !prev)}
+            ref={workspaceTrigger}
+            onClick={() => {setIsUserMenuOpen(false);setIsWorkspaceDropdownOpen(prev=>!prev);}}
             aria-expanded={isWorkspaceDropdownOpen}
             aria-haspopup="listbox"
+            aria-controls={isWorkspaceDropdownOpen?workspaceMenuId:undefined}
             className="sos-workspace-trigger"
             style={{
               display: "flex",
@@ -161,6 +192,7 @@ export const Header: FC<HeaderProps> = ({
               cursor: "pointer",
               transition: "border-color var(--transition-fast, 150ms ease)",
               maxWidth: isMobileView ? "160px" : "220px",
+              width: isMobileView ? "100%" : undefined,
               boxSizing: "border-box",
             }}
           >
@@ -175,7 +207,7 @@ export const Header: FC<HeaderProps> = ({
               }}
             >
               {isLoadingWorkspaces
-                ? "Carregando..."
+                ? "Conferindo empresa..."
                 : activeWorkspace?.name || "Selecionar Negócio"}
             </span>
             <ChevronDown size={14} color="var(--text-muted, #64748B)" style={{ flexShrink: 0 }} />
@@ -183,13 +215,13 @@ export const Header: FC<HeaderProps> = ({
 
           {isWorkspaceDropdownOpen && (
             <div
-              role="listbox"
-              aria-label="Workspaces disponíveis"
               style={{
                 position: "absolute",
                 top: "calc(100% + 4px)",
                 left: 0,
-                width: "260px",
+                width: "min(260px, calc(100vw - 32px))",
+                maxHeight:"min(70vh, 420px)",
+                overflowY:"auto",
                 backgroundColor: "var(--bg-surface, #FFFFFF)",
                 border: "1px solid var(--border-default, #E2E8F0)",
                 borderRadius: "var(--radius-md, 8px)",
@@ -198,6 +230,7 @@ export const Header: FC<HeaderProps> = ({
                 zIndex: 50,
               }}
             >
+              <div role="listbox" id={workspaceMenuId} aria-label="Empresas disponíveis">
               <div
                 style={{
                   padding: "6px 8px",
@@ -219,7 +252,7 @@ export const Header: FC<HeaderProps> = ({
                     color: "var(--text-muted, #64748B)",
                   }}
                 >
-                  Nenhum workspace vinculado.
+                  Nenhuma empresa vinculada.
                 </div>
               ) : (
                 workspaces.map((ws) => {
@@ -229,18 +262,21 @@ export const Header: FC<HeaderProps> = ({
                     <button
                       key={ws.id}
                       role="option"
+                      tabIndex={isSelected?0:-1}
                       aria-selected={isSelected}
+                      aria-label={`${ws.name} — ${roleLabel(ws.role)}`}
                       onClick={() => {
-                        if (onWorkspaceSelect) onWorkspaceSelect(ws);
                         setIsWorkspaceDropdownOpen(false);
+                        workspaceTrigger.current?.focus();
+                        if (!isSelected && onWorkspaceSelect) onWorkspaceSelect(ws);
                       }}
                       style={{
                         width: "100%",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
-                        padding: "6px 10px",
-                        height: "var(--control-h-md, 40px)",
+                        padding: "8px 10px",
+                        minHeight: 48,
                         borderRadius: "var(--radius-sm, 6px)",
                         border: "none",
                         backgroundColor: isSelected
@@ -255,8 +291,9 @@ export const Header: FC<HeaderProps> = ({
                         textAlign: "left",
                       }}
                     >
-                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {ws.name}
+                      <span style={{minWidth:0,display:"grid",gap:2}}>
+                        <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ws.name}</span>
+                        <span style={{fontSize:"var(--font-size-xs,0.75rem)",color:"var(--text-muted, #64748B)"}}>{roleLabel(ws.role)}</span>
                       </span>
                       {isSelected && (
                         <Check size={14} color="var(--color-action, #008069)" />
@@ -266,12 +303,15 @@ export const Header: FC<HeaderProps> = ({
                 })
               )}
 
+              </div>
               {onCreateWorkspaceClick && (
                 <div style={{ borderTop: "1px solid var(--border-default, #E2E8F0)", marginTop: "4px", paddingTop: "4px" }}>
                   <button
                     type="button"
+                    data-workspace-create
                     onClick={() => {
                       setIsWorkspaceDropdownOpen(false);
+                      workspaceTrigger.current?.focus();
                       onCreateWorkspaceClick();
                     }}
                     style={{
@@ -332,11 +372,11 @@ export const Header: FC<HeaderProps> = ({
             gap: "8px",
             cursor: "pointer",
           }}
-          title="Busca global em conversas, leads e produtos (⌘K)"
+          title="Buscar ações, páginas e empresas (⌘K)"
         >
           <Search size={14} />
           <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            Buscar no sistema...
+            Buscar ações e páginas...
           </span>
           <kbd
             style={{
@@ -359,7 +399,7 @@ export const Header: FC<HeaderProps> = ({
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "12px",
+          gap: isMobileView ? "8px" : "12px",
           flexShrink: 0,
         }}
       >
@@ -367,7 +407,7 @@ export const Header: FC<HeaderProps> = ({
           <button
             type="button"
             onClick={onSearchClick}
-            aria-label="Abrir busca global"
+            aria-label="Buscar ações e páginas"
             style={{
               border: "none",
               background: "none",
@@ -419,12 +459,15 @@ export const Header: FC<HeaderProps> = ({
         )}
 
         {/* User Profile Avatar with dropdown menu */}
-        <div ref={userMenuRef} style={{ position: "relative" }}>
+        <div ref={userMenuRef} onKeyDown={event=>menuKeys(event,"user")} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget as Node|null))setIsUserMenuOpen(false);}} style={{ position: "relative" }}>
           <button
             type="button"
-            onClick={() => setIsUserMenuOpen((prev) => !prev)}
+            ref={userTrigger}
+            onClick={() => {setIsWorkspaceDropdownOpen(false);setIsUserMenuOpen(prev=>!prev);}}
             aria-expanded={isUserMenuOpen}
             aria-label="Menu do Usuário"
+            aria-haspopup="menu"
+            aria-controls={isUserMenuOpen?userMenuId:undefined}
             className="sos-user-avatar-btn"
             style={{
               width: "var(--control-h-sm, 32px)",
@@ -447,6 +490,7 @@ export const Header: FC<HeaderProps> = ({
           {isUserMenuOpen && (
             <div
               role="menu"
+              id={userMenuId}
               aria-label="Opções do Usuário"
               style={{
                 position: "absolute",
@@ -482,7 +526,7 @@ export const Header: FC<HeaderProps> = ({
                     marginTop: "2px",
                   }}
                 >
-                  Papel: <strong style={{ color: "var(--text-primary, #0F172A)" }}>{formattedRole}</strong>
+                  Papel nesta empresa: <strong style={{ color: "var(--text-primary, #0F172A)" }}>{formattedRole}</strong>
                 </div>
               </div>
 

@@ -861,5 +861,14 @@ describe("Integration Routes (F1.1-C Radar Hardening & Final Governance)", () =>
       expect(row.rows[0].state_version).toBe(1);
     });
   });
+  it("keeps proposal-linked Pix protected from integration identities and other workspaces",async()=>{
+    const created=await app.inject({method:'POST',url:`/v1/workspaces/${workspaceAId}/threads/${threadAId}/proposals`,headers:{authorization:`Bearer ${tokenOperatorA}`},payload:{contactId:contactAId,title:'SIM proposta de isolamento',items:[{title:'SIM item',unitPriceCents:15000,quantity:1}]}});
+    expect(created.statusCode,created.body).toBe(201);const proposalId=created.json().id;
+    const integration=await app.inject({method:'POST',url:`/v1/workspaces/${workspaceAId}/proposals/${proposalId}/pix-charge`,headers:{authorization:`Bearer ${tokenIntegrationService}`},payload:{requestKey:crypto.randomUUID(),expectedVersion:1}});expect(integration.statusCode,integration.body).toBe(403);
+    const foreign=await app.inject({method:'POST',url:`/v1/workspaces/${workspaceAId}/proposals/${proposalId}/pix-charge`,headers:{authorization:`Bearer ${tokenOperatorB}`},payload:{requestKey:crypto.randomUUID(),expectedVersion:1}});expect(foreign.statusCode,foreign.body).toBe(403);
+    const ownWrongProposal=await app.inject({method:'POST',url:`/v1/workspaces/${workspaceBId}/proposals/${proposalId}/pix-charge`,headers:{authorization:`Bearer ${tokenOperatorB}`},payload:{requestKey:crypto.randomUUID(),expectedVersion:1}});expect(ownWrongProposal.statusCode,ownWrongProposal.body).toBe(404);
+    const count=await ownerPool.query('SELECT count(*)::int AS count FROM pix_charges WHERE proposal_id=$1',[proposalId]);expect(count.rows[0].count).toBe(0);
+  });
+
 });
 

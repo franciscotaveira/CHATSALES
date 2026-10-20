@@ -32,6 +32,9 @@ export const CatalogPage: FC<{ onClose?: () => void }> = ({ onClose }) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [inputError, setInputError] = useState("");
+  const [previewOpen,setPreviewOpen]=useState(false);
+  const [previewWidth,setPreviewWidth]=useState(390);
+  const [previewPath,setPreviewPath]=useState("/");
 
   return (
     <div
@@ -64,7 +67,7 @@ export const CatalogPage: FC<{ onClose?: () => void }> = ({ onClose }) => {
             </Badge>
           </div>
           <p style={{ color: "var(--text-secondary)", fontSize: "0.95rem" }}>
-            Biblioteca de componentes acessíveis (WCAG 2.2 AA) e tokens canônicos do SOS Sales V3.
+            Biblioteca de componentes e tokens canônicos do CHAT-SALES para revisão visual e de acessibilidade.
           </p>
         </div>
 
@@ -74,6 +77,27 @@ export const CatalogPage: FC<{ onClose?: () => void }> = ({ onClose }) => {
           </Button>
         )}
       </div>
+
+      <section aria-label="Prévia responsiva do laboratório" style={{display:"grid",gap:12,minWidth:0}}>
+        <h2 style={{margin:0,fontSize:20}}>Prévia responsiva do laboratório</h2>
+        <p style={{margin:0}}>Confira a aplicação em uma largura controlada. Esta prévia usa a sessão e os dados do laboratório; não representa um aparelho real. Trocar a tela pode descartar edições não salvas.</p>
+        <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"end"}}>
+          <label style={{display:"grid",gap:6}}>Largura da prévia
+            <select value={previewWidth} onChange={event=>setPreviewWidth(Number(event.target.value))} style={{minHeight:40}}>
+              {[320,390,768,1280,1440].map(width=><option key={width} value={width}>{width} px</option>)}
+            </select>
+          </label>
+          <label style={{display:"grid",gap:6}}>Tela da prévia
+            <select value={previewPath} onChange={event=>setPreviewPath(event.target.value)} style={{minHeight:40}}>
+              {[["/","Atendimento"],["/contatos","Contatos"],["/oportunidades","Oportunidades"],["/modelos","Modelos"],["/produtos","Produtos"],["/conversoes","Conversões"],["/settings","Configurações"]].map(([path,label])=><option key={path} value={path}>{label}</option>)}
+            </select>
+          </label>
+          <Button variant="secondary" onClick={()=>setPreviewOpen(open=>!open)}>{previewOpen?"Fechar prévia":"Abrir prévia"}</Button>
+        </div>
+        {previewOpen&&<div style={{maxWidth:"100%",overflow:"auto",border:"1px solid var(--border-default)",borderRadius:8}}>
+          <iframe title="Aplicação em prévia responsiva" src={previewPath} style={{display:"block",width:previewWidth,height:720,border:0,maxWidth:"none"}}/>
+        </div>}
+      </section>
 
       {/* 1. Tokens de Cores */}
       <section>
@@ -197,7 +221,7 @@ export const CatalogPage: FC<{ onClose?: () => void }> = ({ onClose }) => {
       {/* 4. Inputs */}
       <section>
         <h2 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "16px" }}>
-          4. Campos de Entrada (Input com WCAG)
+          4. Campos de entrada e acessibilidade
         </h2>
         <div
           style={{

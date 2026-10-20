@@ -24,7 +24,8 @@ export type MessageDeliveryStatus =
   | "sent"
   | "delivered"
   | "read"
-  | "failed";
+  | "failed"
+  | "unknown";
 
 export type CommercialThreadStatus =
   | "active"
@@ -347,6 +348,7 @@ export async function listThreadMessages(
 }
 
 export interface CommercialThreadWithContactRecord extends CommercialThreadRecord {
+  activity_cursor: string;
   contact_phone: string;
   contact_name: string | null;
   channel_provider: ChannelProvider;
@@ -367,9 +369,14 @@ export interface CommercialThreadWithContactRecord extends CommercialThreadRecor
 
 export interface ListCommercialThreadsParams {
   workspaceId: string;
-  status?: CommercialThreadStatus;
+  status?: CommercialThreadStatus | "open";
   limit?: number;
   needsAttention?: boolean;
+  threadId?:string;
+  beforeActivityAt?:string;
+  beforeId?:string;
+  search?:string;
+  channelInstanceId?:string;
 }
 
 /**
@@ -383,6 +390,7 @@ export async function listCommercialThreads(
   const limit = params.limit ?? 50;
   const res = await client.query<CommercialThreadWithContactRecord>(
     `SELECT 
+       to_char(COALESCE(t.last_message_at,t.created_at) AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS activity_cursor,
        t.id,
        t.workspace_id,
        t.channel_instance_id,
@@ -435,17 +443,21 @@ export async function listCommercialThreads(
        LIMIT 1
      ) j ON true
      WHERE t.workspace_id = $1
-       AND ($2::text IS NULL OR t.status = $2)
+       AND ($2::text IS NULL OR ($2='open' AND t.status <> 'closed') OR t.status = $2)
        AND (
          $4::boolean IS NOT TRUE 
          OR (
-           (nact.id IS NOT NULL AND nact.due_at <= now() + interval '24 hours')
-           OR t.status = 'waiting_human'
+           t.status <> 'closed' AND ((nact.id IS NOT NULL AND nact.due_at <= now() + interval '24 hours')
+           OR t.status = 'waiting_human')
          )
        )
-     ORDER BY t.last_message_at DESC
+       AND ($5::timestamptz IS NULL OR (COALESCE(t.last_message_at,t.created_at),t.id)<($5::timestamptz,$6::uuid))
+       AND ($7::text IS NULL OR c.name ILIKE $7 ESCAPE '\\' OR c.phone_e164 ILIKE $7 ESCAPE '\\' OR lm.body ILIKE $7 ESCAPE '\\')
+       AND ($8::uuid IS NULL OR t.channel_instance_id=$8::uuid)
+       AND ($9::uuid IS NULL OR t.id=$9::uuid)
+     ORDER BY COALESCE(t.last_message_at,t.created_at) DESC,t.id DESC
      LIMIT $3;`,
-    [params.workspaceId, params.status ?? null, limit, params.needsAttention ?? false]
+    [params.workspaceId, params.status ?? null, limit, params.needsAttention ?? false,params.beforeActivityAt??null,params.beforeId??null,params.search?.trim()?`%${params.search.trim().replace(/[\\%_]/g,'\\$&')}%`:null,params.channelInstanceId??null,params.threadId??null]
   );
   return res.rows;
 }

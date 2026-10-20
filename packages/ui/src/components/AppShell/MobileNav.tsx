@@ -50,10 +50,14 @@ export const MobileNav: FC<MobileNavProps> = ({
               if (item.onClick) item.onClick();
               onNavSelect(item.id);
             }}
+            aria-label={item.label}
+            title={item.label}
             aria-current={isActive ? "page" : undefined}
             disabled={item.disabled}
             style={{
-              flex: 1,
+              flex: "1 1 0",
+              minWidth:0,
+              padding:"4px",
               height: "100%",
               minHeight: "44px", // Accessible touch target
               display: "flex",
@@ -67,16 +71,16 @@ export const MobileNav: FC<MobileNavProps> = ({
                 ? "var(--color-action, #008069)"
                 : "var(--text-secondary, #64748B)",
               cursor: item.disabled ? "not-allowed" : "pointer",
-              fontSize: "var(--font-size-xs, 0.75rem)",
+              fontSize: "11px",
               fontWeight: isActive ? 600 : 500,
               fontFamily: "var(--font-sans, sans-serif)",
             }}
           >
-            <span style={{ display: "inline-flex", alignItems: "center" }}>
+            <span aria-hidden="true" style={{ display: "inline-flex", alignItems: "center",flexShrink:0 }}>
               {item.icon}
             </span>
-            <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "60px" }}>
-              {item.label}
+            <span style={{whiteSpace:"normal",overflowWrap:"anywhere",maxWidth:"100%",lineHeight:1.15,textAlign:"center"}}>
+              {item.mobileLabel || item.label}
             </span>
           </button>
         );

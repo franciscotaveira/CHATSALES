@@ -101,7 +101,8 @@ export interface BuildAppOptions {
 
 export function sanitizeUrl(rawUrl: string | undefined): string {
   if (!rawUrl || typeof rawUrl !== "string") return "";
-  return rawUrl.replace(/\/v1\/webhooks\/whatsapp\/[^/?#]+/g, "/v1/webhooks/whatsapp/[redacted]");
+  return rawUrl.replace(/\/v1\/webhooks\/whatsapp\/[^/?#]+/g,"/v1/webhooks/whatsapp/[redacted]")
+    .replace(/([?&#](?:token|auth|access_token|api_key|secret)=)[^&#\s]*/gi,"$1[redacted]");
 }
 
 export function resolveTrustProxy(

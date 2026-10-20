@@ -512,6 +512,29 @@ describe("Outbound Messages Routes Integration (CH-11)", () => {
     });
   });
 
+  describe("Advanced template component integrity", () => {
+    it("rejects a missing media header and retains a verified layout snapshot for a valid message", async () => {
+      const name = `sim_components_${Date.now()}`;
+      await ownerPool.query(`INSERT INTO message_templates
+        (workspace_id,name,category,body_text,status,language,meta_template_id,meta_verified_at,meta_verified_channel_id,provider_components)
+        VALUES($1,$2,'UTILITY','Pedido {{1}}','APPROVED','pt_BR','SIM_PROVIDER_ID',NOW(),$3,$4::jsonb)`,
+        [workspaceAId,name,channelAId,JSON.stringify([{type:'HEADER',format:'IMAGE'},{type:'BODY',text:'Pedido {{1}}'},{type:'BUTTONS',buttons:[{type:'URL',text:'Ver pedido',url:'https://example.com/{{1}}'}]}])]);
+      const send = (components: unknown[], key: string) => app.inject({method:'POST',
+        url:`/v1/workspaces/${workspaceAId}/channels/${channelAId}/messages`,
+        headers:{authorization:`Bearer ${operatorToken}`,'x-workspace-id':workspaceAId},
+        payload:{recipientPhoneE164:'+5500000000001',contentType:'text',body:'SIMULADO — Pedido 42',idempotencyKey:key,
+          template:{name,language:'pt_BR',components}}});
+      const body = {type:'body',parameters:[{type:'text',text:'42'}]};
+      const button = {type:'button',sub_type:'url',index:0,parameters:[{type:'text',text:'42'}]};
+      const rejected = await send([body,button],`sim-missing-${Date.now()}`);
+      expect(rejected.statusCode,rejected.body).toBe(400);
+      const valid = await send([{type:'header',parameters:[{type:'image',image:{link:'https://example.com/sim.png'}}]},body,button],`sim-valid-${Date.now()}`);
+      expect(valid.statusCode,valid.body).toBe(201);
+      const stored = await ownerPool.query('SELECT metadata FROM messages WHERE id=$1',[valid.json().messageId]);
+      expect(stored.rows[0].metadata.systemTemplateLayoutHash).toMatch(/^[a-f0-9]{64}$/);
+    });
+  });
+
   describe("4. Distributed Rate Limiting (IRateLimiter)", () => {
     it("should enforce per-IP rate limit returning HTTP 429 with correct headers and block producer call", async () => {
       const mockProducer = {

@@ -61,15 +61,17 @@ describe("Broadcast Template Engineering & Cost Optimization Suite (MCT OS v2.0)
     expect(isRecipientNameVariable("cupom")).toBe(false);
   });
 
-  it("should format template titles with cost optimization and approval status", () => {
+  it("should format template titles without invented prices or provider approval", () => {
     const utilityTitle = formatTemplateDisplayTitle({
       name: "confirmacao_agendamento_v1",
       category: "UTILITY",
       metaTemplateId: "123456",
     });
     expect(utilityTitle).toContain("Confirmacao Agendamento (v1)");
-    expect(utilityTitle).toContain("Utilidade (~R$ 0,04 • -85%)");
-    expect(utilityTitle).toContain("Meta Aprovado");
+    expect(utilityTitle).toContain("Utilidade — consulte tarifa no provedor");
+    expect(utilityTitle).toContain("confira a aprovação");
+    expect(utilityTitle).not.toContain("Meta Aprovado");
+    expect(utilityTitle).not.toContain("85%");
 
     const marketingTitle = formatTemplateDisplayTitle({
       name: "oferta_relampago_vip",
@@ -77,7 +79,7 @@ describe("Broadcast Template Engineering & Cost Optimization Suite (MCT OS v2.0)
       metaTemplateId: null,
     });
     expect(marketingTitle).toContain("Oferta Relampago VIP");
-    expect(marketingTitle).toContain("Marketing (~R$ 0,40)");
+    expect(marketingTitle).toContain("Marketing — consulte tarifa no provedor");
     expect(marketingTitle).toContain("Local");
   });
 

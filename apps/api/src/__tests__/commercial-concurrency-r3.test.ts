@@ -530,21 +530,40 @@ describe("Phase R3 Integration Suite: Commercial Concurrency, State Machine & In
       const proposal = propRes.json();
 
       // 2. Request Pix charge issuance for this proposal
-      const pixRes = await app.inject({
+      const requestKey=crypto.randomUUID();
+      const issued = await Promise.all([1,2].map(()=>app.inject({
         method: "POST",
         url: `/v1/workspaces/${workspaceId}/proposals/${proposal.id}/pix-charge`,
         headers: { authorization: `Bearer ${adminToken}` },
         payload: {
-          expiresMinutes: 60,
+          expiresMinutes: 60,requestKey,expectedVersion:1,
         },
-      });
+      })));
+      const pixRes=issued[0]!;
+      expect(issued[1]!.statusCode,issued[1]!.body).toBe(201);
+      expect(issued[1]!.json().charge.id).toBe(pixRes.json().charge.id);
 
-      expect(pixRes.statusCode).toBe(201);
+      expect(pixRes.statusCode,pixRes.body).toBe(201);
       const pixBody = pixRes.json();
       expect(pixBody.proposal.id).toBe(proposal.id);
       expect(pixBody.charge.proposalId).toBe(proposal.id);
       expect(pixBody.charge.amountCents).toBe(80000);
       expect(pixBody.charge.pixCode).toBeTruthy();
+      const listed=await app.inject({method:'GET',url:`/v1/workspaces/${workspaceId}/threads/${threadId}/pix-charges`,headers:{authorization:`Bearer ${adminToken}`}});expect(listed.statusCode,listed.body).toBe(200);expect(listed.json().charges.find((charge:{id:string})=>charge.id===pixBody.charge.id)?.proposalId).toBe(proposal.id);
+      const path=`/v1/workspaces/${workspaceId}/proposals/${proposal.id}/pix-charge`,headers={authorization:`Bearer ${adminToken}`};
+      const replay=await Promise.all([1,2].map(()=>app.inject({method:'POST',url:path,headers,payload:{requestKey,expiresMinutes:60,expectedVersion:1}})));
+      for(const response of replay){expect(response.statusCode,response.body).toBe(201);expect(response.json().charge.id).toBe(pixBody.charge.id);}
+      const changed=await app.inject({method:'POST',url:path,headers,payload:{requestKey,expiresMinutes:30,expectedVersion:1}});expect(changed.statusCode,changed.body).toBe(409);
+      const stale=await app.inject({method:'POST',url:path,headers,payload:{requestKey:crypto.randomUUID(),expectedVersion:99}});expect(stale.statusCode,stale.body).toBe(409);
+      const recovered=await app.inject({method:'POST',url:path,headers,payload:{requestKey:crypto.randomUUID(),expiresMinutes:60,expectedVersion:1}});expect(recovered.statusCode,recovered.body).toBe(201);expect(recovered.json().charge.id).toBe(pixBody.charge.id);
+      await ownerPool.query("UPDATE pix_charges SET status='EXPIRED' WHERE id=$1",[pixBody.charge.id]);
+      const limitedUntil=await ownerPool.query("UPDATE commercial_proposals SET valid_until=now()+interval '10 minutes' WHERE id=$1 RETURNING valid_until,state_version",[proposal.id]);
+      const limited=await app.inject({method:'POST',url:path,headers,payload:{requestKey:crypto.randomUUID(),expiresMinutes:60,expectedVersion:limitedUntil.rows[0].state_version}});expect(limited.statusCode,limited.body).toBe(201);expect(Date.parse(limited.json().charge.expiresAt)).toBeLessThanOrEqual(new Date(limitedUntil.rows[0].valid_until).getTime());
+      await ownerPool.query("UPDATE pix_charges SET status='PAID' WHERE id=$1",[limited.json().charge.id]);
+      const paid=await app.inject({method:'POST',url:path,headers,payload:{requestKey:crypto.randomUUID(),expectedVersion:limitedUntil.rows[0].state_version}});expect(paid.statusCode,paid.body).toBe(409);expect(paid.json().detail).toContain('pagamento registrado');
+      const expiredVersion=await ownerPool.query("UPDATE commercial_proposals SET valid_until=now()-interval '1 minute' WHERE id=$1 RETURNING state_version",[proposal.id]);
+      const expired=await app.inject({method:'POST',url:path,headers,payload:{requestKey:crypto.randomUUID(),expectedVersion:expiredVersion.rows[0].state_version}});expect(expired.statusCode,expired.body).toBe(409);expect(expired.json().detail).toContain('venceu');
+      const count=await ownerPool.query('SELECT count(*)::int AS count FROM pix_charges WHERE proposal_id=$1',[proposal.id]);expect(count.rows[0].count).toBe(2);
     });
 
     it("should reject issuing a Pix charge for a cancelled proposal (409 Conflict)", async () => {

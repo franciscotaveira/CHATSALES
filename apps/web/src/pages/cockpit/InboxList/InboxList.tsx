@@ -1,6 +1,7 @@
-import type { FC } from "react";
-import { Badge, Button, IconButton, Input, SegmentedControl, EmptyState, useBreakpoint } from "@sos-sales/ui";
-import { PanelLeftClose, PanelLeftOpen, Search, MessageSquare, RefreshCw } from "lucide-react";
+import type {CustomStagesMap} from "../../opportunities/stages";
+import {useEffect, useRef, type FC} from "react";
+import { Badge, Button, IconButton, Input, SegmentedControl, EmptyState, LoadingState, useBreakpoint } from "@sos-sales/ui";
+import { PanelLeftClose, PanelLeftOpen, Search, MessageSquare, RefreshCw, AlertTriangle } from "lucide-react";
 import { Avatar } from "@sos-sales/ui";
 import type { CommercialThreadSummary, ChannelSummary } from "../../../services/api-client";
 import { ConversationRow } from "./ConversationRow";
@@ -10,6 +11,9 @@ import { panelFrame } from "../utils/panelFrame";
 export type { QueueFilter };
 
 interface InboxListProps {
+  restoreFocusThreadId?: string | null;
+  customStages?:CustomStagesMap;
+  requiresRefresh?:boolean;hasMore?:boolean;isLoadingMore?:boolean;isRefreshing?:boolean;onLoadMore?:()=>void;
   threads: CommercialThreadSummary[];
   selectedThreadId: string | null;
   onSelectThread: (threadId: string | null) => void;
@@ -26,10 +30,18 @@ interface InboxListProps {
   isMobile?: boolean;
   onSync?: () => void;
   isSyncing?: boolean;
+  canImportHistory?: boolean;
+  isLoading?: boolean;
+  error?: string | null;
+  notice?: string | null;
+  onRetry?: () => void;
 }
 
 export const InboxList: FC<InboxListProps> = ({
+  restoreFocusThreadId,
   threads,
+  requiresRefresh=false,hasMore=false,isLoadingMore=false,isRefreshing=false,onLoadMore,
+  customStages,
   selectedThreadId,
   onSelectThread,
   queueFilter,
@@ -45,15 +57,26 @@ export const InboxList: FC<InboxListProps> = ({
   isMobile: isMobileProp,
   onSync,
   isSyncing,
+  canImportHistory=false,
+  isLoading = false, error, notice, onRetry,
 }) => {
   const { isMobile: hookMobile } = useBreakpoint();
   const isMobile = isMobileProp ?? hookMobile;
+  const queueRef = useRef<HTMLElement|null>(null);
+  useEffect(()=>{
+    if(!restoreFocusThreadId || !queueRef.current || document.activeElement && document.activeElement!==document.body)return;
+    const row=Array.from(queueRef.current.querySelectorAll<HTMLElement>('[data-thread-id]')).find(element=>element.dataset.threadId===restoreFocusThreadId);
+    const target=row?.matches('button,[role="button"]')?row:row?.querySelector<HTMLElement>('button,[role="button"]');
+    (target || queueRef.current.querySelector<HTMLInputElement>('input'))?.focus();
+  },[restoreFocusThreadId]);
 
   // If desktop and collapsed, render compact 58px contact rail
   if (!isMobile && isCollapsed) {
     return (
       <aside
+        ref={queueRef}
         aria-label="Trilho Rápido de Contatos"
+        aria-busy={isLoading || isRefreshing}
         style={{
           width: "58px",
           minWidth: "58px",
@@ -77,6 +100,34 @@ export const InboxList: FC<InboxListProps> = ({
           tooltip="Expandir Fila (320px)"
         />
 
+        {(error || requiresRefresh) && (
+          <div role="alert">
+            <IconButton
+              aria-label="A fila precisa de revisão. Expandir para consultar o aviso"
+              icon={<AlertTriangle size={16} color="var(--color-danger)" />}
+              size="sm"
+              variant="ghost"
+              onClick={onToggleCollapse}
+              tooltip={error || "A atualização da fila falhou. Expanda para revisar a consulta."}
+            />
+          </div>
+        )}
+        {(isLoading || isRefreshing) && (
+          <span role="status" aria-label="Atualizando fila de conversas" title="Atualizando fila de conversas">
+            <RefreshCw size={14} className="animate-spin" aria-hidden="true" />
+          </span>
+        )}
+        {hasMore && (
+          <IconButton
+            aria-label="Há mais conversas. Expandir fila para carregar"
+            icon={<MessageSquare size={16} />}
+            size="sm"
+            variant="ghost"
+            onClick={onToggleCollapse}
+            tooltip="Há mais conversas além das carregadas. Expanda a fila para continuar."
+          />
+        )}
+
         <div
           style={{
             flex: 1,
@@ -91,14 +142,23 @@ export const InboxList: FC<InboxListProps> = ({
         >
           {threads.map((thread) => {
             const isSelected = thread.id === selectedThreadId;
-            const hasUnread = thread.status === "waiting_human" || thread.lastMessage?.direction === "inbound";
+            const activityLabel = thread.status === "waiting_human"
+              ? "Aguardando atendimento humano"
+              : thread.lastMessage?.direction === "inbound"
+                ? "Última mensagem recebida do cliente"
+                : null;
+            const contactLabel = thread.contactName?.trim() || thread.contactPhone || "Contato sem nome";
+            const accessibleLabel = `${contactLabel}${activityLabel ? ` (${activityLabel})` : ""}`;
 
             return (
               <button
+                data-thread-id={thread.id}
                 key={thread.id}
                 type="button"
                 onClick={() => onSelectThread(thread.id)}
-                title={`${thread.contactName || thread.contactPhone}${hasUnread ? " (Aguardando atendimento)" : ""}`}
+                title={accessibleLabel}
+                aria-label={accessibleLabel}
+                aria-pressed={isSelected}
                 style={{
                   position: "relative",
                   background: "none",
@@ -116,7 +176,7 @@ export const InboxList: FC<InboxListProps> = ({
                   name={thread.contactName ?? undefined}
                   size="md"
                 />
-                {hasUnread && (
+                {activityLabel && (
                   <span
                     style={{
                       position: "absolute",
@@ -147,7 +207,9 @@ export const InboxList: FC<InboxListProps> = ({
 
   return (
     <aside
+      ref={queueRef}
       aria-label="Fila de Conversas Inbox"
+      aria-busy={isLoading}
       style={{
         width: isMobile ? "100%" : "var(--inbox-list-w, 340px)",
         minWidth: isMobile ? "100%" : "var(--inbox-list-w, 340px)",
@@ -185,7 +247,7 @@ export const InboxList: FC<InboxListProps> = ({
             >
               Inbox
             </h1>
-            <Badge variant="action">{threads.length}</Badge>
+            <span title="Conversas carregadas nesta consulta"><Badge variant="action">{threads.length}{hasMore?"+":""}</Badge></span>
             {channels && channels.length > 1 && onSelectChannelId ? (
               <select
                 value={selectedChannelId || "all"}
@@ -221,13 +283,13 @@ export const InboxList: FC<InboxListProps> = ({
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             {onSync && (
               <IconButton
-                aria-label="Sincronizar conversas do WhatsApp"
+                aria-label="Revisar importação do histórico recente"
                 icon={<RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} />}
                 size="sm"
                 variant="ghost"
                 onClick={onSync}
-                disabled={isSyncing}
-                tooltip={isSyncing ? "Sincronizando conversas..." : "Sincronizar conversas do WhatsApp"}
+                disabled={isSyncing || !canImportHistory}
+                tooltip={isSyncing ? "Importando histórico recente..." : canImportHistory?"Revisar importação do histórico recente":"Selecione um canal WAHA ativo e conectado para importar histórico"}
               />
             )}
             {!isMobile && (
@@ -245,6 +307,8 @@ export const InboxList: FC<InboxListProps> = ({
 
         {/* Search Bar */}
         <Input
+          aria-label="Buscar conversa ou telefone"
+          maxLength={200}
           placeholder="Buscar conversa ou telefone..."
           value={searchQuery}
           onChange={(e) => onSearchQueryChange(e.target.value)}
@@ -262,6 +326,13 @@ export const InboxList: FC<InboxListProps> = ({
         />
       </div>
 
+      {isRefreshing&&threads.length>0&&<small role="status" style={{padding:"4px 16px"}}>Atualizando conversas consultadas…</small>}
+      {error && <div role="alert" style={{padding:"12px 16px",fontSize:13,color:"var(--color-danger)"}}>
+        {error}{onRetry&&<Button size="sm" variant="secondary" disabled={isLoading} onClick={onRetry}>Tentar novamente</Button>}
+      </div>}
+      {requiresRefresh&&threads.length>0&&<p role="status" style={{padding:"4px 16px",fontSize:12}}>A atualização da fila falhou. As conversas anteriores foram preservadas; atualize a consulta antes de carregar mais.</p>}
+      {notice && <p role="status" style={{padding:"12px 16px",fontSize:13}}>{notice}</p>}
+      {queueFilter==="needs_attention"&&<p style={{margin:0,padding:"8px 16px",fontSize:11,color:"var(--text-secondary)"}}>Conversas abertas aguardando pessoa ou com tarefa vencida ou prevista nas próximas 24 horas.</p>}
       {/* 2. Scrollable Thread List */}
       <div
         style={{
@@ -271,39 +342,41 @@ export const InboxList: FC<InboxListProps> = ({
           flexDirection: "column",
         }}
       >
-        {threads.length === 0 ? (
+        {isLoading && threads.length===0 ? <LoadingState text="Carregando conversas…"/> : threads.length === 0 && !error ? (
           <div style={{ padding: "var(--space-8) var(--space-4)", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "14px" }}>
             <EmptyState
               icon={<MessageSquare size={36} color="var(--text-muted)" />}
-              title="Nenhuma conversa ativa"
+              title={searchQuery ? "Nenhuma conversa encontrada" : queueFilter==="closed" ? "Nenhuma conversa fechada" : queueFilter==="needs_attention" ? "Nenhuma conversa aguardando atenção" : queueFilter==="all" ? "Nenhuma conversa encontrada" : "Nenhuma conversa aberta"}
               description={
                 searchQuery
                   ? "Nenhum contato encontrado para o termo pesquisado."
-                  : "Aguardando novos leads e mensagens no canal."
+                  : queueFilter==="needs_attention" ? "Nenhuma conversa corresponde aos critérios de atenção nesta consulta." : !activeChannel ? "Conecte um canal em Configurações para receber novas conversas." : "As conversas deste filtro aparecerão aqui."
               }
             />
-            {onSync && !searchQuery && (
+            {onSync && activeChannel && !searchQuery && (
               <Button
                 size="sm"
                 variant="primary"
                 prefixIcon={<RefreshCw size={13} className={isSyncing ? "animate-spin" : ""} />}
                 onClick={onSync}
-                disabled={isSyncing}
+                disabled={isSyncing || !canImportHistory}
               >
-                {isSyncing ? "Sincronizando Conversas..." : "Sincronizar Conversas do WhatsApp"}
+                {isSyncing ? "Importando histórico..." : "Revisar importação do histórico"}
               </Button>
             )}
           </div>
         ) : (
           threads.map((thread) => (
-            <ConversationRow
+            <div key={thread.id} data-thread-id={thread.id} style={{flexShrink:0}}><ConversationRow
               key={thread.id}
               thread={thread}
+              customStages={customStages}
               selected={thread.id === selectedThreadId}
               onSelect={onSelectThread}
-            />
+            /></div>
           ))
         )}
+        {hasMore&&onLoadMore&&<Button size="sm" variant="secondary" disabled={requiresRefresh||isLoadingMore||isRefreshing||isLoading} onClick={onLoadMore}>{isLoadingMore?"Carregando mais conversas…":"Carregar mais conversas"}</Button>}
       </div>
     </aside>
   );

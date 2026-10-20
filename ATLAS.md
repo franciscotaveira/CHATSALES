@@ -8,11 +8,15 @@
 
 ## 1. Topologia de Infraestrutura Soberana
 
-- **VPS Próprio:** `179.197.72.221` (Ubuntu Linux x86_64, Docker Compose).
-- **Acesso SSH:** `ssh -i ~/.ssh/tx-crm-codex-deploy root@179.197.72.221`
+- **Host de Produção Ativo:** Hostinger KVM 4 (`srv2078434.hstgr.cloud` - Datacenter Brasil, Campinas/SP).
+- **IPv4:** `200.141.17.99` (4 vCPUs, 16 GB RAM, 200 GB NVMe).
+- **Acesso SSH:** `ssh -i ~/.ssh/id_rsa_mct_deploy root@200.141.17.99`
+- **Antiga VPS (179.197.72.221):** Descomissionada e destruída. Dados 100% resgatados e preservados localmente em `emergency_backups/`.
 - **Diretório da Aplicação em Produção:** `/opt/chat-sales-v3`
-- **Domínio Ativo:** `https://crm.iaparavendas.tech`
-- **Reverse Proxy & SSL:** Caddy (`sos-sales-caddy`) com emissão TLS automática Let's Encrypt para `crm.iaparavendas.tech`.
+- **Domínio Ativo do Cockpit / CRM:** `https://chat.automatizaprocessos.tech`
+- **Domínio de Automações:** `https://automacao.automatizaprocessos.tech`
+- **Landing Page Oficial:** `https://automatizaprocessos.tech`
+- **Reverse Proxy & SSL:** Caddy (`sos-sales-caddy`) com emissão TLS automática Let's Encrypt para `chat.automatizaprocessos.tech`.
 - **Topologia de Portas Internas & Contêineres:**
   - `chat-sales-web`: Porta interna 80 (Nginx servindo build SPA otimizada).
   - `chat-sales-api`: Porta interna 4400 (Fastify 5 gateway HTTP).
@@ -63,7 +67,7 @@
 
 ### 2.7 Governança Operacional SaaS & Disaster Recovery
 - **Backup Diário Encriptado (AES-256):** Execução automática às 03:00 AM via crontab com verificação de integridade do stream e retenção de 7 dias em `/opt/sos-sales/backups/daily/`.
-- **Watchdog de Auto-Cura:** Sentinela no crontab a cada 5 minutos monitorando `https://crm.iaparavendas.tech/ready`, reiniciando automaticamente a API em caso de 3 falhas consecutivas e alertando caso o disco ultrapasse 85%.
+- **Watchdog de Auto-Cura:** Sentinela no crontab a cada 5 minutos monitorando `https://chat.automatizaprocessos.tech/ready`, reiniciando automaticamente a API em caso de 3 falhas consecutivas e alertando caso o disco ultrapasse 85%.
 - **Log Caps:** Limite rígido de logs no Docker Compose fixado em 20 MB por arquivo e máximo de 3 arquivos por container.
 
 ### 2.8 Disparos em Massa com Importador Inteligente & Fechamento Pix na IA

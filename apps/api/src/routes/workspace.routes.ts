@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from "fastify";
 import crypto from "node:crypto";
-import { withTenantTransaction, getDatabasePool } from "@sos-sales/database";
+import { withTenantTransaction, getDatabasePool, type PoolClient, assignCommercialAction } from "@sos-sales/database";
 import { hashPassword } from "@sos-sales/auth";
 import { z } from "zod";
 
@@ -20,7 +20,7 @@ const createWorkspaceSchema = z.object({
   name: z.string().min(2, "O nome da empresa deve ter pelo menos 2 caracteres").max(100),
   ownerName: z.string().min(2, "O nome do proprietário deve ter pelo menos 2 caracteres").max(100),
   ownerEmail: z.string().email("E-mail inválido"),
-  initialPassword: z.string().min(6, "A senha deve ter pelo menos 6 caracteres").max(100).optional(),
+  initialPassword: z.string().min(6, "A senha deve ter pelo menos 6 caracteres").max(100).refine(value=>value.trim().length>0,"A senha não pode conter apenas espaços").optional(),
 });
 
 const updateWorkspaceSchema = z.object({
@@ -42,16 +42,29 @@ const updateWorkspaceSchema = z.object({
 });
 
 const addMemberSchema = z.object({
-  name: z.string().min(2).max(100),
-  email: z.string().email(),
+  name: z.string().trim().min(2).max(100),
+  email: z.string().trim().email(),
   role: z.enum(["admin", "manager", "operator"]),
-  password: z.string().min(6).max(100).optional(),
+  password: z.string().min(6).max(100).refine(value=>value.trim().length>0,"A senha não pode conter apenas espaços").optional(),
 });
 
+const memberExpectedRole=z.enum(["owner","admin","manager","operator","analyst","support_auditor","integration_service"]);
 const updateMemberSchema = z.object({
+  expectedRole: memberExpectedRole.optional(),
   role: z.enum(["admin", "manager", "operator"]).optional(),
-  password: z.string().min(6).max(100).optional(),
+  password: z.string().min(6).max(100).refine(value=>value.trim().length>0,"A senha não pode conter apenas espaços").optional(),
 });
+
+const teamError=(statusCode:number,message:string)=>Object.assign(new Error(message),{statusCode});
+async function lockTeamActor(client:PoolClient,workspace:string,actor:string){
+  await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`team:${workspace}`]);
+  const row=(await client.query<{role:string}>('SELECT role FROM workspace_memberships WHERE workspace_id=$1 AND user_id=$2 FOR UPDATE',[workspace,actor])).rows[0];
+  if(!row||!['owner','admin'].includes(row.role))throw teamError(403,'Somente proprietário e administrador podem gerenciar acessos.');
+  return row.role;
+}
+async function teamAudit(client:PoolClient,workspace:string,actor:string,target:string,action:string,detail:Record<string,unknown>){
+  await client.query("INSERT INTO audit_events(workspace_id,actor_type,actor_id,action,resource_type,resource_id,metadata) VALUES($1,'human',$2,$3,'workspace_member',$4,$5::jsonb)",[workspace,actor,action,target,JSON.stringify(detail)]);
+}
 
 export const workspaceRoutes: FastifyPluginAsync = async (app) => {
   // GET /v1/workspaces/:workspaceId — view workspace details (requires workspace:view)
@@ -387,7 +400,8 @@ export const workspaceRoutes: FastifyPluginAsync = async (app) => {
 
       try {
         const result = await withTenantTransaction(workspaceId, async (client) => {
-          // 1. Check if user already exists in global users table
+          await lockTeamActor(client,workspaceId,request.user.id);
+          // Password belongs to the account, not to this workspace.
           const existingUserRes = await client.query<{
             id: string;
             email: string;
@@ -400,7 +414,7 @@ export const workspaceRoutes: FastifyPluginAsync = async (app) => {
 
           let userId: string;
           let userName = name.trim();
-          let createdPassword = password ? password.trim() : "";
+          let createdPassword = password ?? "";
 
           const existingUser = existingUserRes.rows[0];
           if (existingUser) {
@@ -418,14 +432,8 @@ export const workspaceRoutes: FastifyPluginAsync = async (app) => {
               throw err;
             }
 
-            // If a new password is provided, update it
-            if (password) {
-              const hashed = hashPassword(password.trim());
-              await client.query(
-                `UPDATE users SET password_hash = $1 WHERE id = $2`,
-                [hashed, userId]
-              );
-            }
+            if(password!==undefined)throw teamError(409,'Esta conta já existe. Adicione sem senha inicial; a senha atual será preservada.');
+            createdPassword="";
           } else {
             // New user registration
             if (!createdPassword) {
@@ -459,7 +467,9 @@ export const workspaceRoutes: FastifyPluginAsync = async (app) => {
             throw new Error("FAILED_TO_CREATE_MEMBERSHIP");
           }
 
+          await teamAudit(client,workspaceId,request.user.id,userId,'member.added',{role,accountCreated:!existingUser});
           return {
+            accountCreated: !existingUser,
             member: {
               id: membership.id,
               userId,
@@ -502,6 +512,7 @@ export const workspaceRoutes: FastifyPluginAsync = async (app) => {
     async (request, reply) => {
       const workspaceId = request.workspaceId!;
       const { memberId } = request.params as { memberId: string };
+      if(!z.string().uuid().safeParse(memberId).success)return reply.code(400).send({detail:'Integrante inválido.'});
       const parseResult = updateMemberSchema.safeParse(request.body);
 
       if (!parseResult.success) {
@@ -515,19 +526,13 @@ export const workspaceRoutes: FastifyPluginAsync = async (app) => {
         });
       }
 
-      const { role, password } = parseResult.data;
-      if (!role && !password) {
-        return reply.status(400).send({
-          type: "https://sos-sales.mct.br/errors/bad-request",
-          title: "Bad Request",
-          status: 400,
-          detail: "Informe ao menos a nova role ou nova senha",
-          instance: request.url,
-          correlationId: request.id,
-        });
-      }
+      const { role, password, expectedRole } = parseResult.data;
+      if(password!==undefined)return reply.code(403).send({detail:'A senha pertence à conta e não pode ser redefinida pela equipe da empresa.'});
+      if(!role)return reply.code(400).send({detail:'Escolha o perfil de acesso.'});
+      if(!expectedRole)return reply.code(428).send({detail:'Atualize a equipe antes de alterar o perfil.'});
 
       const updated = await withTenantTransaction(workspaceId, async (client) => {
+        await lockTeamActor(client,workspaceId,request.user.id);
         // Find membership by membership ID or user ID
         const targetRes = await client.query<{
           id: string;
@@ -537,7 +542,7 @@ export const workspaceRoutes: FastifyPluginAsync = async (app) => {
           `SELECT id, user_id, role 
            FROM workspace_memberships 
            WHERE workspace_id = $1 AND (id = $2::uuid OR user_id = $2::uuid)
-           LIMIT 1`,
+           LIMIT 1 FOR UPDATE`,
           [workspaceId, memberId]
         );
 
@@ -546,29 +551,11 @@ export const workspaceRoutes: FastifyPluginAsync = async (app) => {
           return null;
         }
 
-        // Owner protection: cannot demote owner unless caller is owner
-        if (target.role === "owner" && role) {
-          const callerRole = request.activeRole || "owner";
-          if (callerRole !== "owner") {
-            const err = new Error("CANNOT_MODIFY_OWNER");
-            throw err;
-          }
-        }
-
-        if (role) {
-          await client.query(
-            `UPDATE workspace_memberships SET role = $1 WHERE id = $2`,
-            [role, target.id]
-          );
-        }
-
-        if (password) {
-          const hashed = hashPassword(password.trim());
-          await client.query(
-            `UPDATE users SET password_hash = $1 WHERE id = $2`,
-            [hashed, target.user_id]
-          );
-        }
+        if(target.role!==expectedRole)throw teamError(409,'O perfil deste integrante mudou. Atualize a equipe antes de decidir.');
+        if(target.role==='owner')throw teamError(403,'O acesso do proprietário é protegido.');
+        if(target.user_id===request.user.id)throw teamError(403,'Você não pode alterar o próprio nível de acesso pela equipe.');
+        await client.query('UPDATE workspace_memberships SET role=$1 WHERE id=$2',[role,target.id]);
+        await teamAudit(client,workspaceId,request.user.id,target.user_id,'member.role_changed',{previousRole:target.role,role});
 
         const refreshed = await client.query<{
           id: string;
@@ -626,7 +613,11 @@ export const workspaceRoutes: FastifyPluginAsync = async (app) => {
       const workspaceId = request.workspaceId!;
       const { memberId } = request.params as { memberId: string };
 
+      if(!z.string().uuid().safeParse(memberId).success)return reply.code(400).send({detail:'Integrante inválido.'});
+      const expected=z.object({expectedRole:memberExpectedRole}).safeParse(request.body);
+      if(!expected.success)return reply.code(428).send({detail:'Atualize a equipe antes de remover o acesso.'});
       const removed = await withTenantTransaction(workspaceId, async (client) => {
+        await lockTeamActor(client,workspaceId,request.user.id);
         const targetRes = await client.query<{
           id: string;
           user_id: string;
@@ -635,7 +626,7 @@ export const workspaceRoutes: FastifyPluginAsync = async (app) => {
           `SELECT id, user_id, role 
            FROM workspace_memberships 
            WHERE workspace_id = $1 AND (id = $2::uuid OR user_id = $2::uuid)
-           LIMIT 1`,
+           LIMIT 1 FOR UPDATE`,
           [workspaceId, memberId]
         );
 
@@ -644,18 +635,15 @@ export const workspaceRoutes: FastifyPluginAsync = async (app) => {
           return null;
         }
 
-        if (target.role === "owner") {
-          const err = new Error("CANNOT_REMOVE_OWNER");
-          throw err;
-        }
-
-        if (target.user_id === request.user.id) {
-          const err = new Error("CANNOT_REMOVE_SELF");
-          throw err;
-        }
-
-        await client.query(`DELETE FROM workspace_memberships WHERE id = $1`, [target.id]);
-        return true;
+        if(target.role!==expected.data.expectedRole)throw teamError(409,'O perfil deste integrante mudou. Atualize a equipe antes de decidir.');
+        if(target.role==='owner')throw teamError(403,'O acesso do proprietário é protegido.');
+        if(target.user_id===request.user.id)throw teamError(403,'Você não pode remover o próprio acesso pela equipe.');
+        const actions=(await client.query<{id:string}>("UPDATE commercial_actions SET assignee_user_id=NULL,updated_at=clock_timestamp() WHERE workspace_id=$1 AND assignee_user_id=$2 AND status='open' RETURNING id",[workspaceId,target.user_id])).rows;
+        if(actions.length)await client.query("INSERT INTO commercial_action_history(workspace_id,action_id,action_type,previous_assignee_id,new_assignee_id,created_by_user_id,created_at) SELECT $1,id,'assigned',$2,NULL,$3,clock_timestamp() FROM unnest($4::uuid[]) AS id",[workspaceId,target.user_id,request.user.id,actions.map(item=>item.id)]);
+        const journeys=(await client.query<{id:string}>("UPDATE commercial_journeys SET assigned_user_id=NULL,updated_at=clock_timestamp() WHERE workspace_id=$1 AND assigned_user_id=$2 AND status='open' RETURNING id",[workspaceId,target.user_id])).rows;
+        await client.query('DELETE FROM workspace_memberships WHERE id=$1',[target.id]);
+        await teamAudit(client,workspaceId,request.user.id,target.user_id,'member.removed',{previousRole:target.role,actionIds:actions.map(item=>item.id),journeyIds:journeys.map(item=>item.id),reason:'access_removed_pending_reassignment'});
+        return {tasks:actions.length,opportunities:journeys.length};
       });
 
       if (!removed) {
@@ -671,10 +659,47 @@ export const workspaceRoutes: FastifyPluginAsync = async (app) => {
 
       return reply.status(200).send({
         success: true,
-        message: "Membro removido da empresa com sucesso",
+        message: "Acesso removido. Pendências abertas ficaram sem responsável para revisão; histórico preservado.",
+        pendingReassignment: removed,
       });
     }
   );
+
+
+  app.get('/v1/workspaces/:workspaceId/team-reassignment',{preHandler:[app.authenticate,app.requireWorkspaceContext,app.requirePermission('workspace:manage')]},async(request,reply)=>{
+    const query=z.object({before:z.string().max(150).optional()}).strict().safeParse(request.query);
+    if(!query.success)return reply.code(400).send({detail:'Página inválida.'});
+    let time:string|null=null,id:string|null=null,kind:string|null=null;
+    if(query.data.before){const p=query.data.before.split('~');if(p.length!==3||!z.string().datetime().safeParse(p[0]).success||!z.string().uuid().safeParse(p[1]).success||!['task','opportunity'].includes(p[2]!))return reply.code(400).send({detail:'Página inválida.'});[time,id,kind]=p as [string,string,string];}
+    return withTenantTransaction(request.workspaceId!,async client=>{
+      const rows=(await client.query(`WITH pending AS (
+        SELECT a.id,'task'::text AS kind,a.title,a.thread_id,a.updated_at AS changed_at,c.name AS contact_name FROM commercial_actions a JOIN commercial_threads t ON t.workspace_id=a.workspace_id AND t.id=a.thread_id LEFT JOIN contacts c ON c.workspace_id=t.workspace_id AND c.id=t.contact_id WHERE a.workspace_id=$1 AND a.status='open' AND a.assignee_user_id IS NULL
+        UNION ALL
+        SELECT j.id,'opportunity',j.title,j.thread_id,j.updated_at,c.name FROM commercial_journeys j LEFT JOIN contacts c ON c.workspace_id=j.workspace_id AND c.id=j.contact_id WHERE j.workspace_id=$1 AND j.status='open' AND j.assigned_user_id IS NULL
+      ) SELECT *,to_char(changed_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_time FROM pending WHERE ($2::timestamptz IS NULL OR (changed_at,id,kind)<($2::timestamptz,$3::uuid,$4::text)) ORDER BY changed_at DESC,id DESC,kind DESC LIMIT 21`,[request.workspaceId,time,id,kind])).rows;
+      const items=rows.slice(0,20),last=items.at(-1);
+      return {items:items.map(row=>({id:row.id,kind:row.kind,title:row.title,threadId:row.thread_id,contactName:row.contact_name,changedAt:row.changed_at.toISOString()})),nextCursor:rows.length>20?`${last.cursor_time}~${last.id}~${last.kind}`:null};
+    });
+  });
+  app.post('/v1/workspaces/:workspaceId/team-reassignment',{preHandler:[app.authenticate,app.requireWorkspaceContext,app.requirePermission('workspace:manage')]},async(request,reply)=>{
+    const input=z.object({id:z.string().uuid(),kind:z.enum(['task','opportunity']),assigneeUserId:z.string().uuid()}).strict().safeParse(request.body);
+    if(!input.success)return reply.code(400).send({detail:'Escolha uma pendência e um responsável válido.'});
+    const workspace=request.workspaceId!,actor=request.user.id,{id,kind,assigneeUserId}=input.data;
+    return withTenantTransaction(workspace,async client=>{
+      await lockTeamActor(client,workspace,actor);
+      const member=(await client.query<{role:string}>('SELECT role FROM workspace_memberships WHERE workspace_id=$1 AND user_id=$2 FOR KEY SHARE',[workspace,assigneeUserId])).rows[0];
+      if(!member||!['owner','admin','manager','operator'].includes(member.role))throw teamError(409,'O responsável não possui acesso operacional nesta empresa. Atualize a equipe.');
+      if(kind==='task'){
+        const task=(await client.query("SELECT id FROM commercial_actions WHERE workspace_id=$1 AND id=$2 AND status='open' AND assignee_user_id IS NULL FOR UPDATE",[workspace,id])).rows[0];
+        if(!task)throw teamError(409,'A tarefa já foi atribuída ou encerrada. Atualize as pendências.');
+        await assignCommercialAction(client,workspace,id,{assigneeUserId,userId:actor});
+      }else{
+        const changed=await client.query("UPDATE commercial_journeys SET assigned_user_id=$3,updated_at=clock_timestamp() WHERE workspace_id=$1 AND id=$2 AND status='open' AND assigned_user_id IS NULL RETURNING id",[workspace,id,assigneeUserId]);
+        if(!changed.rows.length)throw teamError(409,'A oportunidade já foi atribuída ou encerrada. Atualize as pendências.');
+      }
+      await teamAudit(client,workspace,actor,assigneeUserId,'member.pending_work_assigned',{kind,id,previousAssignee:null});return {success:true};
+    });
+  });
 
   // POST /v1/workspaces — create new workspace/company (requires owner privileges)
   app.post(
@@ -716,7 +741,7 @@ export const workspaceRoutes: FastifyPluginAsync = async (app) => {
       const cleanEmail = ownerEmail.trim().toLowerCase();
       const cleanName = name.trim();
       const cleanOwnerName = ownerName.trim();
-      const tempPassword = initialPassword?.trim() || "MctSoberana2026!";
+      const tempPassword = initialPassword ?? crypto.randomBytes(24).toString("base64url");
 
       const baseSlug = slugify(cleanName);
       let targetSlug = baseSlug || `empresa-${Date.now().toString(36)}`;
@@ -726,11 +751,14 @@ export const workspaceRoutes: FastifyPluginAsync = async (app) => {
 
       try {
         await client.query("BEGIN");
+        const newWorkspaceId=crypto.randomUUID();
+        await client.query("SELECT set_config('app.current_workspace_id', $1, true)",[newWorkspaceId]);
 
         // 1. Resolve unique slug
-        const slugCheck = await client.query("SELECT id FROM workspaces WHERE slug = $1", [targetSlug]);
+        await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`workspace-slug:${targetSlug}`]);
+        const slugCheck = await client.query("SELECT id FROM organizations WHERE slug = $1", [`${targetSlug}-org`]);
         if (slugCheck.rows.length > 0) {
-          targetSlug = `${targetSlug}-${Date.now().toString(36).slice(-4)}`;
+          targetSlug = `${targetSlug}-${crypto.randomUUID()}`;
         }
 
         // 2. Organization
@@ -749,10 +777,10 @@ export const workspaceRoutes: FastifyPluginAsync = async (app) => {
              id, organization_id, name, slug, timezone, currency, is_active, radar_enabled, created_at, updated_at
            )
            VALUES (
-             gen_random_uuid(), $1, $2, $3, 'America/Sao_Paulo', 'BRL', TRUE, TRUE, clock_timestamp(), clock_timestamp()
+             $4, $1, $2, $3, 'America/Sao_Paulo', 'BRL', TRUE, TRUE, clock_timestamp(), clock_timestamp()
            )
            RETURNING id, name, slug`,
-          [orgId, cleanName, targetSlug]
+          [orgId, cleanName, targetSlug,newWorkspaceId]
         );
         const newWs = wsRes.rows[0]!;
 
@@ -765,11 +793,10 @@ export const workspaceRoutes: FastifyPluginAsync = async (app) => {
 
         const passwordHash = hashPassword(tempPassword);
         const userRes = await client.query<{ id: string; name: string; email: string }>(
-          `INSERT INTO users (id, email, name, password_hash, created_at, updated_at)
-           VALUES (gen_random_uuid(), $1, $2, $3, clock_timestamp(), clock_timestamp())
+          `INSERT INTO users (id, email, name, password_hash, created_at)
+           VALUES (gen_random_uuid(), $1, $2, $3, clock_timestamp())
            ON CONFLICT (email) DO UPDATE SET
-             name = COALESCE(users.name, EXCLUDED.name),
-             updated_at = clock_timestamp()
+             name = COALESCE(users.name, EXCLUDED.name)
            RETURNING id, name, email`,
           [cleanEmail, cleanOwnerName, passwordHash]
         );
@@ -800,8 +827,8 @@ export const workspaceRoutes: FastifyPluginAsync = async (app) => {
           : `🔑 Senha: ${tempPassword}`;
 
         const welcomeMessage = isExistingUser
-          ? `🚀 Olá, ${cleanOwnerName}! Seu acesso à nova empresa ${cleanName} no Chat Sales V3 foi vinculado à sua conta existente.\n\n🔗 Painel: https://crm.iaparavendas.tech\n👤 E-mail: ${cleanEmail}\n${passwordLine}\n\nFaça login para alternar para a nova empresa e conectar o WhatsApp!`
-          : `🚀 Olá, ${cleanOwnerName}! Seu acesso ao Chat Sales V3 (${cleanName}) está liberado.\n\n🔗 Painel: https://crm.iaparavendas.tech\n👤 E-mail: ${cleanEmail}\n${passwordLine}\n\nFaça login para conectar seu WhatsApp e cadastrar seus produtos!`;
+          ? `🚀 Olá, ${cleanOwnerName}! Seu acesso à nova empresa ${cleanName} no Chat Sales V3 foi vinculado à sua conta existente.\n\n🔗 Painel: https://chat.automatizaprocessos.tech\n👤 E-mail: ${cleanEmail}\n${passwordLine}\n\nFaça login para alternar para a nova empresa e conectar o WhatsApp!`
+          : `🚀 Olá, ${cleanOwnerName}! Seu acesso ao Chat Sales V3 (${cleanName}) está liberado.\n\n🔗 Painel: https://chat.automatizaprocessos.tech\n👤 E-mail: ${cleanEmail}\n${passwordLine}\n\nFaça login para conectar seu WhatsApp e cadastrar seus produtos!`;
 
         return reply.status(201).send({
           success: true,

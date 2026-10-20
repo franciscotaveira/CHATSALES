@@ -1,4 +1,4 @@
-import { useState, type FC, type FormEvent } from "react";
+import { useState, useRef, useEffect, type FC, type FormEvent } from "react";
 import { Button, Input, Alert } from "@sos-sales/ui";
 import { MessageSquareText, Mail, ShieldCheck, Lock } from "lucide-react";
 import { apiClient } from "../services/api-client";
@@ -7,6 +7,8 @@ import {
   sendSupabaseOtp,
   verifySupabaseOtp,
 } from "../services/supabase-auth";
+
+import {userFacingError} from "../utils/user-facing-error";
 
 interface LoginPageProps {
   onLoginSuccess: (token: string) => void;
@@ -29,89 +31,36 @@ export const LoginPage: FC<LoginPageProps> = ({ onLoginSuccess, initialError }) 
   const [errorMessage, setErrorMessage] = useState<string | null>(initialError || null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
 
-  /**
-   * Sovereign Native Login Flow (Email + Password via Scrypt) - MCT OS v2.0
-   */
-  const handlePasswordLogin = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!email.trim()) {
-      setErrorMessage("Informe seu e-mail cadastrado.");
-      return;
-    }
-    if (!password.trim()) {
-      setErrorMessage("Informe sua senha de acesso.");
-      return;
-    }
+  const [otpEmail,setOtpEmail]=useState("");
+  const passwordEmailField=useRef<HTMLInputElement>(null),otpEmailField=useRef<HTMLInputElement>(null),otpCodeField=useRef<HTMLInputElement>(null),focusedStep=useRef("");
+  useEffect(()=>{
+    const step=authMode==="password"?"password":otpSent?"otp-code":"otp-email";
+    if(isLoading||focusedStep.current===step)return;
+    const field=step==="password"?passwordEmailField.current:step==="otp-code"?otpCodeField.current:otpEmailField.current;
+    if(field){field.focus();focusedStep.current=step;}
+  },[authMode,otpSent,isLoading]);
 
-    setIsLoading(true);
-    setErrorMessage(null);
-
-    try {
-      const res = await apiClient.loginWithPassword({
-        email: email.trim(),
-        password: password.trim(),
-      });
-
-      if (res.token) {
-        onLoginSuccess(res.token);
-      } else {
-        setErrorMessage("Resposta de autenticação sem token válido.");
-      }
-    } catch (err: unknown) {
-      const msg =
-        (err as { detail?: string; message?: string }).detail ||
-        (err as Error).message ||
-        "E-mail ou senha incorretos.";
-      setErrorMessage(msg);
-    } finally {
-      setIsLoading(false);
-    }
+  const attempt=useRef(0),locked=useRef(false),mounted=useRef(true);
+  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;attempt.current++;};},[]);
+  async function run(operation:(valid:()=>boolean)=>Promise<void>){
+    if(locked.current)return;const request=++attempt.current;const valid=()=>mounted.current&&request===attempt.current;
+    locked.current=true;setIsLoading(true);setErrorMessage(null);setSuccessNotice(null);
+    try{await operation(valid);}catch(error){if(valid())setErrorMessage(userFacingError(error,"Não foi possível concluir o acesso. Tente novamente."));}
+    finally{if(valid()){locked.current=false;setIsLoading(false);}}
+  }
+  const handlePasswordLogin=async(event:FormEvent)=>{
+    event.preventDefault();if(!email.trim()||!password){setErrorMessage("Informe o e-mail e a senha cadastrados.");return;}
+    await run(async valid=>{const result=await apiClient.loginWithPassword({email:email.trim(),password});if(!valid())return;if(result.token)onLoginSuccess(result.token);else setErrorMessage("A autenticação não retornou uma sessão válida. Tente novamente.");});
   };
-
-  /**
-   * Supabase Auth OTP Flow (Optional Alternate)
-   */
-  const handleSendOtp = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!email.trim()) {
-      setErrorMessage("Informe o e-mail cadastrado.");
-      return;
-    }
-
-    setIsLoading(true);
-    setErrorMessage(null);
-    setSuccessNotice(null);
-
-    const res = await sendSupabaseOtp(email.trim());
-    setIsLoading(false);
-
-    if (res.success) {
-      setOtpSent(true);
-      setSuccessNotice(`Código de acesso enviado para ${email.trim()}. Verifique sua caixa de entrada.`);
-    } else {
-      setErrorMessage(res.message || "Falha ao enviar código de acesso.");
-    }
+  const handleSendOtp=async(event:FormEvent)=>{
+    event.preventDefault();const requestedEmail=email.trim();if(!requestedEmail){setErrorMessage("Informe o e-mail cadastrado.");return;}
+    await run(async valid=>{const result=await sendSupabaseOtp(requestedEmail);if(!valid())return;if(result.success){setOtpEmail(requestedEmail);setOtpSent(true);setSuccessNotice(`Código de acesso enviado para ${requestedEmail}. Verifique sua caixa de entrada.`);}else setErrorMessage(result.message||"Não foi possível solicitar o código de acesso.");});
   };
-
-  const handleVerifyOtp = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!otpCode.trim()) {
-      setErrorMessage("Informe o código de 6 dígitos recebido.");
-      return;
-    }
-
-    setIsLoading(true);
-    setErrorMessage(null);
-
-    const res = await verifySupabaseOtp(email.trim(), otpCode.trim());
-    setIsLoading(false);
-
-    if (res.token) {
-      onLoginSuccess(res.token);
-    } else {
-      setErrorMessage(res.error || "Código de acesso inválido ou expirado.");
-    }
+  const handleVerifyOtp=async(event:FormEvent)=>{
+    event.preventDefault();if(!/^\d{6}$/.test(otpCode.trim())){setErrorMessage("Informe o código de 6 dígitos recebido.");return;}
+    await run(async valid=>{const result=await verifySupabaseOtp(otpEmail,otpCode.trim());if(!valid())return;if(result.token)onLoginSuccess(result.token);else setErrorMessage(result.error||"Código inválido ou expirado. Solicite outro código.");});
   };
+  const resetOtp=()=>{if(locked.current)return;attempt.current++;setOtpSent(false);setOtpCode("");setOtpEmail("");setErrorMessage(null);setSuccessNotice(null);};
 
   return (
     <div
@@ -177,7 +126,7 @@ export const LoginPage: FC<LoginPageProps> = ({ onLoginSuccess, initialError }) 
                 margin: 0,
               }}
             >
-              SOS Sales
+              CHAT-SALES
             </h1>
             <p
               style={{
@@ -207,7 +156,9 @@ export const LoginPage: FC<LoginPageProps> = ({ onLoginSuccess, initialError }) 
         {authMode === "password" && (
           <form onSubmit={handlePasswordLogin} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <Input
+              ref={passwordEmailField}
               label="E-mail"
+              autoComplete="username" disabled={isLoading}
               type="email"
               placeholder="seu.email@empresa.com"
               value={email}
@@ -218,6 +169,7 @@ export const LoginPage: FC<LoginPageProps> = ({ onLoginSuccess, initialError }) 
 
             <Input
               label="Senha de Acesso"
+              autoComplete="current-password" disabled={isLoading}
               type="password"
               placeholder="Digite sua senha..."
               value={password}
@@ -233,15 +185,16 @@ export const LoginPage: FC<LoginPageProps> = ({ onLoginSuccess, initialError }) 
               prefixIcon={<Lock size={16} />}
               style={{ width: "100%", marginTop: "4px" }}
             >
-              {isLoading ? "Autenticando..." : "Entrar no SOS Sales"}
+              {isLoading ? "Autenticando..." : "Entrar no CHAT-SALES"}
             </Button>
 
             {hasSupabase && (
               <div style={{ display: "flex", justifyContent: "center", marginTop: "8px" }}>
                 <button
                   type="button"
+                  disabled={isLoading}
                   onClick={() => {
-                    setAuthMode("otp");
+                    resetOtp();setPassword("");setAuthMode("otp");
                     setErrorMessage(null);
                   }}
                   style={{
@@ -267,7 +220,9 @@ export const LoginPage: FC<LoginPageProps> = ({ onLoginSuccess, initialError }) 
             {!otpSent ? (
               <form onSubmit={handleSendOtp} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 <Input
+                  ref={otpEmailField}
                   label="E-mail Profissional"
+                  autoComplete="email" disabled={isLoading}
                   type="email"
                   placeholder="seu.email@empresa.com"
                   value={email}
@@ -288,8 +243,11 @@ export const LoginPage: FC<LoginPageProps> = ({ onLoginSuccess, initialError }) 
               </form>
             ) : (
               <form onSubmit={handleVerifyOtp} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <p style={{margin:0,fontSize:13,overflowWrap:"anywhere"}}>Código solicitado para {otpEmail}.</p>
                 <Input
+                  ref={otpCodeField}
                   label="Código de Acesso (6 dígitos)"
+                  autoComplete="one-time-code" inputMode="numeric" maxLength={6} disabled={isLoading}
                   type="text"
                   placeholder="123456"
                   value={otpCode}
@@ -310,10 +268,11 @@ export const LoginPage: FC<LoginPageProps> = ({ onLoginSuccess, initialError }) 
               </form>
             )}
 
+            {otpSent&&<button type="button" disabled={isLoading} onClick={resetOtp}>Alterar e-mail ou solicitar outro código</button>}
             <button
-              type="button"
+              type="button" disabled={isLoading}
               onClick={() => {
-                setAuthMode("password");
+                resetOtp();setAuthMode("password");
                 setOtpSent(false);
                 setOtpCode("");
                 setErrorMessage(null);

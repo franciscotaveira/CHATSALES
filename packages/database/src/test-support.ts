@@ -484,6 +484,9 @@ export async function bootstrapTestDatabase(
     await maintenancePool.query(`
       DO $$
       BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'sos_migration_owner') THEN
+          CREATE ROLE sos_migration_owner WITH LOGIN PASSWORD 'sos_migration_secret_2026' CREATEROLE;
+        END IF;
         IF NOT EXISTS (
           SELECT 1 FROM pg_roles WHERE rolname = 'sos_migration_owner' AND rolcreaterole = true
         ) THEN
@@ -607,6 +610,13 @@ export async function bootstrapTestDatabase(
         break;
       }
     }
+
+    // PostgreSQL 16 can auto-create memberships with SET FALSE for role creators.
+    // Test fixtures explicitly exercise SET ROLE; enable only on the isolated test server.
+    const roleAdminPool = new Pool({ connectionString: getTestAdminDatabaseUrl(), max: 1 });
+    try {
+      await roleAdminPool.query("GRANT sos_ingress_user, sos_worker_user TO sos_migration_owner WITH SET TRUE;");
+    } finally { await roleAdminPool.end(); }
 
     // Apply test marker comment
     await targetPool.query(`
@@ -891,6 +901,7 @@ export async function resetTestQueueState(ownerPool: Pool): Promise<void> {
   try {
     await client.query("BEGIN;");
     await client.query("DELETE FROM public.provider_delivery_events;");
+    await client.query("DELETE FROM public.broadcast_message_tests;");
     await client.query("DELETE FROM public.outbound_commands;");
     await client.query("DELETE FROM public.channel_webhook_inbox;");
     await client.query("COMMIT;");

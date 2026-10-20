@@ -1,5 +1,6 @@
 import {
   withTenantTransaction,
+  getMessageTemplateByName,
   TransactionalOutboundProducerRepository,
   IdempotencyRaceLostError,
   LegacyIdempotencyRecordError,
@@ -8,7 +9,10 @@ import {
   ChannelInstanceInactiveError,
   OutboundProducerValidationError,
   type Pool,
+  type PoolClient,
 } from "@sos-sales/database";
+import crypto from "node:crypto";
+import {storedTemplateLayout,templateLayoutSignature,validateTemplateComponents} from "@sos-sales/contracts";
 import type {
   PublicOutboundRequest,
   TrustedOutboundContext,
@@ -24,6 +28,8 @@ import {
 
 export interface TransactionalOutboundProducerServiceOptions {
   repository?: TransactionalOutboundProducerRepository;
+  /** Internal transactional linkage; never populated from an HTTP payload. */
+  onCreated?: (client: PoolClient, result: ProduceOutboundOutput) => Promise<void>;
   pool?: Pool;
   ssrfOptions?: {
     allowLocalTest?: boolean;
@@ -37,11 +43,13 @@ export interface TransactionalOutboundProducerServiceOptions {
  * Atomicity = { message + outbound_command + audit_event } in a single PostgreSQL transaction under RLS.
  */
 export class TransactionalOutboundProducerService implements ITransactionalOutboundProducerService {
+  private readonly onCreated?: TransactionalOutboundProducerServiceOptions["onCreated"];
   private readonly repository: TransactionalOutboundProducerRepository;
   private readonly pool?: Pool;
   private readonly ssrfOptions?: { allowLocalTest?: boolean };
 
   constructor(options: TransactionalOutboundProducerServiceOptions = {}) {
+    this.onCreated = options.onCreated;
     this.repository = options.repository ?? new TransactionalOutboundProducerRepository(options.pool);
     this.pool = options.pool;
     this.ssrfOptions = options.ssrfOptions;
@@ -134,6 +142,16 @@ export class TransactionalOutboundProducerService implements ITransactionalOutbo
             );
           }
 
+          let templateLayoutHash:string|undefined;
+          if(channel.provider==="meta_waba"&&request.template){
+            const template=await getMessageTemplateByName(client,context.workspaceId,request.template.name);
+            if(!template||template.language!==request.template.language||template.status!=="APPROVED"||!template.meta_template_id||template.meta_verified_channel_id!==context.channelInstanceId||!template.meta_verified_at||template.meta_verified_at.getTime()<=Date.now()-86400000)throw new OutboundProducerValidationError("Sincronize um modelo aprovado para o canal antes de preparar o envio.");
+            const layout=storedTemplateLayout(template as unknown as Record<string,unknown>);
+            const errors=validateTemplateComponents(layout,request.template.components??[]);
+            if(errors.length)throw new OutboundProducerValidationError(errors.join(" "));
+            templateLayoutHash=crypto.createHash("sha256").update(templateLayoutSignature(layout)).digest("hex");
+          }
+
           // 3.3 Relational Upserts & Inserts
           const contactId = await this.repository.upsertContact(
             {
@@ -163,7 +181,7 @@ export class TransactionalOutboundProducerService implements ITransactionalOutbo
               contentType: request.contentType,
               body: request.body,
               mediaUrl: request.mediaUrl,
-              metadata: (request.metadata as Record<string, unknown>) || null,
+              metadata:templateLayoutHash?{...(request.metadata as Record<string,unknown>??{}),systemTemplateLayoutHash:templateLayoutHash}:(request.metadata as Record<string, unknown>) || null,
             },
             client
           );
@@ -221,7 +239,7 @@ export class TransactionalOutboundProducerService implements ITransactionalOutbo
             client
           );
 
-          return {
+          const output: ProduceOutboundOutput = {
             messageId: message.id,
             commandId: command.id,
             threadId,
@@ -232,6 +250,8 @@ export class TransactionalOutboundProducerService implements ITransactionalOutbo
             isIdempotentReplay: false,
             createdAt: command.createdAt.toISOString(),
           };
+          await this.onCreated?.(client, output);
+          return output;
         },
         this.pool
       );

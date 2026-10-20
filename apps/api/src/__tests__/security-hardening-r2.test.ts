@@ -1,9 +1,13 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import crypto from "node:crypto";
 import { createTestDatabasePools } from "@sos-sales/database";
 import { SignJWT } from "@sos-sales/auth";
 import { buildApp } from "../index";
 import type { FastifyInstance } from "fastify";
+
+const providerMock=vi.hoisted(()=>({fetch:vi.fn()}));
+vi.mock('@sos-sales/application',async original=>({...await original<typeof import('@sos-sales/application')>(),safeFetchWithSsrfGuard:(...args:unknown[])=>providerMock.fetch(...args)}));
+providerMock.fetch.mockImplementation(async(url:string)=>new Response(JSON.stringify(url.includes('/api/sessions/')?{name:decodeURIComponent(url.split('/api/sessions/')[1]!.split('/')[0]!),status:'WORKING',me:{id:'551130000000@c.us'}}:{id:'SIM-meta-phone-id',display_phone_number:'551130000000'}),{status:200,headers:{'content-type':'application/json'}}));
 
 describe("R2 Security Hardening Integration (SSRF, State Machine, Keyring, Least Privilege)", () => {
   const jwtSecret = "test_jwt_secret_key_minimum_32_characters_long_2026!";
@@ -184,8 +188,8 @@ describe("R2 Security Hardening Integration (SSRF, State Machine, Keyring, Least
       expect(dbCheck.rows[0].is_active).toBe(false);
     });
 
-    it("should transition status to validating and pairing while keeping is_active = false", async () => {
-      // Step 1: validating
+    it("keeps a validating channel inactive when QR credentials are missing", async () => {
+      // Legacy status edits cannot manufacture a validating state.
       const resVal = await app.inject({
         method: "PATCH",
         url: `/v1/workspaces/${workspaceId}/channels/${createdChannelId}/status`,
@@ -195,9 +199,7 @@ describe("R2 Security Hardening Integration (SSRF, State Machine, Keyring, Least
         },
         payload: { status: "validating" },
       });
-      expect(resVal.statusCode).toBe(200);
-      expect(JSON.parse(resVal.body).status).toBe("validating");
-      expect(JSON.parse(resVal.body).isActive).toBe(false);
+      expect(resVal.statusCode).toBe(410);
 
       // Step 2: direct client transition to pairing or connected is prohibited (400 Bad Request)
       const resPairDirect = await app.inject({
@@ -224,7 +226,7 @@ describe("R2 Security Hardening Integration (SSRF, State Machine, Keyring, Least
       expect(resConnDirect.statusCode).toBe(400);
       expect(JSON.parse(resConnDirect.body).detail).toMatch(/prohibited/i);
 
-      // Step 3: transition to pairing via GET /qr-code
+      // QR consultation stays read-only even when credentials are missing.
       const resQr = await app.inject({
         method: "GET",
         url: `/v1/workspaces/${workspaceId}/channels/${createdChannelId}/qr-code`,
@@ -232,12 +234,12 @@ describe("R2 Security Hardening Integration (SSRF, State Machine, Keyring, Least
           authorization: `Bearer ${adminToken}`,
         },
       });
-      expect(resQr.statusCode).toBe(200);
+      expect(resQr.statusCode).toBe(422);
       const dbCheckPair = await ownerPool.query(
         `SELECT status, is_active FROM channel_instances WHERE id = $1;`,
         [createdChannelId]
       );
-      expect(dbCheckPair.rows[0].status).toBe("pairing");
+      expect(dbCheckPair.rows[0].status).toBe("unconfigured");
       expect(dbCheckPair.rows[0].is_active).toBe(false);
     });
 
@@ -268,6 +270,7 @@ describe("R2 Security Hardening Integration (SSRF, State Machine, Keyring, Least
       const resVerify = await app.inject({
         method: "POST",
         url: `/v1/workspaces/${workspaceId}/channels/${chan.id}/verify-session`,
+      payload: {expectedRevision:(await app.inject({url:`/v1/workspaces/${workspaceId}/channels?includeInactive=true`,headers:{authorization:`Bearer ${adminToken}`}})).json().channels.find((ch:any)=>ch.id===chan.id).revision,acknowledgedConnection:true},
         headers: {
           authorization: `Bearer ${adminToken}`,
         },
@@ -290,6 +293,7 @@ describe("R2 Security Hardening Integration (SSRF, State Machine, Keyring, Least
       const resRev = await app.inject({
         method: "POST",
         url: `/v1/workspaces/${workspaceId}/channels/${createdChannelId}/revoke`,
+        payload: {expectedRevision:(await app.inject({url:`/v1/workspaces/${workspaceId}/channels?includeInactive=true`,headers:{authorization:`Bearer ${adminToken}`}})).json().channels.find((channel:any)=>channel.id===createdChannelId).revision},
         headers: {
           authorization: `Bearer ${adminToken}`,
         },

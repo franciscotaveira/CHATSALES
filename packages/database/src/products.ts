@@ -16,6 +16,7 @@ export interface ProductRecord {
   image_url: string;
   badge: string | null;
   status: ProductStatus;
+  stock_policy?:"review_required"|"not_required";
   is_featured: boolean;
   created_at: Date;
   updated_at: Date;

@@ -13,6 +13,7 @@
     "lint": "eslint src"
   },
   "dependencies": {
+    "@sos-sales/contracts": "workspace:*",
     "@sos-sales/observability": "workspace:*",
     "pg": "^8.13.3",
     "qrcode": "^1.5.4"

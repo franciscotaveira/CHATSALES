@@ -9,15 +9,16 @@ export const PublicLegalPage: FC<PublicLegalPageProps> = ({ type }) => {
   const isPrivacy = type === "privacy";
 
   return (
-    <div
+    <main
       style={{
-        minHeight: "100vh",
+        minHeight: "100dvh",
+        flexShrink: 0,
+        width: "100%",
+        overflowWrap: "anywhere",
         backgroundColor: "#0B0F17",
         color: "#F8FAFC",
         fontFamily: "'Inter', sans-serif",
-        padding: "40px 20px",
-        display: "flex",
-        justifyContent: "center",
+        padding: "clamp(16px,4vw,40px) clamp(12px,3vw,20px)",
       }}
     >
       <div
@@ -27,15 +28,17 @@ export const PublicLegalPage: FC<PublicLegalPageProps> = ({ type }) => {
           backgroundColor: "#111827",
           border: "1px solid #1F2937",
           borderRadius: "16px",
-          padding: "40px",
+          padding: "clamp(20px,5vw,40px)",
+          margin: "0 auto",
           boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.5)",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px", marginBottom: "32px" }}>
           <a
             href="/"
             style={{
               display: "inline-flex",
+              flexShrink: 0,
               alignItems: "center",
               gap: "8px",
               color: "#94A3B8",
@@ -53,6 +56,7 @@ export const PublicLegalPage: FC<PublicLegalPageProps> = ({ type }) => {
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
           <div
             style={{
+              flexShrink: 0,
               width: "44px",
               height: "44px",
               borderRadius: "12px",
@@ -66,7 +70,7 @@ export const PublicLegalPage: FC<PublicLegalPageProps> = ({ type }) => {
             {isPrivacy ? <Shield size={24} /> : <FileText size={24} />}
           </div>
           <div>
-            <h1 style={{ margin: 0, fontSize: "24px", fontWeight: 700 }}>
+            <h1 style={{ margin: 0, fontSize: "clamp(20px,4vw,24px)", fontWeight: 700 }}>
               {isPrivacy ? "Política de Privacidade e Proteção de Dados" : "Termos de Uso e Serviço"}
             </h1>
             <p style={{ margin: "4px 0 0", fontSize: "14px", color: "#94A3B8" }}>
@@ -128,7 +132,7 @@ export const PublicLegalPage: FC<PublicLegalPageProps> = ({ type }) => {
                 4. Direitos dos Titulares (LGPD)
               </h2>
               <p>
-                Em conformidade com o Artigo 18 da LGPD, os titulares de dados ou clientes podem solicitar a qualquer momento a confirmação de tratamento, acesso, correção, anonimização, eliminação de dados ou revogação de consentimento de canais conectados através do e-mail do Encarregado de Dados (DPO): <code>suporte@iaparavendas.tech</code>.
+                Em conformidade com o Artigo 18 da LGPD, os titulares de dados ou clientes podem solicitar a qualquer momento a confirmação de tratamento, acesso, correção, anonimização, eliminação de dados ou revogação de consentimento de canais conectados através do e-mail do Encarregado de Dados (DPO): <code>suporte@automatizaprocessos.tech</code>.
               </p>
             </section>
 
@@ -137,7 +141,7 @@ export const PublicLegalPage: FC<PublicLegalPageProps> = ({ type }) => {
                 5. Exclusão de Dados de Usuário (Meta Data Deletion Callback)
               </h2>
               <p>
-                Usuários que conectarem sua conta via Facebook Login podem revogar a permissão no próprio painel de Configurações da Meta ou solicitar a exclusão total dos dados associados enviando requisição com seu identificador para <code>suporte@iaparavendas.tech</code>, momento em que os tokens e credenciais serão expurgados do banco de dados em até 48 horas úteis.
+                Usuários que conectarem sua conta via Facebook Login podem revogar a permissão no próprio painel de Configurações da Meta ou solicitar a exclusão total dos dados associados enviando requisição com seu identificador para <code>suporte@automatizaprocessos.tech</code>, momento em que os tokens e credenciais serão expurgados do banco de dados em até 48 horas úteis.
               </p>
             </section>
           </div>
@@ -208,6 +212,6 @@ export const PublicLegalPage: FC<PublicLegalPageProps> = ({ type }) => {
           © 2026 MCT LTDA. Todos os direitos reservados. Chapecó - SC, Brasil.
         </div>
       </div>
-    </div>
+    </main>
   );
 };

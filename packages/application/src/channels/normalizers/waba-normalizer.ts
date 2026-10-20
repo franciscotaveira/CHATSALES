@@ -433,6 +433,7 @@ export class WabaWebhookNormalizer {
               rawPayloadHash,
               metadata: {
                 wabaPhoneNumberId: metadata?.phone_number_id,
+                ...(typeof (msgObj.context as Record<string,unknown> | undefined)?.id === "string" ? { replyToProviderMessageId: (msgObj.context as Record<string,unknown>).id } : {}),
                 ...(contactName ? { contactName } : {}),
                 ...(bsuid ? { bsuid } : {}),
                 ...(username ? { username } : {}),

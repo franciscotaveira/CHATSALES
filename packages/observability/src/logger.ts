@@ -1,5 +1,12 @@
 import pino from "pino";
 
+/** URLs may contain media authentication or ingress capabilities; never log their values. */
+export function sanitizeSensitiveUrl(raw: unknown): string {
+  if(typeof raw!=="string")return "";
+  return raw.replace(/\/v1\/webhooks\/whatsapp\/[^/?#]+/g,"/v1/webhooks/whatsapp/[redacted]")
+    .replace(/([?&#](?:token|auth|access_token|api_key|secret)=)[^&#\s]*/gi,"$1[redacted]");
+}
+
 export interface LoggerOptions {
   serviceName?: string;
   level?: string;
@@ -14,9 +21,7 @@ export function createLogger(options: LoggerOptions = {}) {
     serializers: {
       req(req: any) {
         const rawUrl = req.raw?.url || req.url || "";
-        const sanitizedUrl = typeof rawUrl === "string"
-          ? rawUrl.replace(/\/v1\/webhooks\/whatsapp\/[^/?#]+/g, "/v1/webhooks/whatsapp/[redacted]")
-          : "";
+        const sanitizedUrl = sanitizeSensitiveUrl(rawUrl);
         return {
           id: req.id,
           method: req.method,
@@ -32,10 +37,10 @@ export function createLogger(options: LoggerOptions = {}) {
       },
       err(err: any) {
         const msg = typeof err?.message === "string"
-          ? err.message.replace(/\/v1\/webhooks\/whatsapp\/[^/?#]+/g, "/v1/webhooks/whatsapp/[redacted]")
+          ? sanitizeSensitiveUrl(err.message)
           : err?.message;
         const stack = typeof err?.stack === "string"
-          ? err.stack.replace(/\/v1\/webhooks\/whatsapp\/[^/?#]+/g, "/v1/webhooks/whatsapp/[redacted]")
+          ? sanitizeSensitiveUrl(err.stack)
           : undefined;
         return {
           type: err?.name,
@@ -47,6 +52,9 @@ export function createLogger(options: LoggerOptions = {}) {
     redact: {
       censor: "[REDACTED_BY_SOVEREIGN_POLICY]",
       paths: [
+        "endpointToken","*.endpointToken","*.*.endpointToken",
+        "access_token","*.access_token","*.*.access_token",
+        "api_key","*.api_key","*.*.api_key",
         "token",
         "*.token",
         "*.*.token",

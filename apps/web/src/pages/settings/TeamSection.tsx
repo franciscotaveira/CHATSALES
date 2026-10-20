@@ -1,13 +1,31 @@
-import { useState, useEffect, type FC, type FormEvent } from "react";
-import { Button, Input, Alert } from "@sos-sales/ui";
-import { UserPlus, Shield, UserX, KeyRound, Copy, Check, Users } from "lucide-react";
+import {UnsavedChangesNotice,useDiscardChanges} from "../UnsavedChangesNotice";
+import { TeamRolePreview } from "./TeamRolePreview";
+import {hasWorkspacePermission} from "@sos-sales/contracts";
+import { useState, useEffect, useCallback, useRef, type FC, type FormEvent } from "react";
+import { Button, Input, Alert, Dialog } from "@sos-sales/ui";
+import { UserPlus, Shield, UserX, Copy, Check, Users } from "lucide-react";
 import type { UseSessionReturn } from "../../hooks/useSession";
 import { apiClient, type WorkspaceMember } from "../../services/api-client";
+import { TeamReassignmentQueue } from "./TeamReassignmentQueue";
+import { userFacingError } from "../../utils/user-facing-error";
+
+const validateMembers=(value:unknown)=>{
+ if(!Array.isArray(value))throw new Error("A consulta não confirmou uma lista válida de integrantes. Tente consultar novamente.");
+ const memberships=new Set<string>(),users=new Set<string>();
+ for(const row of value){
+  if(!row||typeof row!=="object"||Array.isArray(row)||typeof row.id!=="string"||!row.id.trim()||memberships.has(row.id)
+   ||typeof row.userId!=="string"||!row.userId.trim()||users.has(row.userId)
+   ||typeof row.name!=="string"||typeof row.email!=="string"||!["owner","admin","manager","operator"].includes(row.role))throw new Error("A consulta retornou um integrante incompatível. Atualize a equipe; os registros anteriores foram preservados.");
+  memberships.add(row.id);users.add(row.userId);
+ }
+};
 
 export const TeamSection: FC<{ session: UseSessionReturn }> = ({ session }) => {
   const { activeWorkspace, token, user } = session;
 
+  const [reassignmentReload,setReassignmentReload]=useState(0);
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
+  const [membersConfirmed,setMembersConfirmed]=useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -19,43 +37,64 @@ export const TeamSection: FC<{ session: UseSessionReturn }> = ({ session }) => {
   const [newRole, setNewRole] = useState<"admin" | "manager" | "operator">("operator");
   const [newPassword, setNewPassword] = useState("");
   const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
-  const [createdCredentials, setCreatedCredentials] = useState<{ email: string; pass: string } | null>(null);
+  const [createdCredentials, setCreatedCredentials] = useState<{ email: string; pass: string|null } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copyPending,setCopyPending]=useState(false),[copyError,setCopyError]=useState("");
+  const copyGeneration=useRef(0),copyBusy=useRef(false),copyTimer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
+  useEffect(()=>{copyGeneration.current++;copyBusy.current=false;clearTimeout(copyTimer.current);setCopied(false);setCopyPending(false);setCopyError("");return()=>{copyGeneration.current++;clearTimeout(copyTimer.current);};},[createdCredentials,isAddModalOpen,activeWorkspace?.id,token]);
 
-  // Edit / Reset Password Modal State
+
+  // Workspace role editor; account passwords are managed separately.
   const [editingMember, setEditingMember] = useState<WorkspaceMember | null>(null);
   const [editRole, setEditRole] = useState<"admin" | "manager" | "operator">("operator");
-  const [editPassword, setEditPassword] = useState("");
+  const [removalTarget,setRemovalTarget]=useState<WorkspaceMember|null>(null);
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const scope = useRef("");scope.current=`${activeWorkspace?.id ?? ""}:${token ?? ""}`;
+  const sequence = useRef(0);
+  const epoch=useRef(0);
+  const mutation=useRef<string|null>(null);
+  const viewerRole=members.find(member=>member.userId===user?.id)?.role??activeWorkspace?.role;
+  const canManage=hasWorkspacePermission(viewerRole,'workspace:manage');
+  const canView=hasWorkspacePermission(activeWorkspace?.role,'workspace:view');
+  const addNameRef=useRef<HTMLInputElement>(null),editRoleRef=useRef<HTMLSelectElement>(null);
+  const addDiscard=useDiscardChanges(isAddModalOpen&&!createdCredentials&&Boolean(newName.trim()||newEmail.trim()||newPassword||newRole!=="operator"),`${scope.current}:${viewerRole}:add:${isAddModalOpen}`,()=>addNameRef.current,isAddModalOpen);
+  const editDiscard=useDiscardChanges(Boolean(editingMember&&editRole!==editingMember.role),`${scope.current}:${viewerRole}:edit:${editingMember?.userId}`,()=>editRoleRef.current,Boolean(editingMember));
+  const closeAdd = () => { if (!mutation.current&&!isSubmittingAdd) addDiscard.requestExit(()=>{setIsAddModalOpen(false);setCreatedCredentials(null);setCopied(false);setNewName("");setNewEmail("");setNewRole("operator");setNewPassword("");setErrorMsg(null);}); };
+  const closeEdit = () => { if (!mutation.current&&!isSubmittingEdit) editDiscard.requestExit(()=>{setEditingMember(null);setErrorMsg(null);}); };
 
-  const loadMembers = async () => {
-    if (!activeWorkspace || !token) return;
-    setIsLoading(true);
+  const loadMembers = useCallback(async () => {
+    if (!activeWorkspace || !token || !canView) return;
+    const requestedScope=scope.current,requestedEpoch=epoch.current,request=++sequence.current;
+    setMembersConfirmed(false);setIsLoading(true);
     setErrorMsg(null);
     try {
       const res = await apiClient.getWorkspaceMembers(activeWorkspace.id, { token });
-      setMembers(res.members || []);
+      if(requestedScope===scope.current&&requestedEpoch===epoch.current&&request===sequence.current){validateMembers(res?.members);setMembers(res.members);setMembersConfirmed(true);}
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Falha ao carregar equipe.");
+      if(requestedScope===scope.current&&requestedEpoch===epoch.current&&request===sequence.current)setErrorMsg(userFacingError(err,"Falha ao carregar equipe. Tente novamente."));
     } finally {
-      setIsLoading(false);
+      if(requestedScope===scope.current&&requestedEpoch===epoch.current&&request===sequence.current)setIsLoading(false);
     }
-  };
+  },[activeWorkspace?.id,activeWorkspace?.role,token]);
 
   useEffect(() => {
-    loadMembers();
-  }, [activeWorkspace?.id, token]);
+    epoch.current++;mutation.current=null;setIsLoading(false);setIsSubmittingAdd(false);setIsSubmittingEdit(false);setRemovingId(null);setRemovalTarget(null);setMembersConfirmed(false);setMembers([]);setIsAddModalOpen(false);setEditingMember(null);setCreatedCredentials(null);setNewName("");setNewEmail("");setNewRole("operator");setNewPassword("");setSuccessMsg(null);setErrorMsg(null);setCopied(false);
+    void loadMembers();
+    return()=>{sequence.current++;epoch.current++;};
+  }, [loadMembers]);
 
   const handleAddMember = async (e: FormEvent) => {
     e.preventDefault();
-    if (!activeWorkspace || !token) return;
+    if (addDiscard.isPending || !activeWorkspace || !token || !canManage || !membersConfirmed || isLoading || mutation.current || isSubmittingAdd) return;
+    const requestedScope=scope.current,requestedEpoch=epoch.current;
 
     if (!newName.trim() || !newEmail.trim()) {
       setErrorMsg("Preencha nome e e-mail.");
       return;
     }
 
-    setIsSubmittingAdd(true);
+    mutation.current="add";setIsSubmittingAdd(true);
     setErrorMsg(null);
 
     try {
@@ -65,13 +104,21 @@ export const TeamSection: FC<{ session: UseSessionReturn }> = ({ session }) => {
           name: newName.trim(),
           email: newEmail.trim(),
           role: newRole,
-          password: newPassword.trim() || undefined,
+          password: newPassword || undefined,
         },
         { token }
       );
-
-      const assignedPassword = res.initialPassword || newPassword.trim() || "(já possuía senha cadastrada)";
-      setCreatedCredentials({
+      if(requestedScope!==scope.current||requestedEpoch!==epoch.current)return;
+      try{
+        validateMembers([res?.member]);
+        if(res.member.email.trim().toLowerCase()!==newEmail.trim().toLowerCase()||res.member.role!==newRole
+          ||members.some(member=>member.id===res.member.id||member.userId===res.member.userId)
+          ||typeof res.accountCreated!=="boolean"
+          ||res.accountCreated&&(typeof res.initialPassword!=="string"||!res.initialPassword.trim())
+          ||!res.accountCreated&&res.initialPassword!=null)throw new Error("O servidor não confirmou o cadastro e as credenciais esperadas. Feche esta revisão e consulte a equipe antes de repetir; o preenchimento foi preservado.");
+      }catch(error){setMembersConfirmed(false);throw error;}
+      const assignedPassword = res.initialPassword || null;
+      setCopied(false);setCreatedCredentials({
         email: res.member.email,
         pass: assignedPassword,
       });
@@ -82,65 +129,72 @@ export const TeamSection: FC<{ session: UseSessionReturn }> = ({ session }) => {
       setNewRole("operator");
       await loadMembers();
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Falha ao adicionar membro.");
+      if(requestedScope===scope.current&&requestedEpoch===epoch.current)setErrorMsg(userFacingError(err,"Falha ao adicionar membro."));
     } finally {
-      setIsSubmittingAdd(false);
+      if(requestedScope===scope.current&&requestedEpoch===epoch.current){mutation.current=null;setIsSubmittingAdd(false);}
     }
   };
 
   const handleUpdateMember = async (e: FormEvent) => {
     e.preventDefault();
-    if (!activeWorkspace || !token || !editingMember) return;
+    if (editDiscard.isPending || !activeWorkspace || !token || !canManage || !membersConfirmed || isLoading || mutation.current || !editingMember || editingMember.role==='owner' || editingMember.userId===user?.id || editRole===editingMember.role || isSubmittingEdit) return;
+    const requestedScope=scope.current,requestedEpoch=epoch.current;
 
-    setIsSubmittingEdit(true);
+    mutation.current="edit";setIsSubmittingEdit(true);
     setErrorMsg(null);
 
     try {
-      await apiClient.updateWorkspaceMember(
+      const result=await apiClient.updateWorkspaceMember(
         activeWorkspace.id,
         editingMember.userId,
         {
           role: editRole,
-          password: editPassword.trim() || undefined,
+          expectedRole:editingMember.role,
         },
         { token }
       );
-
+      if(requestedScope!==scope.current||requestedEpoch!==epoch.current)return;
+      try{
+        validateMembers([result?.member]);
+        if(result.member.id!==editingMember.id||result.member.userId!==editingMember.userId||result.member.role!==editRole)throw new Error("O servidor não confirmou o integrante e o perfil solicitados. Feche esta revisão e atualize a equipe antes de repetir.");
+      }catch(error){setMembersConfirmed(false);throw error;}
       setSuccessMsg(`Membro ${editingMember.name} atualizado com sucesso.`);
       setEditingMember(null);
-      setEditPassword("");
+
       await loadMembers();
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Falha ao atualizar membro.");
+      if(requestedScope===scope.current&&requestedEpoch===epoch.current)setErrorMsg(userFacingError(err,"Falha ao atualizar membro."));
     } finally {
-      setIsSubmittingEdit(false);
+      if(requestedScope===scope.current&&requestedEpoch===epoch.current){mutation.current=null;setIsSubmittingEdit(false);}
     }
   };
 
   const handleRemoveMember = async (member: WorkspaceMember) => {
-    if (!activeWorkspace || !token) return;
-
-    const confirmed = window.confirm(
-      `Deseja realmente remover o acesso de ${member.name} (${member.email}) da empresa "${activeWorkspace.name}"?`
-    );
-    if (!confirmed) return;
+    if (!activeWorkspace || !token || !canManage || !membersConfirmed || isLoading || mutation.current || member.role==='owner' || member.userId===user?.id || removingId) return;
+    const requestedScope=scope.current,requestedEpoch=epoch.current;
 
     setErrorMsg(null);
+    mutation.current="remove";setRemovingId(member.userId);
     try {
-      await apiClient.removeWorkspaceMember(activeWorkspace.id, member.userId, { token });
-      setSuccessMsg(`Membro ${member.name} removido da empresa.`);
+      const result=await apiClient.removeWorkspaceMember(activeWorkspace.id, member.userId,member.role, { token });
+      if(requestedScope!==scope.current||requestedEpoch!==epoch.current)return;
+      if(result?.success!==true||(result.pendingReassignment!=null&&[result.pendingReassignment.tasks,result.pendingReassignment.opportunities].some(value=>typeof value!=="number"||!Number.isSafeInteger(value)||value<0))){setMembersConfirmed(false);throw new Error("O servidor não confirmou a remoção e as pendências. Feche esta revisão e atualize a equipe antes de repetir.");}
+      setRemovalTarget(null);setReassignmentReload(value=>value+1);setSuccessMsg(`Acesso de ${member.name} removido. ${result.pendingReassignment?`${result.pendingReassignment.tasks} tarefa(s) e ${result.pendingReassignment.opportunities} oportunidade(s) abertas ficaram sem responsável para revisão.`:'Consulte as pendências sem responsável para revisar o trabalho aberto.'} Histórico preservado.`);
       await loadMembers();
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Falha ao remover membro.");
-    }
+      if(requestedScope===scope.current&&requestedEpoch===epoch.current)setErrorMsg(userFacingError(err,"Falha ao remover membro."));
+    } finally {if(requestedScope===scope.current&&requestedEpoch===epoch.current){mutation.current=null;setRemovingId(null);}}
   };
 
-  const handleCopyCredentials = () => {
-    if (!createdCredentials) return;
-    const text = `Credenciais de acesso ao SOS Sales:\nEmpresa: ${activeWorkspace?.name}\nE-mail: ${createdCredentials.email}\nSenha: ${createdCredentials.pass}\nLink: ${window.location.origin}`;
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+  const handleCopyCredentials = async () => {
+    if (!createdCredentials||!isAddModalOpen||copyBusy.current) return;
+    const requestedScope=scope.current,requestedEpoch=epoch.current,copyRequest=copyGeneration.current;
+    const valid=()=>requestedScope===scope.current&&requestedEpoch===epoch.current&&copyRequest===copyGeneration.current;
+    copyBusy.current=true;setCopyPending(true);setCopyError("");setCopied(false);clearTimeout(copyTimer.current);
+    const text = `Acesso ao CHAT-SALES:\nEmpresa: ${activeWorkspace?.name}\nE-mail: ${createdCredentials.email}\n${createdCredentials.pass?`Senha inicial: ${createdCredentials.pass}\n`:`Use sua senha atual.\n`}Link: ${window.location.origin}`;
+    try {await navigator.clipboard.writeText(text);if(!valid())return;setCopied(true);copyTimer.current=setTimeout(() => {if(valid())setCopied(false);}, 2500);}
+    catch {if(valid()){setCopied(false);setCopyError("Não foi possível copiar. Selecione os dados exibidos e copie manualmente.");}}
+    finally{if(valid()){copyBusy.current=false;setCopyPending(false);}}
   };
 
   const getRoleLabel = (role: string) => {
@@ -201,22 +255,29 @@ export const TeamSection: FC<{ session: UseSessionReturn }> = ({ session }) => {
           </p>
         </div>
 
-        <Button
+        {canView&&<Button variant="secondary" disabled={isLoading||isSubmittingAdd||isSubmittingEdit||Boolean(removingId)} onClick={()=>void loadMembers()}>Atualizar equipe</Button>}
+        {canManage&&<Button
           size="md"
           variant="primary"
+          disabled={!membersConfirmed||isLoading||isSubmittingAdd||isSubmittingEdit||Boolean(removingId)}
           onClick={() => {
-            setCreatedCredentials(null);
+            if(!membersConfirmed||isLoading||mutation.current)return;
+            setCreatedCredentials(null);setCopied(false);
+            setErrorMsg(null);setSuccessMsg(null);
             setIsAddModalOpen(true);
           }}
           prefixIcon={<UserPlus size={16} />}
         >
           Adicionar Membro
-        </Button>
+        </Button>}
       </div>
 
+      {canManage&&!membersConfirmed&&<p role="status">Confirme a lista da equipe antes de adicionar, alterar ou remover acessos. Use Atualizar equipe.</p>}
+      {!canManage&&<Alert variant="info" title="Acessos protegidos">Somente proprietário e administradores podem adicionar, alterar ou remover acessos.{!canView?' Seu perfil não permite consultar a lista da equipe.':''}</Alert>}
       {errorMsg && (
         <Alert variant="danger" title="Erro">
           {errorMsg}
+          <Button size="sm" onClick={()=>void loadMembers()} disabled={isLoading}>Atualizar equipe</Button>
         </Alert>
       )}
 
@@ -225,6 +286,8 @@ export const TeamSection: FC<{ session: UseSessionReturn }> = ({ session }) => {
           {successMsg}
         </Alert>
       )}
+
+      {canManage&&activeWorkspace&&token&&<TeamReassignmentQueue key={`${activeWorkspace.id}:${token}`} workspaceId={activeWorkspace.id} token={token} members={members} membersReady={membersConfirmed&&!isLoading} reloadKey={reassignmentReload}/>}
 
       {/* Members List Table / Cards */}
       <div
@@ -239,7 +302,7 @@ export const TeamSection: FC<{ session: UseSessionReturn }> = ({ session }) => {
           <div style={{ padding: "40px", textAlign: "center", color: "var(--text-secondary)" }}>
             Carregando membros da empresa...
           </div>
-        ) : members.length === 0 ? (
+        ) : !canView ? null : members.length === 0 && !errorMsg ? (
           <div style={{ padding: "40px", textAlign: "center", color: "var(--text-secondary)" }}>
             Nenhum membro cadastrado nesta empresa.
           </div>
@@ -264,7 +327,7 @@ export const TeamSection: FC<{ session: UseSessionReturn }> = ({ session }) => {
                   }}
                 >
                   {/* Member Profile */}
-                  <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "14px",minWidth:0,maxWidth:"100%" }}>
                     <div
                       style={{
                         width: "40px",
@@ -282,8 +345,8 @@ export const TeamSection: FC<{ session: UseSessionReturn }> = ({ session }) => {
                     >
                       {m.name.slice(0, 2)}
                     </div>
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{minWidth:0,overflowWrap:"anywhere"}}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px",flexWrap:"wrap" }}>
                         <span style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: "0.95rem" }}>
                           {m.name}
                         </span>
@@ -325,28 +388,32 @@ export const TeamSection: FC<{ session: UseSessionReturn }> = ({ session }) => {
                     </span>
 
                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <Button
+                      {canManage&&!isOwner&&!isSelf&&<Button
                         size="sm"
                         variant="secondary"
+                        disabled={!membersConfirmed||isLoading||isSubmittingAdd||isSubmittingEdit||Boolean(removingId)}
                         onClick={() => {
+                          if(!membersConfirmed||isLoading||mutation.current)return;
+                          setErrorMsg(null);setSuccessMsg(null);
                           setEditingMember(m);
                           setEditRole((m.role as any) === "owner" ? "admin" : (m.role as any));
-                          setEditPassword("");
-                        }}
-                        prefixIcon={<KeyRound size={14} />}
-                      >
-                        Editar / Senha
-                      </Button>
 
-                      {!isOwner && !isSelf && (
+                        }}
+                        aria-label={`Alterar perfil de ${m.name}`}
+                      >
+                        Alterar perfil
+                      </Button>}
+
+                      {canManage&&!isOwner && !isSelf && (
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => handleRemoveMember(m)}
+                          onClick={() => {if(!membersConfirmed||isLoading||mutation.current)return;setErrorMsg(null);setRemovalTarget(m);}}
+                          disabled={!membersConfirmed||isLoading||isSubmittingAdd||isSubmittingEdit||Boolean(removingId)}
                           prefixIcon={<UserX size={14} color="var(--color-danger)" />}
                           style={{ color: "var(--color-danger)" }}
                         >
-                          Remover
+                          {removingId===m.userId ? "Removendo..." : "Remover"}
                         </Button>
                       )}
                     </div>
@@ -358,56 +425,16 @@ export const TeamSection: FC<{ session: UseSessionReturn }> = ({ session }) => {
         )}
       </div>
 
+      <Dialog isOpen={Boolean(removalTarget)} onClose={()=>{if(!removingId)setRemovalTarget(null);}} title="Remover acesso à empresa" description="O histórico será preservado; pendências abertas precisarão de revisão.">
+        {removalTarget&&<><p>Remover o acesso de <strong>{removalTarget.name}</strong> ({removalTarget.email}) a {activeWorkspace?.name}?</p><p>O acesso será bloqueado nas próximas solicitações. Tarefas e oportunidades abertas ficam sem responsável para a equipe revisar. A conta e o acesso a outras empresas são preservados.</p>{errorMsg&&<Alert variant="danger" title="Remoção de acesso não confirmada">{errorMsg}</Alert>}<div style={{display:'flex',gap:12,flexWrap:'wrap'}}><Button disabled={Boolean(removingId)} onClick={()=>setRemovalTarget(null)}>Cancelar</Button><Button disabled={!membersConfirmed||isLoading||isSubmittingAdd||isSubmittingEdit||Boolean(removingId)} onClick={()=>void handleRemoveMember(removalTarget)}>{removingId?'Removendo acesso…':'Confirmar remoção do acesso'}</Button></div></>}
+      </Dialog>
       {/* MODAL: Adicionar Membro */}
-      {isAddModalOpen && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-            padding: "16px",
-          }}
-        >
-          <div
-            style={{
-              width: "100%",
-              maxWidth: "460px",
-              backgroundColor: "var(--bg-surface)",
-              borderRadius: "var(--radius-xl, 16px)",
-              padding: "24px",
-              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.2)",
-              display: "flex",
-              flexDirection: "column",
-              gap: "20px",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h3 style={{ margin: 0, fontSize: "1.125rem", fontWeight: 600, color: "var(--text-primary)" }}>
-                Novo Membro da Equipe
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsAddModalOpen(false)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  fontSize: "1.2rem",
-                  cursor: "pointer",
-                  color: "var(--text-secondary)",
-                }}
-              >
-                ✕
-              </button>
-            </div>
-
+      <Dialog isOpen={isAddModalOpen} onClose={closeAdd} title="Novo Membro da Equipe" description="Defina o acesso do integrante a esta empresa.">
+        {errorMsg && <Alert variant="danger" title="Não foi possível concluir">{errorMsg}</Alert>}
             {createdCredentials ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 <Alert variant="success" title="Membro Cadastrado com Sucesso!">
-                  O operador foi adicionado à empresa. Copie as credenciais abaixo e envie para ele.
+                  O integrante foi adicionado à empresa. Confira abaixo como ele deverá acessar.
                 </Alert>
 
                 <div
@@ -425,12 +452,12 @@ export const TeamSection: FC<{ session: UseSessionReturn }> = ({ session }) => {
                   <div>
                     <strong>E-mail:</strong> {createdCredentials.email}
                   </div>
-                  <div>
-                    <strong>Senha de Acesso:</strong>{" "}
+                  {createdCredentials.pass?<div>
+                    <strong>Senha Inicial:</strong>{" "}
                     <code style={{ backgroundColor: "rgba(0,0,0,0.1)", padding: "2px 6px", borderRadius: "4px" }}>
                       {createdCredentials.pass}
                     </code>
-                  </div>
+                  </div>:<p>Conta existente: a senha atual foi preservada. Nenhuma nova senha foi gerada.</p>}
                   <div>
                     <strong>Empresa:</strong> {activeWorkspace?.name}
                   </div>
@@ -440,24 +467,30 @@ export const TeamSection: FC<{ session: UseSessionReturn }> = ({ session }) => {
                   size="md"
                   variant="primary"
                   onClick={handleCopyCredentials}
+                  disabled={copyPending}
                   prefixIcon={copied ? <Check size={16} /> : <Copy size={16} />}
                 >
-                  {copied ? "Credenciais Copiadas!" : "Copiar Dados de Acesso"}
+                  {copyPending?"Copiando…":copied ? "Credenciais Copiadas!" : "Copiar Dados de Acesso"}
                 </Button>
+                {copied&&<p role="status">Dados de acesso copiados para a área de transferência.</p>}
+                {copyError&&<p role="alert">{copyError}</p>}
 
                 <Button
                   size="md"
                   variant="secondary"
-                  onClick={() => setIsAddModalOpen(false)}
+                  onClick={closeAdd}
                 >
                   Fechar
                 </Button>
               </div>
             ) : (
               <form onSubmit={handleAddMember} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                <Input
+                {addDiscard.isPending&&<UnsavedChangesNotice onKeep={addDiscard.keepEditing} onDiscard={addDiscard.discard}/>}
+                <fieldset disabled={!membersConfirmed||isLoading||isSubmittingAdd||addDiscard.isPending} style={{border:0,padding:0,margin:0,minWidth:0,display:"grid",gap:16}}>
+                <Input ref={addNameRef}
                   label="Nome Completo"
                   placeholder="Ex: João da Silva"
+                  minLength={2} maxLength={100}
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   required
@@ -466,6 +499,7 @@ export const TeamSection: FC<{ session: UseSessionReturn }> = ({ session }) => {
                 <Input
                   label="E-mail de Login"
                   type="email"
+                  autoComplete="off"
                   placeholder="joao@suaempresa.com"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
@@ -485,6 +519,7 @@ export const TeamSection: FC<{ session: UseSessionReturn }> = ({ session }) => {
                     Função / Cargo na Empresa
                   </label>
                   <select
+                    aria-label="Função do novo membro na empresa"
                     value={newRole}
                     onChange={(e) => setNewRole(e.target.value as any)}
                     style={{
@@ -498,25 +533,30 @@ export const TeamSection: FC<{ session: UseSessionReturn }> = ({ session }) => {
                     }}
                   >
                     <option value="operator">Operador (Atendimento e Inbox de Chat)</option>
-                    <option value="manager">Gerente (Atendimento, Disparos e Convidar Membros)</option>
-                    <option value="admin">Administrador (Acesso Total ao Workspace)</option>
+                    <option value="manager">Gerente (Operação e acompanhamento; sem gestão de acessos)</option>
+                    <option value="admin">Administrador (Configurações e gestão de acessos)</option>
                   </select>
                 </div>
 
+                <TeamRolePreview role={newRole}/>
                 <Input
                   label="Senha Inicial (Opcional)"
                   type="password"
+                  autoComplete="new-password"
                   placeholder="Deixe em branco para gerar automaticamente"
+                  minLength={6} maxLength={100}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
 
+                <p>Senha inicial vale somente para conta nova. Para uma conta existente, deixe em branco e preserve a senha atual.</p>
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" }}>
                   <Button
                     size="md"
                     variant="secondary"
                     type="button"
-                    onClick={() => setIsAddModalOpen(false)}
+                    onClick={closeAdd}
+                    disabled={isSubmittingAdd}
                   >
                     Cancelar
                   </Button>
@@ -524,65 +564,23 @@ export const TeamSection: FC<{ session: UseSessionReturn }> = ({ session }) => {
                     size="md"
                     variant="primary"
                     type="submit"
-                    disabled={isSubmittingAdd}
+                    disabled={!membersConfirmed||isLoading||isSubmittingAdd}
                     prefixIcon={<Shield size={16} />}
                   >
                     {isSubmittingAdd ? "Salvando..." : "Criar Acesso"}
                   </Button>
                 </div>
-              </form>
+              </fieldset></form>
             )}
-          </div>
-        </div>
-      )}
+      </Dialog>
 
-      {/* MODAL: Editar / Redefinir Senha */}
-      {editingMember && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-            padding: "16px",
-          }}
-        >
-          <div
-            style={{
-              width: "100%",
-              maxWidth: "440px",
-              backgroundColor: "var(--bg-surface)",
-              borderRadius: "var(--radius-xl, 16px)",
-              padding: "24px",
-              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.2)",
-              display: "flex",
-              flexDirection: "column",
-              gap: "20px",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h3 style={{ margin: 0, fontSize: "1.125rem", fontWeight: 600, color: "var(--text-primary)" }}>
-                Editar: {editingMember.name}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setEditingMember(null)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  fontSize: "1.2rem",
-                  cursor: "pointer",
-                  color: "var(--text-secondary)",
-                }}
-              >
-                ✕
-              </button>
-            </div>
-
+      {/* MODAL: Alterar perfil nesta empresa */}
+      <Dialog isOpen={Boolean(editingMember)} onClose={closeEdit} title={`Alterar perfil: ${editingMember?.name || "membro"}`} description="Altere somente o acesso deste integrante nesta empresa.">
+        {errorMsg && <Alert variant="danger" title="Não foi possível concluir">{errorMsg}</Alert>}
+        {editingMember && <>
             <form onSubmit={handleUpdateMember} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {editDiscard.isPending&&<UnsavedChangesNotice onKeep={editDiscard.keepEditing} onDiscard={editDiscard.discard}/>}
+              <fieldset disabled={!membersConfirmed||isLoading||isSubmittingEdit||editDiscard.isPending} style={{border:0,padding:0,margin:0,minWidth:0,display:"grid",gap:16}}>
               <div>
                 <label
                   style={{
@@ -595,8 +593,9 @@ export const TeamSection: FC<{ session: UseSessionReturn }> = ({ session }) => {
                 >
                   Cargo / Nível de Acesso
                 </label>
-                <select
-                  value={editRole}
+                <select ref={editRoleRef}
+                  aria-label="Cargo e nível de acesso do membro"
+                  value={editingMember.role === "owner" ? "owner" : editRole}
                   onChange={(e) => setEditRole(e.target.value as any)}
                   disabled={editingMember.role === "owner"}
                   style={{
@@ -609,9 +608,10 @@ export const TeamSection: FC<{ session: UseSessionReturn }> = ({ session }) => {
                     fontSize: "var(--font-size-sm, 0.875rem)",
                   }}
                 >
+                  {editingMember.role === "owner" && <option value="owner">Proprietário</option>}
                   <option value="operator">Operador (Atendimento e Inbox de Chat)</option>
-                  <option value="manager">Gerente (Atendimento, Disparos e Convidar Membros)</option>
-                  <option value="admin">Administrador (Acesso Total ao Workspace)</option>
+                  <option value="manager">Gerente (Operação e acompanhamento; sem gestão de acessos)</option>
+                  <option value="admin">Administrador (Configurações e gestão de acessos)</option>
                 </select>
                 {editingMember.role === "owner" && (
                   <p style={{ margin: "4px 0 0 0", fontSize: "0.75rem", color: "var(--text-tertiary)" }}>
@@ -620,20 +620,16 @@ export const TeamSection: FC<{ session: UseSessionReturn }> = ({ session }) => {
                 )}
               </div>
 
-              <Input
-                label="Definir Nova Senha de Acesso"
-                type="password"
-                placeholder="Deixe em branco para manter a senha atual"
-                value={editPassword}
-                onChange={(e) => setEditPassword(e.target.value)}
-              />
+              <TeamRolePreview role={editingMember.role === "owner" ? "owner" : editRole} previousRole={editingMember.role}/>
+              <p>A senha pertence à conta, usada em todas as empresas. Este formulário altera somente o perfil nesta empresa.</p>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" }}>
                 <Button
                   size="md"
                   variant="secondary"
                   type="button"
-                  onClick={() => setEditingMember(null)}
+                  onClick={closeEdit}
+                  disabled={isSubmittingEdit}
                 >
                   Cancelar
                 </Button>
@@ -641,15 +637,14 @@ export const TeamSection: FC<{ session: UseSessionReturn }> = ({ session }) => {
                   size="md"
                   variant="primary"
                   type="submit"
-                  disabled={isSubmittingEdit}
+                  disabled={!membersConfirmed||isLoading||isSubmittingEdit||editRole===editingMember.role}
                 >
                   {isSubmittingEdit ? "Salvando..." : "Salvar Alterações"}
                 </Button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+            </fieldset></form>
+        </>}
+      </Dialog>
     </div>
   );
 };

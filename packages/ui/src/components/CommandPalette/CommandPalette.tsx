@@ -3,9 +3,12 @@ import {
   useEffect,
   useRef,
   useMemo,
+  useId,
   type FC,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
+import { createPortal } from "react-dom";
+import { useModalSurface } from "../../hooks/useModalSurface";
 import { Search, X, CornerDownLeft, ArrowUpDown } from "lucide-react";
 import type { CommandPaletteProps, CommandCategory, CommandItem } from "./CommandPalette.types";
 
@@ -35,7 +38,10 @@ export const CommandPalette: FC<CommandPaletteProps> = ({
   emptyMessage = "Nenhum resultado encontrado.",
 }) => {
   const [query, setQuery] = useState("");
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedId,setSelectedId]=useState<string|null>(null);
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  useModalSurface(isOpen,surfaceRef,onClose);
+  const listId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -95,45 +101,46 @@ export const CommandPalette: FC<CommandPaletteProps> = ({
     return groups;
   }, [filteredItems]);
 
+  const visibleItems = useMemo(()=>groupedItems.flatMap(group=>group.items.map(entry=>entry.item)),[groupedItems]);
+
+  const selectedIndex=visibleItems.findIndex(item=>item.id===selectedId);
+
   // Reset state when opened
   useEffect(() => {
     if (!isOpen) return;
     setQuery("");
-    setSelectedIndex(0);
-    const timer = setTimeout(() => {
-      inputRef.current?.focus();
-    }, 50);
-    return () => clearTimeout(timer);
   }, [isOpen]);
 
   // Reset selection index when query results change
   useEffect(() => {
-    setSelectedIndex(0);
-  }, [query]);
+    if(isOpen)setSelectedId(visibleItems[0]?.id??null);
+  }, [isOpen,query]);
 
   // Scroll selected item into view
   useEffect(() => {
     const el = itemRefs.current.get(selectedIndex);
     if (el) {
-      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      el.scrollIntoView({ block: "nearest", behavior: "auto" });
     }
-  }, [selectedIndex]);
+  }, [selectedIndex,groupedItems]);
 
   // Keyboard navigation
   const handleKeyDown = (e: ReactKeyboardEvent) => {
+    if(e.nativeEvent.isComposing)return;
+    if(e.key==="Enter"&&e.repeat)return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      if (filteredItems.length > 0) {
-        setSelectedIndex((prev) => (prev + 1) % filteredItems.length);
+      if (visibleItems.length > 0) {
+        setSelectedId(visibleItems[selectedIndex<0?0:(selectedIndex+1)%visibleItems.length]!.id);
       }
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      if (filteredItems.length > 0) {
-        setSelectedIndex((prev) => (prev - 1 + filteredItems.length) % filteredItems.length);
+      if (visibleItems.length > 0) {
+        setSelectedId(visibleItems[selectedIndex<0?visibleItems.length-1:(selectedIndex-1+visibleItems.length)%visibleItems.length]!.id);
       }
     } else if (e.key === "Enter") {
       e.preventDefault();
-      const selected = filteredItems[selectedIndex];
+      const selected = visibleItems[selectedIndex];
       if (selected) {
         selected.onSelect();
         onClose();
@@ -146,11 +153,8 @@ export const CommandPalette: FC<CommandPaletteProps> = ({
 
   if (!isOpen) return null;
 
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Busca Global e Paleta de Comandos"
+  const palette = (
+    <div data-sos-overlay="commands"
       onClick={onClose}
       style={{
         position: "fixed",
@@ -158,7 +162,7 @@ export const CommandPalette: FC<CommandPaletteProps> = ({
         backgroundColor: "rgba(15, 23, 42, 0.55)",
         backdropFilter: "blur(6px)",
         WebkitBackdropFilter: "blur(6px)",
-        zIndex: 1000,
+        zIndex: 9999,
         display: "flex",
         alignItems: "flex-start",
         justifyContent: "center",
@@ -168,6 +172,11 @@ export const CommandPalette: FC<CommandPaletteProps> = ({
       }}
     >
       <div
+        ref={surfaceRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Busca Global e Paleta de Comandos"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "100%",
@@ -178,7 +187,7 @@ export const CommandPalette: FC<CommandPaletteProps> = ({
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",
-          maxHeight: "clamp(380px, 70vh, 580px)",
+          maxHeight: "min(580px, calc(100dvh - 64px))",
           fontFamily: "var(--font-sans, sans-serif)",
           boxSizing: "border-box",
         }}
@@ -197,6 +206,11 @@ export const CommandPalette: FC<CommandPaletteProps> = ({
           <Search size={18} color="var(--text-muted, #64748B)" style={{ flexShrink: 0 }} />
           <input
             ref={inputRef}
+            role="combobox"
+            aria-label="Buscar ações e páginas"
+            aria-expanded={true}
+            aria-controls={listId}
+            aria-activedescendant={visibleItems[selectedIndex]?`${listId}-option-${selectedIndex}`:undefined}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -204,6 +218,7 @@ export const CommandPalette: FC<CommandPaletteProps> = ({
             placeholder={placeholder}
             style={{
               flex: 1,
+              minWidth: 0,
               border: "none",
               outline: "none",
               backgroundColor: "transparent",
@@ -229,6 +244,7 @@ export const CommandPalette: FC<CommandPaletteProps> = ({
                 display: "flex",
                 alignItems: "center",
               }}
+              aria-label="Limpar busca"
               title="Limpar busca"
             >
               <X size={16} />
@@ -248,15 +264,20 @@ export const CommandPalette: FC<CommandPaletteProps> = ({
               ESC
             </kbd>
           )}
+          <button type="button" onClick={onClose} aria-label="Fechar busca" title="Fechar busca (Esc)" style={{background:"none",border:"none",cursor:"pointer",padding:8,minHeight:40,minWidth:40,color:"var(--text-secondary)",display:"inline-flex",alignItems:"center",justifyContent:"center"}}><X size={18}/></button>
         </div>
 
+        {selectedId!==null&&selectedIndex<0&&<p role="status" style={{padding:"8px 18px",margin:0,fontSize:"0.8125rem",color:"var(--text-secondary)"}}>A opção selecionada não está mais disponível. Use as setas ou escolha outra opção.</p>}
         {/* Results Body */}
         <div
           ref={listRef}
+          id={listId}
+          aria-label="Ações e páginas disponíveis"
           role="listbox"
           style={{
             flex: 1,
             overflowY: "auto",
+            minHeight: 0,
             padding: "8px 0",
             maxHeight: "440px",
           }}
@@ -297,6 +318,7 @@ export const CommandPalette: FC<CommandPaletteProps> = ({
                   return (
                     <div
                       key={item.id}
+                      id={`${listId}-option-${globalIndex}`}
                       ref={(el) => {
                         if (el) itemRefs.current.set(globalIndex, el);
                         else itemRefs.current.delete(globalIndex);
@@ -307,7 +329,7 @@ export const CommandPalette: FC<CommandPaletteProps> = ({
                         item.onSelect();
                         onClose();
                       }}
-                      onMouseEnter={() => setSelectedIndex(globalIndex)}
+                      onMouseEnter={() => setSelectedId(item.id)}
                       style={{
                         padding: "8px 16px",
                         margin: "0 8px",
@@ -471,4 +493,5 @@ export const CommandPalette: FC<CommandPaletteProps> = ({
       </div>
     </div>
   );
+  return typeof document==="undefined" ? palette : createPortal(palette,document.body);
 };

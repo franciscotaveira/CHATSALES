@@ -252,7 +252,7 @@ describe("SOS Sales V3 — packages/ui Component & Token Suite", () => {
           onNavSelect={() => {}}
           workspaces={mockWorkspaces}
           activeWorkspace={mockWorkspaces[0]}
-          userEmail="operador@iaparavendas.tech"
+          userEmail="operador@automatizaprocessos.tech"
           userRole="owner"
           systemStatus={{ label: "Docker Lab 55440", variant: "action" }}
         >

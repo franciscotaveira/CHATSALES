@@ -1,7 +1,14 @@
+import { withReadDeadline } from "./read-deadline";
+import type {AiCheckoutSummaryPage} from '@sos-sales/contracts';
+import type {AiRevisionTestList,AiRevisionTestRun} from '@sos-sales/contracts';
+import type { GuidedDraft, GuidedRecord } from "@sos-sales/contracts";
 /**
  * SOS Sales V3 — API Client (MCT OS v2.0)
  * Strict, typed Fastify client with AbortController, tenant headers & correlation tracking.
  */
+
+export interface BroadcastRecipientSummary {id:string;phoneE164:string;name:string|null;variant:string;status:string;sentAt:string|null;deliveredAt:string|null;readAt:string|null;repliedAt:string|null;clickedAt:string|null;reason:string|null;}
+export interface BroadcastRecipientPage {campaign:{id:string;name:string;totalTargeted:number;totalRecorded:number;totalMatching:number};recipients:BroadcastRecipientSummary[];pagination:{hasMore:boolean;nextCursor:string|null};}
 
 export interface MeUser {
   id: string;
@@ -16,6 +23,8 @@ export interface WorkspaceSummary {
   role: string;
 }
 
+export interface TeamPendingWork {id:string;kind:'task'|'opportunity';title:string;threadId:string|null;contactName:string|null;changedAt:string;}
+export interface TeamPendingWorkPage {items:TeamPendingWork[];nextCursor:string|null;}
 export interface WorkspaceMember {
   id: string;
   userId: string;
@@ -114,6 +123,14 @@ export interface RequestOptions {
   isPublic?: boolean;
 }
 
+export type WahaConnectionAction = "create" | "start" | "restart";
+export interface WahaConnectionState {
+  success: boolean; status?: string; isSimulated?: boolean; alreadyConnected?: boolean;
+  requiresConfirmation?: boolean; verifiedPhoneNumber?: string | null; sessionName?: string; revision?: string;
+  qrDataUri?: string; canCreate?: boolean; message?: string; error?: string;
+  operation?: {id:string;action:string;state:string};
+}
+
 export interface ChannelSummary {
   id: string;
   workspaceId: string;
@@ -121,10 +138,13 @@ export interface ChannelSummary {
   displayName: string;
   phoneNumberE164: string | null;
   isActive: boolean;
+  revision?: string;
+  metaSubscriptionStatus?: "unknown" | "confirmed" | "failed" | "uncertain";
+  metaSubscriptionCheckedAt?: string|null;
   metaBillingConfigured?: boolean;
   metaBillingAccountId?: string | null;
-  status?: "connected" | "revoked" | "configuring" | "unconfigured" | "error";
-  environment?: "production_certified" | "lab_local";
+  status?: "connected" | "revoked" | "configuring" | "unconfigured" | "validating" | "pairing" | "error";
+  environment?: "production" | "lab" | "unknown";
   createdAt: string;
   updatedAt: string;
 }
@@ -206,6 +226,7 @@ export interface CommercialProposalItem {
 
 export interface CommercialProposalSummary {
   id: string;
+  stateVersion: number;
   workspaceId: string;
   threadId: string;
   contactId: string;
@@ -240,7 +261,7 @@ export interface ThreadMessageSummary {
   mediaUrl: string | null;
   metadata?: Record<string, unknown> | null;
   providerMessageId: string | null;
-  deliveryStatus: "queued" | "sent" | "delivered" | "read" | "failed";
+  deliveryStatus: "queued" | "sent" | "delivered" | "read" | "failed" | "unknown";
   createdAt: string;
   updatedAt: string;
 }
@@ -265,6 +286,10 @@ export interface MessageTemplateSummary {
   variables: string[];
   status: "APPROVED" | "PENDING" | "REJECTED" | "PAUSED";
   metaTemplateId: string | null;
+  providerComponents?:import("@sos-sales/contracts").ProviderTemplateComponent[];
+  parameterFormat?:string;
+  metaVerifiedAt?: string | null;
+  metaVerifiedChannelId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -328,6 +353,7 @@ export interface WabaInteractiveFlowActionParameters {
 }
 
 export interface ProductRecord {
+  stockPolicy?:"review_required"|"not_required";
   id: string;
   workspaceId: string;
   catalogId: string;
@@ -348,6 +374,7 @@ export interface ProductRecord {
 }
 
 export interface PixChargeSummary {
+  proposalId?: string|null;
   id: string;
   workspaceId: string;
   threadId: string;
@@ -369,6 +396,8 @@ export interface PixChargeSummary {
   createdAt: string;
   updatedAt: string;
 }
+
+export type PixSettlementPatch=Pick<PixChargeSummary,"id"|"status"|"amountCents"|"amountFormatted"|"paidAt"> & Partial<Pick<PixChargeSummary,"proposalId"|"verificationMethod"|"verifiedByUserId"|"verifiedAt"|"verificationNotes">>;
 
 export interface IntegrationSuggestionSummary {
   id: string;
@@ -470,6 +499,8 @@ export interface ContactSummary {
 
 export type JourneyStage = "lead" | "qualified" | "proposal" | "scheduled" | "won" | "lost";
 
+export interface ThreadCommercialHistory {journey:{id:string;title:string|null;stage:string}|null;items:Array<{id:string;label:string;resourceType:string;resourceId:string;occurredAt:string}>;pagination:{hasMore:boolean;nextCursor:{occurredAt:string;eventId:string}|null};}
+
 export interface JourneySummary {
   id: string;
   contactId: string;
@@ -504,6 +535,8 @@ export class ApiClient {
     this.baseUrl = url.replace(/\/$/, "");
   }
 
+  getBaseUrl(): string { return this.baseUrl; }
+
   private getCorrelationId(custom?: string): string {
     return (
       custom ||
@@ -512,6 +545,11 @@ export class ApiClient {
   }
 
   private async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+    if(!options.method||options.method==="GET")return withReadDeadline(signal=>this.performRequest<T>(path,{...options,signal}),options.signal);
+    return this.performRequest<T>(path,options);
+  }
+
+  private async performRequest<T>(path: string, options: RequestOptions): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -588,16 +626,13 @@ export class ApiClient {
   async getReady(options?: RequestOptions): Promise<HealthResponse> {
     try {
       return await this.request<HealthResponse>("/ready", options);
-    } catch (err) {
-      // Resilient fallback to /health if /ready is not routed
-      try {
-        const live = await this.request<{ status: string }>("/health", options);
-        return {
-          status: live.status === "live" ? "ready" : "degraded",
-        };
-      } catch {
-        throw err;
+    } catch (error) {
+      // Liveness can diagnose a missing readiness route, never prove dependency readiness.
+      if(error instanceof ApiError && error.status===404){
+        await this.request<{status:string}>("/health",options);
+        return {status:"degraded"};
       }
+      throw error;
     }
   }
 
@@ -643,6 +678,17 @@ export class ApiClient {
     );
   }
 
+  async getTeamPendingWork(workspaceId:string,before?:string,options?:RequestOptions):Promise<TeamPendingWorkPage>{
+    return this.request(`/v1/workspaces/${workspaceId}/team-reassignment${before?'?before='+encodeURIComponent(before):''}`,{...options,workspaceId});
+  }
+  async assignTeamPendingWork(workspaceId:string,payload:{id:string;kind:'task'|'opportunity';assigneeUserId:string},options?:RequestOptions):Promise<{success:boolean}>{
+    return this.request(`/v1/workspaces/${workspaceId}/team-reassignment`,{...options,workspaceId,method:'POST',body:payload});
+  }
+
+  async getActionAssignees(workspaceId:string,options?:RequestOptions):Promise<{assignees:Array<{userId:string;name:string}>}>{
+    return this.request(`/v1/workspaces/${workspaceId}/action-assignees`,{...options,workspaceId,method:'GET'});
+  }
+
   async getWorkspaceMembers(
     workspaceId: string,
     options?: RequestOptions
@@ -660,7 +706,7 @@ export class ApiClient {
     workspaceId: string,
     payload: { name: string; email: string; role: "admin" | "manager" | "operator"; password?: string },
     options?: RequestOptions
-  ): Promise<{ member: WorkspaceMember; initialPassword?: string }> {
+  ): Promise<{ member: WorkspaceMember; initialPassword?: string; accountCreated?:boolean }> {
     return this.request<{ member: WorkspaceMember; initialPassword?: string }>(
       `/v1/workspaces/${workspaceId}/members`,
       {
@@ -675,7 +721,7 @@ export class ApiClient {
   async updateWorkspaceMember(
     workspaceId: string,
     memberId: string,
-    payload: { role?: "admin" | "manager" | "operator"; password?: string },
+    payload: { role?: "admin" | "manager" | "operator"; expectedRole?:string },
     options?: RequestOptions
   ): Promise<{ member: WorkspaceMember }> {
     return this.request<{ member: WorkspaceMember }>(
@@ -692,13 +738,15 @@ export class ApiClient {
   async removeWorkspaceMember(
     workspaceId: string,
     memberId: string,
+    expectedRole:string,
     options?: RequestOptions
-  ): Promise<{ success: boolean; message?: string }> {
+  ): Promise<{ success: boolean; message?: string; pendingReassignment?:{tasks:number;opportunities:number} }> {
     return this.request<{ success: boolean; message?: string }>(
       `/v1/workspaces/${workspaceId}/members/${memberId}`,
       {
         ...options,
         method: "DELETE",
+        body:{expectedRole},
         workspaceId,
       }
     );
@@ -793,14 +841,19 @@ export class ApiClient {
     );
   }
 
+  async getThread(workspaceId:string,threadId:string,options?:RequestOptions):Promise<{thread:CommercialThreadSummary}>{
+    return this.request(`/v1/workspaces/${workspaceId}/threads/${threadId}`,{...options,workspaceId});
+  }
+
   async getThreads(
     workspaceId: string,
-    query?: { status?: string; needsAttention?: boolean },
+    query?: { status?: string; needsAttention?: boolean;limit?:number;beforeActivityAt?:string;beforeId?:string;search?:string;channelInstanceId?:string },
     options?: RequestOptions
-  ): Promise<{ threads: CommercialThreadSummary[]; total: number }> {
+  ): Promise<{ threads: CommercialThreadSummary[]; total: number;pagination?:{hasMore:boolean;nextCursor:{activityAt:string;id:string}|null} }> {
     const params = new URLSearchParams();
     if (query?.status) params.set("status", query.status);
     if (query?.needsAttention) params.set("needsAttention", "true");
+    for(const key of ['limit','beforeActivityAt','beforeId','search','channelInstanceId'] as const)if(query?.[key]!==undefined)params.set(key,String(query[key]));
     const qs = params.toString() ? `?${params.toString()}` : "";
     return this.request<{ threads: CommercialThreadSummary[]; total: number }>(
       `/v1/workspaces/${workspaceId}/threads${qs}`,
@@ -846,7 +899,7 @@ export class ApiClient {
     workspaceId: string,
     actionId: string,
     payload:
-      | { action: "complete" }
+      | { action: "complete";reason?:string }
       | { action: "cancel"; reason?: string | null }
       | { action: "reschedule"; newDueAt: string; reason: string }
       | { action: "assign"; assigneeUserId: string | null },
@@ -891,6 +944,7 @@ export class ApiClient {
     workspaceId: string,
     threadId: string,
     payload: {
+      requestKey?:string;
       contactId: string;
       journeyId?: string | null;
       title: string;
@@ -928,12 +982,17 @@ export class ApiClient {
     );
   }
 
+  async createProposalPixCharge(workspaceId:string,proposalId:string,payload:{requestKey:string;expectedVersion:number;expiresMinutes:number},options?:RequestOptions):Promise<{proposal:CommercialProposalSummary;charge:PixChargeSummary}>{
+    return this.request(`/v1/workspaces/${workspaceId}/proposals/${proposalId}/pix-charge`,{...options,workspaceId,method:"POST",body:payload});
+  }
+
   async patchProposalStatus(
     workspaceId: string,
     proposalId: string,
     payload: {
       status: "draft" | "sent" | "accepted" | "rejected" | "expired" | "cancelled";
       reason?: string | null;
+      expectedVersion: number;
     },
     options?: RequestOptions
   ): Promise<CommercialProposalSummary> {
@@ -966,9 +1025,9 @@ export class ApiClient {
     options?: RequestOptions
   ): Promise<{
     messageId: string;
-    outboundCommandId: string;
+    commandId: string;
     deliveryStatus: string;
-    idempotentReplay: boolean;
+    isIdempotentReplay: boolean;
   }> {
     const idempotencyKey =
       payload.idempotencyKey ||
@@ -1036,6 +1095,10 @@ export class ApiClient {
     return response.json() as Promise<UploadMediaResponse>;
   }
 
+  async resumeThreadAutomation(workspaceId:string,threadId:string,expectedUpdatedAt:string,options?:RequestOptions):Promise<{thread:CommercialThreadSummary;alreadyActive:boolean}>{
+    return this.request(`/v1/workspaces/${workspaceId}/threads/${threadId}/resume-automation`,{...options,workspaceId,method:"POST",body:{expectedUpdatedAt}});
+  }
+
   async updateThreadStatus(
     workspaceId: string,
     threadId: string,
@@ -1090,6 +1153,11 @@ export class ApiClient {
     );
   }
 
+  async getThreadCommercialHistory(workspaceId:string,threadId:string,query?:{limit?:number;beforeOccurredAt?:string;beforeEventId?:string},options?:RequestOptions):Promise<ThreadCommercialHistory>{
+    const params=new URLSearchParams();if(query?.limit)params.set('limit',String(query.limit));if(query?.beforeOccurredAt)params.set('beforeOccurredAt',query.beforeOccurredAt);if(query?.beforeEventId)params.set('beforeEventId',query.beforeEventId);
+    return this.request(`/v1/workspaces/${workspaceId}/threads/${threadId}/commercial-history${params.size?'?'+params.toString():''}`,{...options,workspaceId,method:'GET'});
+  }
+
   async getThreadJourney(
     workspaceId: string,
     threadId: string,
@@ -1100,7 +1168,9 @@ export class ApiClient {
       workspaceId: string;
       contactId: string;
       threadId: string | null;
-      stage: string;
+      title:string|null;
+      updatedAt:string;
+      stage: JourneyStage;
       status: string;
       estimatedValueCents: number;
       createdAt: string;
@@ -1126,7 +1196,7 @@ export class ApiClient {
 
   async getConversions(
     workspaceId: string,
-    options?: RequestOptions
+    options?: RequestOptions & {beforeId?:string}
   ): Promise<{
     items: Array<{
       id: string;
@@ -1141,8 +1211,10 @@ export class ApiClient {
       createdAt: string;
     }>;
     total: number;
+    pagination?:{hasMore:boolean;nextCursor:string|null};
   }> {
-    return this.request(`/v1/workspaces/${workspaceId}/conversions`, {
+    const query=options?.beforeId?`?beforeId=${encodeURIComponent(options.beforeId)}`:"";
+    return this.request(`/v1/workspaces/${workspaceId}/conversions${query}`, {
       ...options,
       workspaceId,
       method: "GET",
@@ -1163,6 +1235,8 @@ export class ApiClient {
         appSecret?: string;
         apiKey?: string;
         baseUrl?: string;
+        session?: string;
+        instanceName?: string;
       };
     },
     options?: RequestOptions
@@ -1179,6 +1253,14 @@ export class ApiClient {
     });
   }
 
+  async approveProviderConnection(workspaceId:string,channelId:string,expectedRevision:string,options?:RequestOptions):Promise<{success:boolean;status:string;isActive:boolean;isSimulated?:boolean;handshakeDetail?:string;verifiedPhoneNumber?:string|null}>{
+    return this.request(`/v1/workspaces/${workspaceId}/channels/${channelId}/verify-session`,{...options,workspaceId,method:"POST",body:{expectedRevision,acknowledgedConnection:true}});
+  }
+
+  async checkMetaSubscription(workspaceId:string,channelId:string,expectedRevision:string,options?:RequestOptions):Promise<{success:boolean;subscriptionStatus:"confirmed"|"failed"|"uncertain";message:string}>{
+    return this.request(`/v1/workspaces/${workspaceId}/channels/${channelId}/meta-subscription/check`,{...options,workspaceId,method:"POST",body:{expectedRevision}});
+  }
+
   async metaEmbeddedSignup(
     workspaceId: string,
     payload: {
@@ -1191,6 +1273,7 @@ export class ApiClient {
     options?: RequestOptions
   ): Promise<{
     channel: ChannelSummary;
+    setup?: {subscriptionStatus:"confirmed"|"failed"|"uncertain";requiresConnectionApproval:boolean;message:string};
   }> {
     return this.request(`/v1/workspaces/${workspaceId}/channels/meta-embedded-signup`, {
       ...options,
@@ -1211,6 +1294,8 @@ export class ApiClient {
         appSecret?: string;
         apiKey?: string;
         baseUrl?: string;
+        session?: string;
+        instanceName?: string;
       };
     },
     options?: RequestOptions
@@ -1220,6 +1305,9 @@ export class ApiClient {
     displayPhoneNumber?: string;
     qualityRating?: string;
     codeVerificationStatus?: string;
+    checkScope?: "meta_phone_lookup" | "waha_server_reachability" | "evolution_instance_listing" | "evolution_instance_state";
+    instanceState?: "open" | "close" | "connecting" | "qrcode";
+    message?: string;
     error?: string;
   }> {
     return this.request(
@@ -1236,6 +1324,7 @@ export class ApiClient {
   async revokeChannel(
     workspaceId: string,
     channelId: string,
+    expectedRevision: string,
     options?: RequestOptions
   ): Promise<{ success: boolean; channelId: string; status: string; message: string }> {
     return this.request(
@@ -1243,6 +1332,7 @@ export class ApiClient {
       {
         ...options,
         workspaceId,
+        body: {expectedRevision},
         method: "POST",
       }
     );
@@ -1251,6 +1341,7 @@ export class ApiClient {
   async deleteChannel(
     workspaceId: string,
     channelId: string,
+    expectedRevision: string,
     options?: RequestOptions
   ): Promise<{ success: boolean; mode: "deleted" | "archived"; message: string }> {
     return this.request(
@@ -1258,35 +1349,23 @@ export class ApiClient {
       {
         ...options,
         workspaceId,
+        body: {expectedRevision},
         method: "DELETE",
       }
     );
   }
 
-  async getChannelQrCode(
-    workspaceId: string,
-    channelId: string,
-    options?: RequestOptions & { force?: boolean }
-  ): Promise<{
-    success: boolean;
-    status: string;
-    qr?: string;
-    qrDataUri?: string;
-    alreadyConnected?: boolean;
-    me?: { id?: string; pushName?: string } | null;
-    isSimulated?: boolean;
-    message?: string;
-    error?: string;
-  }> {
-    const query = options?.force ? "?force=true" : "";
-    return this.request(
-      `/v1/workspaces/${workspaceId}/channels/${channelId}/qr-code${query}`,
-      {
-        ...options,
-        workspaceId,
-        method: "GET",
-      }
-    );
+  async getChannelQrCode(workspaceId:string,channelId:string,options?:RequestOptions):Promise<WahaConnectionState>{
+    return this.request(`/v1/workspaces/${workspaceId}/channels/${channelId}/qr-code`,{...options,workspaceId,method:"GET"});
+  }
+  async changeWahaConnection(workspaceId:string,channelId:string,payload:{action:WahaConnectionAction;expectedRevision:string;requestKey:string;acknowledged:true},options?:RequestOptions):Promise<WahaConnectionState>{
+    return this.request(`/v1/workspaces/${workspaceId}/channels/${channelId}/connection`,{...options,workspaceId,method:"POST",body:payload});
+  }
+  async approveChannelConnection(workspaceId:string,channelId:string,payload:{expectedRevision:string;acknowledgedConnection:true},options?:RequestOptions):Promise<WahaConnectionState>{
+    return this.request(`/v1/workspaces/${workspaceId}/channels/${channelId}/verify-session`,{...options,workspaceId,method:"POST",body:payload});
+  }
+  async reviewWahaConnection(workspaceId:string,channelId:string,payload:{expectedRevision:string;operationId:string;acknowledged:true},options?:RequestOptions):Promise<WahaConnectionState>{
+    return this.request(`/v1/workspaces/${workspaceId}/channels/${channelId}/connection/review`,{...options,workspaceId,method:"POST",body:payload});
   }
 
   async syncChannelChats(
@@ -1295,8 +1374,11 @@ export class ApiClient {
     options?: RequestOptions
   ): Promise<{
     success: boolean;
+    partial?: boolean;
     syncedChatsCount: number;
     syncedMessagesCount: number;
+    failedChatsCount?: number;
+    skippedMessagesCount?: number;
     message: string;
   }> {
     return this.request(
@@ -1312,9 +1394,9 @@ export class ApiClient {
   async updateChannelBilling(
     workspaceId: string,
     channelId: string,
-    payload: { metaBillingConfigured: boolean; metaBillingAccountId?: string | null },
+    payload: { metaBillingConfigured: boolean; expectedRevision: string; acknowledgedDeclaration?: boolean; metaBillingAccountId?: string | null },
     options?: RequestOptions
-  ): Promise<{ success: boolean; channel: Partial<ChannelSummary> }> {
+  ): Promise<{ success: boolean; channel: Partial<ChannelSummary>; message?: string }> {
     return this.request(
       `/v1/workspaces/${workspaceId}/channels/${channelId}/billing`,
       {
@@ -1376,13 +1458,16 @@ export class ApiClient {
 
   async getContacts(
     workspaceId: string,
-    query?: { search?: string; limit?: number; offset?: number; status?: "active" | "inactive" | "all" },
+    query?: { beforeUpdatedAt?:string;beforeId?:string;search?: string; limit?: number; offset?: number; status?: "active" | "inactive" | "all" },
     options?: RequestOptions
   ): Promise<{
     contacts: ContactSummary[];
     total: number;
+    pagination?:{hasMore:boolean;nextCursor:{updatedAt:string;id:string}|null};
   }> {
     const params = new URLSearchParams();
+    if(query?.beforeUpdatedAt)params.set("beforeUpdatedAt",query.beforeUpdatedAt);
+    if(query?.beforeId)params.set("beforeId",query.beforeId);
     if (query?.search) params.set("search", query.search);
     if (query?.limit) params.set("limit", String(query.limit));
     if (query?.offset) params.set("offset", String(query.offset));
@@ -1416,6 +1501,8 @@ export class ApiClient {
       phoneE164?: string;
       name?: string | null;
       optOut?: boolean;
+      consentEvidence?:string;
+      expectedNotes?: unknown;
       metadata?: ContactSummary["metadata"];
     },
     options?: RequestOptions
@@ -1438,12 +1525,18 @@ export class ApiClient {
 
   async listJourneys(
     workspaceId: string,
-    query?: { status?: string; limit?: number },
+    query?: { profile?:"all"|"recurring"|"new";value?:"all"|"has_value"|"no_value";period?:"all"|"7d"|"30d";search?:string;status?: string; limit?: number;beforeUpdatedAt?:string;beforeId?:string },
     options?: RequestOptions
-  ): Promise<{ items: JourneySummary[]; total: number }> {
+  ): Promise<{ items: JourneySummary[]; total: number;contacts?:ContactSummary[];pagination?:{hasMore:boolean;nextCursor:{updatedAt:string;id:string}|null} }> {
     const params = new URLSearchParams();
     if (query?.status) params.set("status", query.status);
     if (query?.limit) params.set("limit", String(query.limit));
+    if(query?.beforeUpdatedAt)params.set("beforeUpdatedAt",query.beforeUpdatedAt);
+    if(query?.beforeId)params.set("beforeId",query.beforeId);
+    if(query?.search)params.set("search",query.search);
+    if(query?.profile)params.set("profile",query.profile);
+    if(query?.value)params.set("value",query.value);
+    if(query?.period)params.set("period",query.period);
     const qs = params.toString() ? `?${params.toString()}` : "";
     return this.request(`/v1/workspaces/${workspaceId}/journeys${qs}`, {
       ...options,
@@ -1475,20 +1568,21 @@ export class ApiClient {
     workspaceId: string,
     journeyId: string,
     stage: Exclude<JourneyStage, "won" | "lost">,
-    options?: RequestOptions
+    options?: RequestOptions,
+    expectedUpdatedAt?:string
   ): Promise<{ journey: JourneySummary }> {
     return this.request(`/v1/workspaces/${workspaceId}/journeys/${journeyId}/stage`, {
       ...options,
       workspaceId,
       method: "PATCH",
-      body: { stage },
+      body: { stage, ...(expectedUpdatedAt?{expectedUpdatedAt}:{}) },
     });
   }
 
   async recordJourneyOutcome(
     workspaceId: string,
     journeyId: string,
-    payload: { status: "won" | "lost"; valueCents: number; currency?: string; reason?: string },
+    payload: { status: "won" | "lost"; valueCents: number; currency?: string; reason?: string; expectedUpdatedAt?:string },
     options?: RequestOptions
   ): Promise<unknown> {
     return this.request(`/v1/workspaces/${workspaceId}/journeys/${journeyId}/outcomes`, {
@@ -1519,6 +1613,7 @@ export class ApiClient {
   async createTemplate(
     workspaceId: string,
     payload: {
+      createOnly?:boolean;
       name: string;
       category: "UTILITY" | "MARKETING" | "AUTHENTICATION";
       language?: string;
@@ -1611,6 +1706,10 @@ export class ApiClient {
   async createProduct(
     workspaceId: string,
     payload: {
+      stockPolicy?:"review_required"|"not_required";
+      createOnly?:boolean;
+      expectedProductId?:string;
+      expectedUpdatedAt?:string;
       retailerId: string;
       title: string;
       subtitle?: string | null;
@@ -1637,10 +1736,16 @@ export class ApiClient {
     );
   }
 
+  async getAiCheckoutRequests(workspaceId:string,threadId:string,before?:string,options?:RequestOptions):Promise<AiCheckoutSummaryPage>{
+    const query=before?`?${new URLSearchParams({before})}`:'';
+    return this.request(`/v1/workspaces/${workspaceId}/threads/${threadId}/checkout-requests${query}`,{...options,workspaceId});
+  }
+
   async createPixCharge(
     workspaceId: string,
     threadId: string,
     payload: {
+      requestKey?:string;
       contactId: string;
       productId?: string | null;
       title: string;
@@ -1679,8 +1784,8 @@ export class ApiClient {
     workspaceId: string,
     chargeId: string,
     options?: RequestOptions
-  ): Promise<{ success: boolean; charge: PixChargeSummary; outcomeId?: string }> {
-    return this.request<{ success: boolean; charge: PixChargeSummary; outcomeId?: string }>(
+  ): Promise<{ success: boolean; charge: PixSettlementPatch; alreadySettled?:boolean; notification?:"queued"|"not_queued"|"unchanged"; commercialOutcome?:"unchanged"; outcomeId?: string }> {
+    return this.request<{ success: boolean; charge: PixSettlementPatch; alreadySettled?:boolean; notification?:"queued"|"not_queued"|"unchanged"; commercialOutcome?:"unchanged"; outcomeId?: string }>(
       `/v1/workspaces/${workspaceId}/pix-charges/${chargeId}/confirm-payment`,
       {
         ...options,
@@ -1771,7 +1876,7 @@ export class ApiClient {
 
   async createWebhook(
     workspaceId: string,
-    payload: { url: string; description?: string; events?: string[]; secret?: string },
+    payload: { url: string; description?: string; events?: string[]; secret?: string; supportsIdempotency?: boolean },
     options?: RequestOptions
   ): Promise<{ webhook: OutboundWebhookSubscription }> {
     return this.request<{ webhook: OutboundWebhookSubscription }>(
@@ -1783,6 +1888,15 @@ export class ApiClient {
         body: payload,
       }
     );
+  }
+
+  async setWebhookActive(workspaceId: string, webhookId: string, isActive: boolean, options?: RequestOptions, expectedConfiguration?:{url:string;events:string[];isActive:boolean}): Promise<{ webhook: OutboundWebhookSubscription }> {
+    return this.request(`/v1/workspaces/${workspaceId}/webhooks/${webhookId}`, {...options,method:"PATCH",workspaceId,body:{is_active:isActive,...(expectedConfiguration?{expectedConfiguration}:{})}});
+  }
+
+  async listWebhookJobs(workspaceId: string, webhookId: string, options?: RequestOptions, cursor?: {createdAt:string;id:string}): Promise<{jobs:Array<{id:string;event_type:string;status:string;attempts:number;error_message:string|null}>;pagination?:{hasMore:boolean;nextCursor:{createdAt:string;id:string}|null}}> {
+    const query=cursor?`?${new URLSearchParams({beforeCreatedAt:cursor.createdAt,beforeId:cursor.id})}`:'';
+    return this.request(`/v1/workspaces/${workspaceId}/webhooks/${webhookId}/jobs${query}`, {...options,method:"GET",workspaceId});
   }
 
   async testWebhook(
@@ -1815,11 +1929,25 @@ export class ApiClient {
     );
   }
 
+  async getAiRevisionTests(workspaceId:string,revision:number,options?:RequestOptions):Promise<AiRevisionTestList>{
+    return this.request(`/v1/workspaces/${workspaceId}/ai-agent/tests?revision=${revision}`,{...options,workspaceId});
+  }
+  async runAiRevisionTest(workspaceId:string,payload:{expectedRevision:number;scenarioId:string;requestKey:string},options?:RequestOptions):Promise<AiRevisionTestRun>{
+    return this.request(`/v1/workspaces/${workspaceId}/ai-agent/tests`,{...options,workspaceId,method:'POST',body:payload});
+  }
+  async reviewAiRevisionTest(workspaceId:string,id:string,payload:{expectedRevision:number;expectedReviewRevision:number;verdict:'adequate'|'needs_changes';note:string},options?:RequestOptions):Promise<AiRevisionTestRun>{
+    return this.request(`/v1/workspaces/${workspaceId}/ai-agent/tests/${id}/review`,{...options,workspaceId,method:'POST',body:payload});
+  }
+
+  async getAiAutomationAvailability(workspaceId:string,options?:RequestOptions):Promise<{success:boolean;activeEnabled:boolean}>{
+    return this.request(`/v1/workspaces/${workspaceId}/ai-agent/availability`,{...options,workspaceId});
+  }
+
   async getAiAgentConfig(
     workspaceId: string,
     options?: RequestOptions
-  ): Promise<{ success: boolean; config: AiAgentConfig }> {
-    return this.request<{ success: boolean; config: AiAgentConfig }>(
+  ): Promise<AiAgentConfigResponse> {
+    return this.request<AiAgentConfigResponse>(
       `/v1/workspaces/${workspaceId}/ai-agent`,
       { ...options, workspaceId }
     );
@@ -1827,10 +1955,10 @@ export class ApiClient {
 
   async updateAiAgentConfig(
     workspaceId: string,
-    payload: Partial<AiAgentConfig>,
+    payload: Partial<AiAgentConfig> & {expectedRevision:number},
     options?: RequestOptions
-  ): Promise<{ success: boolean; config: AiAgentConfig }> {
-    return this.request<{ success: boolean; config: AiAgentConfig }>(
+  ): Promise<AiAgentConfigResponse> {
+    return this.request<AiAgentConfigResponse>(
       `/v1/workspaces/${workspaceId}/ai-agent`,
       {
         ...options,
@@ -1841,11 +1969,45 @@ export class ApiClient {
     );
   }
 
+  async suspendAiAgent(workspaceId:string,reason:string,options?:RequestOptions):Promise<{success:boolean;activeEnabled:boolean}>{
+    return this.request(`/v1/workspaces/${workspaceId}/ai-agent/suspend`,{...options,method:"POST",body:{reason},workspaceId});
+  }
+
+  async prepareAiAgentFromGuided(workspaceId:string,payload:{expectedRevision:number;expectedGuidedRevision:number},options?:RequestOptions):Promise<AiAgentConfigResponse>{
+    return this.request(`/v1/workspaces/${workspaceId}/ai-agent/draft/from-guided`,{...options,method:"POST",body:payload,workspaceId});
+  }
+
+  async syncMetaTemplates(workspaceId: string, channelId: string, options?: RequestOptions): Promise<{ success: boolean; imported: number }> {
+    return this.request(`/v1/workspaces/${workspaceId}/templates/sync`, { ...options, method: "POST", body: { channelId }, workspaceId });
+  }
+  async cancelBroadcast(workspaceId: string, campaignId: string, options?: RequestOptions): Promise<{ detail: string }> {
+    return this.request(`/v1/workspaces/${workspaceId}/broadcasts/${campaignId}/cancel`, { ...options, method: "POST", workspaceId });
+  }
+  async getStageLabels(workspaceId: string, options?: RequestOptions): Promise<{ labels: Partial<Record<JourneyStage,string>>; version: number }> {
+    return this.request(`/v1/workspaces/${workspaceId}/commercial/stage-labels`,{...options,workspaceId});
+  }
+  async saveStageLabels(workspaceId: string, labels: Partial<Record<JourneyStage,string>>, expectedVersion: number, options?: RequestOptions): Promise<{labels:Partial<Record<JourneyStage,string>>;version:number}> {
+    return this.request(`/v1/workspaces/${workspaceId}/commercial/stage-labels`,{...options,workspaceId,method:"PUT",body:{labels,expectedVersion}});
+  }
+  async getGuidedPlan(workspaceId: string, options?: RequestOptions): Promise<{ plan: GuidedRecord | null }> {
+    return this.request(`/v1/workspaces/${workspaceId}/guided-agent`, { ...options, workspaceId });
+  }
+  async saveGuidedPlan(workspaceId: string, payload: { expectedRevision: number; draft: GuidedDraft }, options?: RequestOptions): Promise<{ plan: GuidedRecord }> {
+    return this.request(`/v1/workspaces/${workspaceId}/guided-agent`, { ...options, method: "PUT", body: payload, workspaceId });
+  }
+  async reviewGuidedPlan(workspaceId: string, payload: { expectedRevision: number; scenarioId: string; note: string }, options?: RequestOptions): Promise<{ plan: GuidedRecord }> {
+    return this.request(`/v1/workspaces/${workspaceId}/guided-agent/review`, { ...options, method: "POST", body: payload, workspaceId });
+  }
+  async approveGuidedPlan(workspaceId: string, revision: number, options?: RequestOptions): Promise<{ plan: GuidedRecord }> {
+    return this.request(`/v1/workspaces/${workspaceId}/guided-agent/approve`, { ...options, method: "POST", body: { expectedRevision: revision, acknowledgeAssistedTestOnly: true }, workspaceId });
+  }
+
   async simulateAiAgent(
     workspaceId: string,
     payload: {
       message: string;
       history?: Array<{ role: "user" | "assistant"; content: string }>;
+      draftRevision?:number;
       draftConfig?: Partial<AiAgentConfig>;
       mockLead?: {
         name?: string;
@@ -1899,14 +2061,27 @@ export class ApiClient {
     });
   }
 
+  async getBroadcastRecipients(workspaceId:string,campaignId:string,options?:RequestOptions,afterId?:string,filters?:{search?:string;group?:"ALL"|"ATTENTION"|"PENDING"|"CONFIRMED"}):Promise<BroadcastRecipientPage>{
+    const query=new URLSearchParams();if(afterId)query.set("afterId",afterId);if(filters?.search)query.set("search",filters.search);if(filters?.group&&filters.group!=="ALL")query.set("group",filters.group);
+    return this.request(`/v1/workspaces/${workspaceId}/broadcasts/${campaignId}/recipients${query.size?`?${query.toString()}`:""}`,{...options,workspaceId});
+  }
+
   async getBroadcastCampaigns(
     workspaceId: string,
-    options?: RequestOptions
+    options?: RequestOptions,
+    cursor?: {createdAt?:string;id?:string;search?:string;type?:"ALL"|"AB_ONLY"|"SINGLE"}
   ): Promise<{
     success: boolean;
     campaigns: BroadcastCampaignSummary[];
+    pagination?:{hasMore:boolean;nextCursor:{createdAt:string;id:string}|null};
   }> {
-    return this.request(`/v1/workspaces/${workspaceId}/broadcasts/campaigns`, {
+    const params=new URLSearchParams();
+    if(cursor?.createdAt)params.set("beforeCreatedAt",cursor.createdAt);
+    if(cursor?.id)params.set("beforeId",cursor.id);
+    if(cursor?.search)params.set("search",cursor.search);
+    if(cursor?.type&&cursor.type!=="ALL")params.set("type",cursor.type);
+    const query=params.size?`?${params}`:"";
+    return this.request(`/v1/workspaces/${workspaceId}/broadcasts/campaigns${query}`, {
       ...options,
       workspaceId,
       method: "GET",
@@ -1932,9 +2107,23 @@ export class ApiClient {
     });
   }
 
+  async prepareBroadcast(workspaceId:string,payload:Parameters<ApiClient["createBroadcast"]>[1],options?:RequestOptions):Promise<{success:boolean;preparedAudienceId:string;expiresAt:string;limit:number;included:Array<{phoneE164:string;name?:string|null}>;excluded:Array<{phoneE164:string;name?:string|null;reason:string}>}> {
+    return this.request(`/v1/workspaces/${workspaceId}/broadcasts/prepare`,{...options,workspaceId,method:"POST",body:payload});
+  }
+
+  async sendBroadcastTest(workspaceId:string,payload:Parameters<ApiClient["createBroadcast"]>[1]&{testPhone:string;testVariant:"A"|"B"},options?:RequestOptions):Promise<{success:boolean;testId:string;replayed:boolean}>{
+    return this.request(`/v1/workspaces/${workspaceId}/broadcasts/test`,{...options,workspaceId,method:"POST",body:payload});
+  }
+  async getBroadcastTests(workspaceId:string,preparationId:string,options?:RequestOptions):Promise<{tests:Array<{id:string;variant:"A"|"B";phoneE164:string;body:string;status:string}>}>{
+    return this.request(`/v1/workspaces/${workspaceId}/broadcasts/preparations/${preparationId}/tests`,{...options,workspaceId});
+  }
+
   async createBroadcast(
     workspaceId: string,
     payload: {
+      requestKey?: string;
+      preparedAudienceId?: string;
+      approvedTestIds?: string[];
       name?: string;
       channelInstanceId: string;
       templateId: string;
@@ -1971,6 +2160,7 @@ export class ApiClient {
 }
 
 export interface BroadcastCampaignMetrics {
+  failed?: number;
   sent: number;
   delivered: number;
   read: number;
@@ -2056,6 +2246,7 @@ export interface AiObjections {
 export type GroundedObjections = AiObjections;
 
 export interface AiBusinessRules {
+  checkoutValidityMinutes?:number;
   companyName?: string;
   agentRole?: string;
   valueProposition?: string;
@@ -2071,6 +2262,9 @@ export interface AiBusinessRules {
   [key: string]: any;
 }
 
+
+export interface AiConfigVersionInfo {draftRevision:number;activeRevision:number;activeEnabled:boolean;sourceGuidedRevision:number|null;guidedModified?:boolean;}
+export interface AiAgentConfigResponse {success:boolean;config:AiAgentConfig;activeConfig?:AiAgentConfig;version:AiConfigVersionInfo;}
 
 export interface AiAgentConfig {
   enabled: boolean;
@@ -2096,6 +2290,8 @@ export interface AiAgentConfig {
 }
 
 export interface AiSimulationResult {
+  offerPixProductId?:string|null;offerPixQuantity?:number|null;catalogSnapshot?:Array<{id:string;title:string;priceCents:number}>;
+  capabilities?:ReturnType<typeof import("@sos-sales/contracts").resolveAiCapabilities>;
   success: boolean;
   replyText: string;
   needsHandoff: boolean;
@@ -2114,10 +2310,11 @@ export interface OutboundWebhookSubscription {
   id: string;
   workspace_id: string;
   url: string;
-  secret: string;
+  secret?: string;
   description: string | null;
   events: string[];
   is_active: boolean;
+  supports_idempotency?: boolean;
   created_at: string;
   updated_at: string;
 }

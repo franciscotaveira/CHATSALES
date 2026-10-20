@@ -102,6 +102,13 @@ export async function createCommercialJourney(
   workspaceId: string,
   input: CreateJourneyInput
 ): Promise<CommercialJourneyRecord> {
+  if (input.assignedUserId) {
+    const member = await client.query(
+      'SELECT user_id FROM public.workspace_memberships WHERE workspace_id=$1 AND user_id=$2 FOR KEY SHARE',
+      [workspaceId, input.assignedUserId]
+    );
+    if (!member.rows.length) throw new Error('ASSIGNEE_NOT_MEMBER: responsável não pertence à empresa.');
+  }
   const res = await client.query<CommercialJourneyRecord>(
     `INSERT INTO public.commercial_journeys (
       workspace_id, contact_id, thread_id, assigned_user_id,

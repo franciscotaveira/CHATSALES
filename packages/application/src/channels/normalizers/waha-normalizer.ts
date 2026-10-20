@@ -329,6 +329,7 @@ export class WahaWebhookNormalizer {
           direction: fromMe ? "outbound" : "inbound",
           fromMe,
           wahaSession: payload.session ?? rawPayload.session,
+          ...(typeof (payload.replyTo as Record<string,unknown> | undefined)?.id === "string" ? { replyToProviderMessageId: (payload.replyTo as Record<string,unknown>).id } : {}),
           ...(contactName ? { contactName } : {}),
           ...(mediaFilename ? { filename: mediaFilename } : {}),
           ...(mediaMime ? { mimetype: mediaMime } : {}),

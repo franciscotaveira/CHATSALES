@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import {
@@ -25,6 +26,7 @@ const workspaceProposalParamsSchema = z.object({
 });
 
 const createProposalBodySchema = z.object({
+  requestKey:z.string().uuid().optional(),
   contactId: z.string().uuid(),
   journeyId: z.string().uuid().optional().nullable(),
   title: z.string().trim().min(1).max(200),
@@ -55,6 +57,8 @@ const patchProposalStatusBodySchema = z.object({
 });
 
 const createProposalPixChargeBodySchema = z.object({
+  requestKey:z.string().uuid().optional(),
+  expectedVersion:z.number().int().positive().optional(),
   expiresMinutes: z.number().int().min(5).max(1440).default(30).optional(),
 });
 
@@ -186,47 +190,29 @@ export const commercialProposalsRoutes: FastifyPluginAsync = async (app) => {
       const data = parseResult.data;
 
       try {
-        if (data.generatePixCharge) {
-          const { proposal, pixCharge } = await withTenantTransaction(workspaceId, async (client) => {
-            return createProposalWithPixCharge(client, {
-              workspaceId,
-              threadId,
-              contactId: data.contactId,
-              journeyId: data.journeyId,
-              title: data.title,
-              items: data.items,
-              currency: data.currency,
-              conditions: data.conditions,
-              validUntil: data.validUntil,
-              userId: request.user.id,
-              expiresMinutes: data.expiresMinutes,
-            });
-          });
-
-          return reply.status(201).send({
-            ...formatProposalResponse(proposal),
-            pixCharge: formatPixChargeResponse(pixCharge),
-          });
-        }
-
-        const proposal = await withTenantTransaction(workspaceId, async (client) => {
-          return createCommercialProposal(client, {
-            workspaceId,
-            threadId,
-            contactId: data.contactId,
-            journeyId: data.journeyId,
-            title: data.title,
-            items: data.items,
-            currency: data.currency,
-            conditions: data.conditions,
-            validUntil: data.validUntil,
-            userId: request.user.id,
-          });
+        const {proposal,pixCharge}=await withTenantTransaction(workspaceId,async client=>{
+          const {requestKey,...terms}=data;
+          const fingerprint=crypto.createHash("sha256").update(JSON.stringify({threadId,...terms})).digest("hex");
+          if(requestKey){
+            await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`${workspaceId}:proposal:${requestKey}`]);
+            const existing=(await client.query<{proposal_id:string;pix_charge_id:string|null;request_fingerprint:string}>("SELECT proposal_id,pix_charge_id,request_fingerprint FROM proposal_creation_requests WHERE workspace_id=$1 AND request_key=$2",[workspaceId,requestKey])).rows[0];
+            if(existing){
+              if(existing.request_fingerprint!==fingerprint)throw new Error("PROPOSAL_REQUEST_CONFLICT");
+              const proposal=await getCommercialProposalById(client,workspaceId,existing.proposal_id);
+              if(!proposal)throw new Error("Proposta registrada não está disponível para consulta.");
+              const pixCharge=existing.pix_charge_id?(await client.query<PixChargeRecord>("SELECT * FROM pix_charges WHERE workspace_id=$1 AND id=$2",[workspaceId,existing.pix_charge_id])).rows[0]:undefined;
+              return {proposal,pixCharge};
+            }
+          }
+          const params={workspaceId,threadId,contactId:data.contactId,journeyId:data.journeyId,title:data.title,items:data.items,currency:data.currency,conditions:data.conditions,validUntil:data.validUntil,userId:request.user.id};
+          const result=data.generatePixCharge?await createProposalWithPixCharge(client,{...params,expiresMinutes:data.expiresMinutes}):{proposal:await createCommercialProposal(client,params),pixCharge:undefined};
+          if(requestKey)await client.query("INSERT INTO proposal_creation_requests(workspace_id,request_key,request_fingerprint,proposal_id,pix_charge_id) VALUES($1,$2,$3,$4,$5)",[workspaceId,requestKey,fingerprint,result.proposal.id,result.pixCharge?.id||null]);
+          return result;
         });
-
-        return reply.status(201).send(formatProposalResponse(proposal));
+        return reply.status(201).send({...formatProposalResponse(proposal),...(pixCharge?{pixCharge:formatPixChargeResponse(pixCharge)}:{})});
       } catch (err: unknown) {
         const error = err as Error;
+        if(error.message==="PROPOSAL_REQUEST_CONFLICT")return reply.code(409).send({detail:"Esta solicitação já foi usada com outra proposta. Confira a lista antes de criar uma nova."});
         return reply.status(400).send({
           type: "https://sos-sales.mct.br/errors/bad-request",
           title: "Bad Request",
@@ -438,17 +424,38 @@ export const commercialProposalsRoutes: FastifyPluginAsync = async (app) => {
         const { proposal, charge } = await withTenantTransaction(
           workspaceId,
           async (client) => {
+            await client.query("SELECT id FROM commercial_proposals WHERE workspace_id=$1 AND id=$2 FOR UPDATE",[workspaceId,proposalId]);
             const prop = await getCommercialProposalById(client, workspaceId, proposalId);
             if (!prop) {
               throw new Error(`PROPOSAL_NOT_FOUND: Proposal ${proposalId} not found`);
             }
 
+            const fingerprint=crypto.createHash("sha256").update(JSON.stringify({proposalId,expiresMinutes:data.expiresMinutes??30})).digest("hex");
+            if(data.requestKey){
+              await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`${workspaceId}:${data.requestKey}`]);
+              const receipt=(await client.query<PixChargeRecord&{request_fingerprint:string}>("SELECT p.*,r.request_fingerprint FROM pix_creation_requests r JOIN pix_charges p ON p.id=r.charge_id AND p.workspace_id=r.workspace_id WHERE r.workspace_id=$1 AND r.request_key=$2",[workspaceId,data.requestKey])).rows[0];
+              if(receipt){if(receipt.request_fingerprint!==fingerprint)throw new Error("INVALID_PROPOSAL_STATE: A solicitação já foi usada com outros dados.");return {proposal:prop,charge:receipt};}
+            }
+            if(data.expectedVersion!==undefined&&prop.state_version!==data.expectedVersion)throw new Error("INVALID_PROPOSAL_STATE: A proposta mudou. Consulte a versão atual antes de emitir cobrança.");
+            let expiresMinutes=data.expiresMinutes??30;
+            if(prop.valid_until){
+              const remainingMinutes=Math.floor((new Date(prop.valid_until).getTime()-Date.now())/60_000);
+              if(!Number.isFinite(remainingMinutes)||remainingMinutes<5)throw new Error("INVALID_PROPOSAL_STATE: A proposta venceu ou tem menos de cinco minutos de validade. Revise a proposta antes de cobrar.");
+              expiresMinutes=Math.min(expiresMinutes,remainingMinutes);
+            }
             if (["cancelled", "rejected", "expired"].includes(prop.status)) {
               throw new Error(
                 `INVALID_PROPOSAL_STATE: Não é possível emitir cobrança Pix para proposta com status '${prop.status}'.`
               );
             }
 
+            const outstanding=(await client.query<PixChargeRecord>("SELECT * FROM pix_charges WHERE workspace_id=$1 AND proposal_id=$2 AND (status='PAID' OR (status='PENDING' AND expires_at>now())) ORDER BY CASE WHEN status='PAID' THEN 0 ELSE 1 END,created_at DESC LIMIT 1 FOR UPDATE",[workspaceId,prop.id])).rows[0];
+            if(outstanding){
+              if(outstanding.status==='PAID')throw new Error("INVALID_PROPOSAL_STATE: Esta proposta já tem pagamento registrado. Confira as cobranças antes de emitir outra.");
+              if(outstanding.amount_cents!==prop.total_cents||outstanding.currency!==prop.currency||(prop.valid_until&&new Date(outstanding.expires_at).getTime()>new Date(prop.valid_until).getTime()))throw new Error("INVALID_PROPOSAL_STATE: Existe cobrança pendente com condições diferentes. Revise as cobranças antes de continuar.");
+              if(data.requestKey)await client.query("INSERT INTO pix_creation_requests(workspace_id,request_key,request_fingerprint,charge_id) VALUES($1,$2,$3,$4)",[workspaceId,data.requestKey,fingerprint,outstanding.id]);
+              return {proposal:prop,charge:outstanding};
+            }
             const pixCharge = await createPixCharge(client, {
               workspaceId,
               threadId: prop.thread_id,
@@ -457,8 +464,9 @@ export const commercialProposalsRoutes: FastifyPluginAsync = async (app) => {
               title: prop.title,
               amountCents: prop.total_cents,
               currency: prop.currency,
-              expiresMinutes: data.expiresMinutes,
+              expiresMinutes,
             });
+            if(data.requestKey)await client.query("INSERT INTO pix_creation_requests(workspace_id,request_key,request_fingerprint,charge_id) VALUES($1,$2,$3,$4)",[workspaceId,data.requestKey,fingerprint,pixCharge.id]);
 
             return { proposal: prop, charge: pixCharge };
           }

@@ -12,20 +12,26 @@ import { FlowDrawer } from "./FlowDrawer";
 export type DrawerType = "template" | "proposal" | "pix" | "radar" | "dossier" | "catalog" | "flow" | null;
 
 interface CockpitDrawersProps {
+  textSendBlockedReason?:string;
+  sendBlockedReason?:string;
+  onRefreshChannel?:()=>void;
+  isCheckingChannel?:boolean;
   activeDrawer: DrawerType;
   onClose: () => void;
   selectedThread: CommercialThreadSummary | null;
   session: UseSessionReturn;
-  onTemplateSent?: () => void;
-  onProposalCreated?: () => void;
+  onTemplateSent?: () => void|Promise<void>;
+  onProposalCreated?: () => void|Promise<void>;
   onPixCreated?: () => void;
+  radarCurrentDraft?:string;
   onRadarDraftApplied?: (draft: string) => void;
-  onSendProduct?: (product: ProductRecord) => void;
-  onSendProducts?: (products: ProductRecord[]) => void;
+  onSendProduct?: (product: ProductRecord,idempotencyKey?:string) => void | Promise<void>;
+  onSendProducts?: (products: ProductRecord[],idempotencyKey?:string) => void | Promise<void>;
   onContactUpdated?: (contact: ContactSummary) => void;
 }
 
 export const CockpitDrawers: FC<CockpitDrawersProps> = ({
+  textSendBlockedReason,sendBlockedReason,onRefreshChannel,isCheckingChannel,
   activeDrawer,
   onClose,
   selectedThread,
@@ -33,6 +39,7 @@ export const CockpitDrawers: FC<CockpitDrawersProps> = ({
   onTemplateSent,
   onProposalCreated,
   onPixCreated,
+  radarCurrentDraft,
   onRadarDraftApplied,
   onSendProduct,
   onSendProducts,
@@ -43,6 +50,9 @@ export const CockpitDrawers: FC<CockpitDrawersProps> = ({
   return (
     <>
       <TemplateDrawer
+        sendBlockedReason={selectedThread?.channelProvider==="meta_waba"?sendBlockedReason:textSendBlockedReason??sendBlockedReason}
+        onRefreshChannel={onRefreshChannel}
+        isCheckingChannel={isCheckingChannel}
         isOpen={activeDrawer === "template"}
         onClose={onClose}
         thread={selectedThread}
@@ -59,6 +69,9 @@ export const CockpitDrawers: FC<CockpitDrawersProps> = ({
         onProposalCreated={onProposalCreated}
       />
       <PixDrawer
+        sendBlockedReason={textSendBlockedReason??sendBlockedReason}
+        onRefreshChannel={onRefreshChannel}
+        isCheckingChannel={isCheckingChannel}
         isOpen={activeDrawer === "pix"}
         onClose={onClose}
         thread={selectedThread}
@@ -72,6 +85,7 @@ export const CockpitDrawers: FC<CockpitDrawersProps> = ({
         workspaceId={session.activeWorkspace?.id}
         token={token}
         threadId={selectedThread?.id}
+        currentDraft={radarCurrentDraft}
         onDraftApplied={onRadarDraftApplied}
       />
       <DossierDrawer
@@ -83,6 +97,9 @@ export const CockpitDrawers: FC<CockpitDrawersProps> = ({
         onContactUpdated={onContactUpdated}
       />
       <CatalogDrawer
+        sendBlockedReason={textSendBlockedReason??sendBlockedReason}
+        onRefreshChannel={onRefreshChannel}
+        isCheckingChannel={isCheckingChannel}
         isOpen={activeDrawer === "catalog"}
         onClose={onClose}
         thread={selectedThread}
@@ -92,11 +109,15 @@ export const CockpitDrawers: FC<CockpitDrawersProps> = ({
         onSendProducts={onSendProducts}
       />
       <FlowDrawer
+        sendBlockedReason={textSendBlockedReason??sendBlockedReason}
+        onRefreshChannel={onRefreshChannel}
+        isCheckingChannel={isCheckingChannel}
         isOpen={activeDrawer === "flow"}
         onClose={onClose}
         thread={selectedThread}
         workspaceId={session.activeWorkspace?.id}
         token={token}
+        onFlowQueued={onTemplateSent}
       />
     </>
   );

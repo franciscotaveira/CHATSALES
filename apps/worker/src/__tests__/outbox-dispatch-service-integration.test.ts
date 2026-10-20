@@ -1264,4 +1264,20 @@ describe("CH-10: Outbox → Worker → ChannelDispatchService Integration & Resi
     expect(otherWsCall.workspace_id).toBe(workspaceBId);
   });
 
+  it('records observed campaign blockers without invoking the provider',async()=>{
+    const suffix=crypto.randomUUID(),phone='+5500000000001';
+    const contact=(await ownerPool.query("INSERT INTO contacts(workspace_id,phone_e164,name,opt_out) VALUES($1,$2,'SIM campaign refusal',true) RETURNING id",[workspaceAId,phone])).rows[0].id;
+    const thread=(await ownerPool.query("INSERT INTO commercial_threads(workspace_id,channel_instance_id,contact_id,status) VALUES($1,$2,$3,'active') RETURNING id",[workspaceAId,wahaLineId,contact])).rows[0].id;
+    const template=(await ownerPool.query("INSERT INTO message_templates(workspace_id,name,category,body_text,status,language) VALUES($1,$2,'UTILITY','SIM without dispatch','PENDING','pt_BR') RETURNING id",[workspaceAId,'sim_guard_'+suffix.replace(/-/g,'')])).rows[0].id;
+    const campaign=(await ownerPool.query("INSERT INTO broadcast_campaigns(workspace_id,name,channel_instance_id,variant_a_template_id,total_targeted,status) VALUES($1,'SIM cancelled before dispatch',$2,$3,1,'cancelled') RETURNING id",[workspaceAId,wahaLineId,template])).rows[0].id;
+    const created=await createMessageAndCommand({workspaceId:workspaceAId,channelInstanceId:wahaLineId,threadId:thread,recipientE164:phone,body:'SIM must remain blocked',idempotencyKey:'bcast_SIM_'+suffix});
+    const recipient=(await ownerPool.query("INSERT INTO broadcast_recipients(workspace_id,campaign_id,contact_id,phone_e164,template_id,outbound_command_id,status) VALUES($1,$2,$3,$4,$5,$6,'queued') RETURNING id",[workspaceAId,campaign,contact,phone,template,created.commandId])).rows[0].id;
+    const dispatcher=new OutboxDispatcher({masterKeyHex:testMasterKey}),worker='SIM-campaign-reason-worker';
+    const claimed=await dispatcher.claimBatch(workerPool,worker,100);const item=claimed.find(row=>row.id===created.commandId);expect(item).toBeDefined();
+    const send=vi.fn().mockRejectedValue(new Error('SIM provider must not be called'));
+    const result=await dispatcher.dispatchItem(workerPool,item!,worker,{dispatchOutbound:send} as unknown as ChannelDispatchService);
+    expect(result).toMatchObject({success:false,status:'dead_letter'});expect(send).not.toHaveBeenCalled();
+    const record=(await ownerPool.query("SELECT status,error_message,sent_at FROM broadcast_recipients WHERE id=$1",[recipient])).rows[0];expect(record.status).toBe('blocked');expect(record.sent_at).toBeNull();expect(record.error_message).toContain('CAMPAIGN_STOPPED');expect(record.error_message).toContain('CONTACT_OPTED_OUT');expect(record.error_message).not.toContain('AUDIENCE_INELIGIBLE');
+  });
+
 });

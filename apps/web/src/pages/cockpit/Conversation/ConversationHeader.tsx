@@ -1,7 +1,9 @@
-import type { FC } from "react";
+import {STAGES} from '../../opportunities/stages';
+import {useEffect,useRef,useState,type FC} from "react";
 import { Avatar, Button, IconButton } from "@sos-sales/ui";
 import { ArrowLeft, RefreshCw, Sparkles, FileText, Info, AlertTriangle, UserCheck } from "lucide-react";
 import type { CommercialThreadSummary } from "../../../services/api-client";
+import {formatDateTimeFull} from "../utils/formatTime";
 import { formatPhone } from "../utils/formatPhone";
 
 interface ConversationHeaderProps {
@@ -14,7 +16,9 @@ interface ConversationHeaderProps {
   onOpenDossier?: () => void;
   onToggleContext?: () => void;
   isContextOpen?: boolean;
-  onAssumeAttendance?: () => void;
+  onResumeAutomation?: () => void;
+  isResumingAutomation?: boolean;
+  automationError?: string | null;
   onUpdateStage?: (newStage: string) => Promise<void> | void;
   customStages?: Record<string, string>;
   isUpdatingStage?: boolean;
@@ -30,11 +34,17 @@ export const ConversationHeader: FC<ConversationHeaderProps> = ({
   onOpenDossier,
   onToggleContext,
   isContextOpen = true,
-  onAssumeAttendance,
+  onResumeAutomation,
+  isResumingAutomation = false,
+  automationError,
   onUpdateStage,
   customStages,
   isUpdatingStage = false,
 }) => {
+  const contactHeading=useRef<HTMLHeadingElement|null>(null);
+  useEffect(()=>{
+    if(isMobile && document.activeElement===document.body)contactHeading.current?.focus({preventScroll:true});
+  },[isMobile,thread.id]);
   const hasName = Boolean(thread.contactName && thread.contactName.trim());
   const displayName = hasName
     ? thread.contactName
@@ -42,18 +52,25 @@ export const ConversationHeader: FC<ConversationHeaderProps> = ({
   const formattedPhone = formatPhone(thread.contactPhone);
   const origin = thread.channelProvider ? ` · ${thread.channelProvider}` : "";
 
-  // Meta 2026 CTWA 7-Day (168h) Free Messaging Window Calculation
-  const fepRemainingHours = thread.fepExpiresAt
-    ? Math.max(0, Math.round((new Date(thread.fepExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60)))
-    : null;
-  const isFepActive = fepRemainingHours !== null && fepRemainingHours > 0;
-  const fepRemainingDays = fepRemainingHours !== null ? Math.ceil(fepRemainingHours / 24) : null;
+  const announcementDeadline=thread.fepExpiresAt?Date.parse(thread.fepExpiresAt):NaN;
+  const [,refreshDeadline]=useState(0);
+  useEffect(()=>{
+    if(!Number.isFinite(announcementDeadline)||announcementDeadline<=Date.now())return;
+    let timer:ReturnType<typeof setTimeout>;
+    const check=()=>{
+      const remaining=announcementDeadline-Date.now();
+      if(remaining<=0){refreshDeadline(value=>value+1);return;}
+      timer=setTimeout(check,Math.min(remaining,2147483647));
+    };
+    check();return()=>clearTimeout(timer);
+  },[announcementDeadline]);
+  const hasFutureAnnouncementDeadline=Number.isFinite(announcementDeadline)&&announcementDeadline>Date.now();
 
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%", flexShrink: 0 }}>
       <header
         style={{
-          height: "var(--topbar-h, 56px)",
+          height: "auto",
           minHeight: "var(--topbar-h, 56px)",
           backgroundColor: "rgba(255, 255, 255, 0.92)",
           backdropFilter: "blur(12px)",
@@ -62,13 +79,14 @@ export const ConversationHeader: FC<ConversationHeaderProps> = ({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "0 var(--space-4, 16px)",
+          padding: "12px var(--space-4, 16px)",
+          flexWrap: "wrap",
           boxSizing: "border-box",
           gap: "12px",
           zIndex: 10,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0, flex: "1 1 220px" }}>
           {isMobile && onBack && (
             <IconButton
               aria-label="Voltar para a fila"
@@ -83,19 +101,24 @@ export const ConversationHeader: FC<ConversationHeaderProps> = ({
             name={hasName && thread.contactName ? thread.contactName : undefined}
             size="md"
           />
-          <div style={{ minWidth: 0 }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "8px",
-                overflow: "hidden",
+                gap: "6px",
+                flexWrap: "wrap",
+                minWidth: 0,
               }}
             >
-              <span
+              <h2
+                ref={contactHeading}
+                tabIndex={-1}
                 style={{
+                  margin:0,
                   fontSize: "var(--font-size-sm, 0.875rem)",
                   fontWeight: 600,
+                  flexBasis: "100%",
                   color: "var(--text-primary)",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -103,11 +126,11 @@ export const ConversationHeader: FC<ConversationHeaderProps> = ({
                 }}
               >
                 {displayName}
-              </span>
+              </h2>
 
-              {isFepActive && (
+              {hasFutureAnnouncementDeadline && (
                 <span
-                  title="Janela Gratuita de Mensagens Meta (CTWA 7 dias): Conversas livres de cobrança de tarifas Meta por 168 horas."
+                  title="Prazo informado pelo canal, no horário deste dispositivo. Confirme condições e tarifas no provedor; este aviso não autoriza envio."
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -123,16 +146,16 @@ export const ConversationHeader: FC<ConversationHeaderProps> = ({
                   }}
                 >
                   <span style={{ width: "5px", height: "5px", borderRadius: "50%", backgroundColor: "#10b981" }} />
-                  CTWA Grátis · {fepRemainingDays === 1 ? "1 dia" : `${fepRemainingDays}d`}
+                  Anúncio · até <time dateTime={new Date(announcementDeadline).toISOString()}>{formatDateTimeFull(thread.fepExpiresAt)}</time>
                 </span>
               )}
 
               <select
                 aria-label="Etapa do lead no funil"
-                value={thread.journeyStage || "lead"}
+                value={STAGES.some(stage=>stage.id===thread.journeyStage)?thread.journeyStage!:""}
                 onChange={(e) => onUpdateStage?.(e.target.value)}
                 disabled={isUpdatingStage}
-                title="Clique para avançar ou alterar a etapa do lead no funil"
+                title="Selecione uma etapa para revisar a negociação antes de alterar"
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -148,6 +171,7 @@ export const ConversationHeader: FC<ConversationHeaderProps> = ({
                   outline: "none",
                 }}
               >
+                {!STAGES.some(stage=>stage.id===thread.journeyStage)&&<option value="" disabled>Etapa não informada</option>}
                 <option value="lead">🌱 {customStages?.lead || "Lead"}</option>
                 <option value="qualified">🎯 {customStages?.qualified || "Qualificado"}</option>
                 <option value="proposal">📄 {customStages?.proposal || "Proposta"}</option>
@@ -170,7 +194,7 @@ export const ConversationHeader: FC<ConversationHeaderProps> = ({
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", marginLeft: "auto" }}>
           {onRefresh && (
             <IconButton
               aria-label="Atualizar mensagens"
@@ -192,7 +216,7 @@ export const ConversationHeader: FC<ConversationHeaderProps> = ({
               tooltip="Radar de Oportunidades"
             />
           )}
-          {onOpenDossier && !isMobile && (
+          {onOpenDossier && (
             <IconButton
               aria-label="Abrir ficha do cliente"
               icon={<FileText size={16} />}
@@ -205,6 +229,7 @@ export const ConversationHeader: FC<ConversationHeaderProps> = ({
           {onToggleContext && (isMobile ? (
             <IconButton
               aria-label={isContextOpen ? "Ocultar contexto do lead" : "Exibir contexto do lead"}
+              aria-expanded={isContextOpen}
               icon={<Info size={16} />}
               size="sm"
               variant={isContextOpen ? "secondary" : "ghost"}
@@ -216,6 +241,7 @@ export const ConversationHeader: FC<ConversationHeaderProps> = ({
               size="sm"
               variant={isContextOpen ? "secondary" : "primary"}
               prefixIcon={<Info size={15} />}
+              aria-expanded={isContextOpen}
               onClick={onToggleContext}
               title="Veja etapa da venda, propostas, cobranças, jornada e próxima ação"
             >
@@ -225,6 +251,7 @@ export const ConversationHeader: FC<ConversationHeaderProps> = ({
         </div>
       </header>
 
+      {automationError && <p role="alert" style={{padding:"12px 16px",color:"var(--color-danger)",fontSize:13}}>{automationError}</p>}
       {thread.status === "waiting_human" && (
         <div
           role="alert"
@@ -244,23 +271,26 @@ export const ConversationHeader: FC<ConversationHeaderProps> = ({
             <AlertTriangle size={18} style={{ color: "#d97706", flexShrink: 0 }} />
             <div>
               <div style={{ fontWeight: 700, color: "#d97706", display: "flex", alignItems: "center", gap: "6px" }}>
-                Transbordo Solicitado pela IA (Protocolo de Ignorância)
+                Cliente aguardando atendimento humano
               </div>
               <div style={{ color: "var(--text-primary)", marginTop: "2px" }}>
-                <strong>Motivo / Pergunta do Lead:</strong>{" "}
+                <p>Atenda pela caixa de mensagem abaixo. A IA permanece em espera até a devolução.</p>
+                <strong>Motivo:</strong>{" "}
                 <span style={{ fontStyle: "italic" }}>
-                  &ldquo;{thread.handoffReason || "O lead fez uma pergunta ausente do catálogo/FAQ e aguarda atendimento humano."}&rdquo;
+                  {thread.handoffReason?.trim() || "Motivo não informado."}
                 </span>
               </div>
             </div>
           </div>
 
-          {onAssumeAttendance && (
+          {onResumeAutomation && (
             <Button
               size="sm"
               variant="secondary"
               prefixIcon={<UserCheck size={14} />}
-              onClick={onAssumeAttendance}
+              onClick={onResumeAutomation}
+              disabled={isResumingAutomation}
+              title="Devolve esta conversa à IA, se o atendimento automático da empresa estiver habilitado."
               style={{
                 borderColor: "rgba(245, 158, 11, 0.4)",
                 backgroundColor: "var(--bg-surface)",
@@ -268,7 +298,7 @@ export const ConversationHeader: FC<ConversationHeaderProps> = ({
                 color: "var(--text-primary)",
               }}
             >
-              Assumir Conversa
+              {isResumingAutomation ? "Verificando…" : "Devolver à IA"}
             </Button>
           )}
         </div>

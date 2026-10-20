@@ -69,11 +69,11 @@ export async function createCommercialAction(
   // Validate assignee membership if provided
   if (input.assigneeUserId) {
     const memberRes = await client.query<{ user_id: string }>(
-      `SELECT user_id FROM public.workspace_memberships WHERE workspace_id = $1 AND user_id = $2;`,
+      `SELECT user_id FROM public.workspace_memberships WHERE workspace_id = $1 AND user_id = $2 AND role IN ('owner','admin','manager','operator') FOR KEY SHARE;`,
       [input.workspaceId, input.assigneeUserId]
     );
     if (!memberRes.rows[0]) {
-      throw new Error(`ASSIGNEE_NOT_MEMBER: O usuário ${input.assigneeUserId} não é membro do workspace.`);
+      throw new Error(`ASSIGNEE_NOT_MEMBER: O usuário ${input.assigneeUserId} não possui acesso operacional nesta empresa.`);
     }
   }
 
@@ -302,14 +302,15 @@ export async function assignCommercialAction(
   // Validate assignee membership if assigning to a user
   if (params.assigneeUserId) {
     const memberRes = await client.query<{ user_id: string }>(
-      `SELECT user_id FROM public.workspace_memberships WHERE workspace_id = $1 AND user_id = $2;`,
+      `SELECT user_id FROM public.workspace_memberships WHERE workspace_id = $1 AND user_id = $2 AND role IN ('owner','admin','manager','operator') FOR KEY SHARE;`,
       [workspaceId, params.assigneeUserId]
     );
     if (!memberRes.rows[0]) {
-      throw new Error(`ASSIGNEE_NOT_MEMBER: O usuário ${params.assigneeUserId} não é membro do workspace.`);
+      throw new Error(`ASSIGNEE_NOT_MEMBER: O usuário ${params.assigneeUserId} não possui acesso operacional nesta empresa.`);
     }
   }
 
+  if(action.assignee_user_id===params.assigneeUserId)return action;
   const prevAssigneeId = action.assignee_user_id;
 
   const updateRes = await client.query<CommercialActionRecord>(
@@ -352,6 +353,7 @@ export async function completeCommercialAction(
   actionId: string,
   params: {
     userId?: string | null;
+    reason?: string | null;
   }
 ): Promise<CommercialActionRecord> {
   const actionRes = await client.query<CommercialActionRecord>(
@@ -392,9 +394,9 @@ export async function completeCommercialAction(
 
   await client.query(
     `INSERT INTO public.commercial_action_history (
-       workspace_id, action_id, action_type, created_by_user_id, created_at
-     ) VALUES ($1, $2, 'completed', $3, clock_timestamp());`,
-    [workspaceId, actionId, params.userId ?? null]
+       workspace_id, action_id, action_type, created_by_user_id, reason, created_at
+     ) VALUES ($1, $2, 'completed', $3, $4, clock_timestamp());`,
+    [workspaceId, actionId, params.userId ?? null, params.reason?.trim()||null]
   );
 
   return updated;

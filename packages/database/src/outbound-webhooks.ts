@@ -8,6 +8,7 @@ export interface OutboundWebhookSubscription {
   description: string | null;
   events: string[];
   is_active: boolean;
+  supports_idempotency: boolean;
   created_at: Date;
   updated_at: Date;
 }
@@ -31,7 +32,7 @@ export async function listOutboundWebhooks(
   workspaceId: string
 ): Promise<OutboundWebhookSubscription[]> {
   const result = await client.query(
-    `SELECT id, workspace_id, url, secret, description, events, is_active, created_at, updated_at
+    `SELECT id, workspace_id, url, secret, description, events, is_active, supports_idempotency, created_at, updated_at
      FROM public.outbound_webhook_subscriptions
      WHERE workspace_id = $1
      ORDER BY created_at DESC`,
@@ -46,7 +47,7 @@ export async function getOutboundWebhookById(
   webhookId: string
 ): Promise<OutboundWebhookSubscription | null> {
   const result = await client.query(
-    `SELECT id, workspace_id, url, secret, description, events, is_active, created_at, updated_at
+    `SELECT id, workspace_id, url, secret, description, events, is_active, supports_idempotency, created_at, updated_at
      FROM public.outbound_webhook_subscriptions
      WHERE workspace_id = $1 AND id = $2`,
     [workspaceId, webhookId]
@@ -62,20 +63,21 @@ export async function createOutboundWebhook(
     secret: string;
     description?: string | null;
     events?: string[];
+    supportsIdempotency?: boolean;
   }
 ): Promise<OutboundWebhookSubscription> {
   const events = params.events && params.events.length > 0 ? params.events : ["*"];
   const result = await client.query(
     `INSERT INTO public.outbound_webhook_subscriptions
-      (workspace_id, url, secret, description, events, is_active)
-     VALUES ($1, $2, $3, $4, $5, true)
-     RETURNING id, workspace_id, url, secret, description, events, is_active, created_at, updated_at`,
+      (workspace_id, url, secret, description, events, is_active, supports_idempotency)
+     VALUES ($1, $2, $3, $4, $5, false, $6)
+     RETURNING id, workspace_id, url, secret, description, events, is_active, supports_idempotency, created_at, updated_at`,
     [
       params.workspaceId,
       params.url,
       params.secret,
       params.description || null,
-      events,
+      events, params.supportsIdempotency ?? false,
     ]
   );
   return result.rows[0];
@@ -104,7 +106,7 @@ export async function updateOutboundWebhook(
     `UPDATE public.outbound_webhook_subscriptions
      SET url = $3, description = $4, events = $5, is_active = $6, updated_at = now()
      WHERE workspace_id = $1 AND id = $2
-     RETURNING id, workspace_id, url, secret, description, events, is_active, created_at, updated_at`,
+     RETURNING id, workspace_id, url, secret, description, events, is_active, supports_idempotency, created_at, updated_at`,
     [params.workspaceId, params.webhookId, newUrl, newDescription, newEvents, newIsActive]
   );
   return result.rows[0] || null;
@@ -116,7 +118,7 @@ export async function deleteOutboundWebhook(
   webhookId: string
 ): Promise<boolean> {
   const result = await client.query(
-    `DELETE FROM public.outbound_webhook_subscriptions
+    `UPDATE public.outbound_webhook_subscriptions SET is_active=false,updated_at=now()
      WHERE workspace_id = $1 AND id = $2`,
     [workspaceId, webhookId]
   );

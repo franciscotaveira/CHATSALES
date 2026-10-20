@@ -87,7 +87,7 @@ describe("SovereignLlmClient", () => {
     const [url, options] = fetchSpy.mock.calls[0] as [string, any];
     expect(url).toBe("https://openrouter.ai/api/v1/chat/completions");
     expect(options.headers["Authorization"]).toBe("Bearer sk-or-custom-key");
-    expect(options.headers["HTTP-Referer"]).toBe("https://crm.iaparavendas.tech");
+    expect(options.headers["HTTP-Referer"]).toBe("https://chat.automatizaprocessos.tech");
     expect(result.content).toBe("Resposta do Claude via OpenRouter.");
     expect(result.provider).toBe("openrouter");
     expect(result.model).toBe("anthropic/claude-3.5-sonnet");

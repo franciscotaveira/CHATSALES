@@ -41,13 +41,19 @@ describe("Pix Notification Service (Automatic WhatsApp Celebration Receipt)", ()
     expect(mockClient.query).toHaveBeenCalledTimes(1);
   });
 
+  it("does not invent a sender or enqueue a message when the channel phone is missing",async()=>{
+    const mockClient={query:vi.fn().mockResolvedValue({rows:[{channel_instance_id:crypto.randomUUID(),provider:"waha",channel_phone:null,contact_phone:"+5500999900001"}]})} as unknown as PoolClient;
+    expect(await enqueuePixConfirmationMessage(mockClient,workspaceId,mockCharge)).toBeNull();
+    expect(mockClient.query).toHaveBeenCalledTimes(1);
+  });
+
   it("enqueues celebratory message into public.messages and outbox command into public.outbound_commands", async () => {
     const channelInstanceId = crypto.randomUUID();
     const createdMsgId = crypto.randomUUID();
 
     const mockClient = {
       query: vi.fn().mockImplementation((sql: string) => {
-        if (sql.includes("FROM public.threads t")) {
+        if (sql.includes("FROM public.commercial_threads t")) {
           return Promise.resolve({
             rows: [
               {
@@ -76,10 +82,10 @@ describe("Pix Notification Service (Automatic WhatsApp Celebration Receipt)", ()
     const result = await enqueuePixConfirmationMessage(mockClient, workspaceId, mockCharge);
 
     expect(result).toBe(createdMsgId);
-    expect(mockClient.query).toHaveBeenCalledTimes(3);
+    expect(mockClient.query).toHaveBeenCalledTimes(5);
 
     // Verify messages insert call
-    const msgCall = (mockClient.query as ReturnType<typeof vi.fn>).mock.calls[1]!;
+    const msgCall = (mockClient.query as ReturnType<typeof vi.fn>).mock.calls[3]!;
     expect(msgCall[0]).toContain("INSERT INTO public.messages");
     const msgParams = msgCall[1];
     expect(msgParams[0]).toBe(workspaceId);
@@ -90,7 +96,7 @@ describe("Pix Notification Service (Automatic WhatsApp Celebration Receipt)", ()
     expect(msgParams[6]).toContain("Mentoria de Vendas High-Ticket");
 
     // Verify outbox command insert call
-    const outboxCall = (mockClient.query as ReturnType<typeof vi.fn>).mock.calls[2]!;
+    const outboxCall = (mockClient.query as ReturnType<typeof vi.fn>).mock.calls[4]!;
     expect(outboxCall[0]).toContain("INSERT INTO public.outbound_commands");
     const outboxParams = outboxCall[1];
     expect(outboxParams[0]).toBe(workspaceId);

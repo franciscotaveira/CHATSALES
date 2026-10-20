@@ -2,13 +2,98 @@ networks:
   sos-sales-network:
     external: true
 
+volumes:
+  sos_sales_v3_pgdata:
+    external: true
+  sos_v3_redisdata:
+    external: true
+  sos_sales_waha_sessions:
+    external: true
+
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sos-sales-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sos_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sos_secret_lab_2026}
+      POSTGRES_DB: sos_sales_v3
+    volumes:
+      - sos_sales_v3_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U sos_user -d sos_sales_v3 || exit 1']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - sos-sales-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  redis:
+    image: redis:7-alpine
+    container_name: sos-sales-redis
+    restart: unless-stopped
+    volumes:
+      - sos_v3_redisdata:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli ping || exit 1']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - sos-sales-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  waha:
+    image: devlikeapro/waha:latest-2026.8.2@sha256:527ff3d634925adb26d596883d7b3ca502c080f737af3c2af2be0c973c511533
+    container_name: sos-sales-waha
+    restart: unless-stopped
+    environment:
+      WHATSAPP_DEFAULT_ENGINE: WEBJS
+      WHATSAPP_API_KEY: ${WAHA_API_KEY}
+      WAHA_ZIP_LOGS: "false"
+      WAHA_LOG_LEVEL: info
+      WAHA_PRINT_QR: "false"
+      WAHA_BASE_URL: http://sos-sales-waha:3000
+    volumes:
+      - sos_sales_waha_sessions:/app/.sessions
+    deploy:
+      resources:
+        limits:
+          memory: 2560M
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:3000/ping || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - sos-sales-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
     container_name: chat-sales-api
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       PORT_API: 4400
@@ -51,6 +136,11 @@ services:
       dockerfile: apps/worker/Dockerfile
     container_name: chat-sales-worker
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       WORKER_DATABASE_URL: ${WORKER_DATABASE_URL:?WORKER_DATABASE_URL is required}

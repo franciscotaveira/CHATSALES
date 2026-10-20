@@ -37,9 +37,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   public override render(): ReactNode {
     if (this.state.hasError) {
       return (
-        <div
+        <div role="alert"
           style={{
-            minHeight: "100vh",
+            minHeight: "min(60vh, 480px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -81,38 +81,17 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               </div>
               <div>
                 <h2 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 600 }}>
-                  {this.props.fallbackTitle || "Falha na Renderização da Tela"}
+                  {this.props.fallbackTitle || "Não foi possível abrir esta tela"}
                 </h2>
                 <span style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)" }}>
-                  SOS Sales V3 • Proteção Ativa Fail-Closed
+                  Atualize a página para tentar carregar novamente.
                 </span>
               </div>
             </div>
 
-            <Alert variant="danger" title="Exceção Não Tratada">
-              {this.state.error?.message || "Ocorreu um erro inesperado ao carregar este módulo."}
+            <Alert variant="danger" title="A tela não terminou de carregar">
+              Confira sua conexão e tente novamente. Recarregar pode descartar alterações que ainda não foram salvas nesta página.
             </Alert>
-
-            {this.state.error && (
-              <pre
-                style={{
-                  margin: 0,
-                  padding: "12px",
-                  background: "var(--bg-canvas)",
-                  borderRadius: "var(--radius-sm)",
-                  fontSize: "var(--font-size-xs)",
-                  fontFamily: "var(--font-mono)",
-                  color: "var(--color-danger)",
-                  border: "1px solid var(--border-subtle)",
-                  overflowX: "auto",
-                  maxHeight: "140px",
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-all",
-                }}
-              >
-                {this.state.error.stack || this.state.error.message}
-              </pre>
-            )}
 
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
               <Button
@@ -120,7 +99,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 onClick={this.handleReset}
                 prefixIcon={<RotateCcw size={16} />}
               >
-                Recarregar Aplicação
+                Recarregar página
               </Button>
             </div>
           </div>

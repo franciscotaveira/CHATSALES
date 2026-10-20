@@ -61,7 +61,7 @@ export class OpenRouterClient {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${apiKey}`,
-          "HTTP-Referer": "https://crm.iaparavendas.tech",
+          "HTTP-Referer": "https://chat.automatizaprocessos.tech",
           "X-Title": "Chat Sales V3 Commercial Receptionist",
         },
         body: JSON.stringify({

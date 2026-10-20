@@ -1,4 +1,5 @@
-import { type FC, type KeyboardEvent, useRef } from "react";
+import {attachmentAccept,attachmentFileError,attachmentSizeLabel} from "../utils/attachment-file";
+import { type FC, type KeyboardEvent, useRef, useState, useId } from "react";
 import { Button, IconButton } from "@sos-sales/ui";
 import { Send, Paperclip, FileCode, ShoppingBag, Workflow, QrCode, File, X } from "lucide-react";
 import type { WindowInfo } from "../hooks/useConversation";
@@ -16,6 +17,8 @@ interface ComposerProps {
   onOpenFlows?: () => void;
   onOpenPix?: () => void;
   isMobile?: boolean;
+  onRefreshChannel?:()=>void;
+  isCheckingChannel?:boolean;
 }
 
 export const Composer: FC<ComposerProps> = ({
@@ -31,15 +34,21 @@ export const Composer: FC<ComposerProps> = ({
   onOpenFlows,
   onOpenPix,
   isMobile = false,
+  onRefreshChannel,
+  isCheckingChannel=false,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [attachmentError,setAttachmentError]=useState<string|null>(null);const attachmentErrorId=useId();
   const isWindowClosed = !windowInfo.isOpen;
+  const blocked=windowInfo.sendBlockedReason;
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if(e.nativeEvent.isComposing||e.keyCode===229)return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if ((draft.trim() || attachedFile) && !isSending && !isWindowClosed) {
+      if(e.repeat)return;
+      if ((draft.trim() || attachedFile) && !isSending && !isWindowClosed && !blocked) {
         onSend();
       }
     }
@@ -64,6 +73,10 @@ export const Composer: FC<ComposerProps> = ({
         flexDirection: "column",
         gap: "8px",
         boxSizing: "border-box",
+        flexShrink:0,
+        minHeight:0,
+        maxHeight:"70%",
+        overflowY:"auto",
       }}
     >
       {/* Quick Action Tools Bar */}
@@ -120,7 +133,8 @@ export const Composer: FC<ComposerProps> = ({
       </div>
 
       {/* Main Composer Input Area */}
-      {isWindowClosed ? (
+      {blocked&&<div role="status"><p>{blocked}</p>{onRefreshChannel&&<Button size="sm" variant="secondary" disabled={isCheckingChannel||isSending} onClick={onRefreshChannel}>Atualizar disponibilidade</Button>}</div>}
+      {windowInfo.isLoading ? <p role="status">{windowInfo.badgeText}</p> : isWindowClosed&&!blocked ? (
         <div
           style={{
             backgroundColor: "var(--bg-canvas)",
@@ -147,6 +161,8 @@ export const Composer: FC<ComposerProps> = ({
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          {attachmentError&&<p id={attachmentErrorId} role="alert">{attachmentError} O texto e o anexo anterior foram preservados.</p>}
+          <p style={{fontSize:12,color:"var(--text-muted)",margin:0}}>Imagens JPG, PNG e WebP até 5 MB; PDF, MP4, OGG e MP3 até 16 MB.</p>
           {attachedFile && (
             <div
               style={{
@@ -175,7 +191,7 @@ export const Composer: FC<ComposerProps> = ({
                   {attachedFile.name}
                 </span>
                 <span style={{ color: "var(--text-muted)", fontSize: "11px", flexShrink: 0 }}>
-                  ({(attachedFile.size / 1024).toFixed(0)} KB)
+                  ({attachmentSizeLabel(attachedFile.size)})
                 </span>
               </div>
               <IconButton
@@ -183,7 +199,8 @@ export const Composer: FC<ComposerProps> = ({
                 icon={<X size={14} />}
                 size="sm"
                 variant="ghost"
-                onClick={() => onAttachFile?.(null)}
+                disabled={isSending}
+                onClick={() => {if(isSending)return;onAttachFile?.(null);setAttachmentError(null);textareaRef.current?.focus();}}
                 tooltip="Remover anexo"
               />
             </div>
@@ -194,12 +211,10 @@ export const Composer: FC<ComposerProps> = ({
               type="file"
               ref={fileInputRef}
               style={{ display: "none" }}
-              accept="image/jpeg,image/png,image/webp,application/pdf,video/mp4,audio/ogg,audio/mpeg"
+              accept={attachmentAccept}
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) {
-                  onAttachFile?.(file);
-                }
+                if(file&&!isSending){const error=attachmentFileError(file);setAttachmentError(error);if(!error)onAttachFile?.(file);}
                 e.target.value = "";
               }}
             />
@@ -211,11 +226,13 @@ export const Composer: FC<ComposerProps> = ({
               variant="ghost"
               tooltip="Anexar arquivo"
               onClick={() => fileInputRef.current?.click()}
-              disabled={isSending}
+              disabled={isSending||!onAttachFile}
+              aria-describedby={attachmentError?attachmentErrorId:undefined}
             />
 
             <textarea
               ref={textareaRef}
+              aria-label="Mensagem para o cliente"
               value={draft}
               onChange={(e) => handleTextChange(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -242,8 +259,8 @@ export const Composer: FC<ComposerProps> = ({
             <Button
               size="sm"
               variant="primary"
-              disabled={(!draft.trim() && !attachedFile) || isSending}
-              onClick={onSend}
+              disabled={Boolean(blocked)||(!draft.trim() && !attachedFile) || isSending}
+              onClick={()=>{if(!blocked)onSend();}}
               prefixIcon={<Send size={15} />}
               title="Enviar mensagem (Enter)"
             >

@@ -341,7 +341,7 @@ export class MetaWabaAdapter implements IChannelAdapter {
         template: {
           name: params.template.name,
           language: { code: params.template.language },
-          components: params.template.components || [],
+          components: (params.template.components || []).map(component=>({...component,...(component.index!==undefined?{index:String(component.index)}:{})})),
         },
       };
     } else if (params.mediaUrl) {

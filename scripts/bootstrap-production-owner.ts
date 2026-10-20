@@ -137,7 +137,7 @@ async function main() {
     }
 
     console.log("\n🎉 [Bootstrap Concluído com Sucesso!]");
-    console.log(`   Acesse: https://crm.iaparavendas.tech`);
+    console.log(`   Acesse: https://chat.automatizaprocessos.tech`);
     console.log(`   Login:  ${ownerEmail}`);
     console.log(`   Papel:  Owner / Proprietário Mestre\n`);
   } finally {

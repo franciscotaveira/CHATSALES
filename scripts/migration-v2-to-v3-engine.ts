@@ -793,7 +793,7 @@ export async function executeHermeticBackupAndRestore(
     // 3. Restore dump into ephemeral destination database
     if (useDocker) {
       execSync(
-        `docker exec -e PGPASSWORD=sos_secret_lab_2026 ${container} pg_restore -U sos_user -d ${restoredDb} --no-owner ${containerDumpPath}`,
+        `docker exec -e PGPASSWORD=sos_secret_lab_2026 ${container} pg_restore -U sos_user -d ${restoredDb} --no-owner --role=sos_migration_owner ${containerDumpPath}`,
         { stdio: "pipe" }
       );
     } else {
@@ -801,7 +801,7 @@ export async function executeHermeticBackupAndRestore(
       const host = parsedAdmin.hostname;
       const port = parsedAdmin.port;
       execSync(
-        `PGPASSWORD=sos_secret_lab_2026 pg_restore -h ${host} -p ${port} -U sos_user -d ${restoredDb} --no-owner ${localDumpPath}`,
+        `PGPASSWORD=sos_secret_lab_2026 pg_restore -h ${host} -p ${port} -U sos_user -d ${restoredDb} --no-owner --role=sos_migration_owner ${localDumpPath}`,
         { stdio: "pipe" }
       );
     }

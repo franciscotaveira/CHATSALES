@@ -1,4 +1,6 @@
-import { useState, useEffect, useMemo, useRef, type FC, type FormEvent } from "react";
+import {useDiscardChanges,UnsavedChangesNotice} from "../UnsavedChangesNotice";
+import {assembleTemplate,inspectTemplateLayout,isRecipientNameVariable} from "@sos-sales/contracts";
+import { useState, useEffect, useMemo, useRef, type FC, type FormEvent, type CSSProperties } from "react";
 import {
   Dialog,
   Button,
@@ -22,141 +24,19 @@ import {
   Trash2,
   Filter,
 } from "lucide-react";
-import * as XLSX from "xlsx";
 import {
-  apiClient,
+  apiClient,ApiError,
   type MessageTemplateSummary,
   type ChannelSummary,
 } from "../../services/api-client";
 import { renderWhatsappMarkdown } from "../cockpit/utils/whatsappMarkdown";
 import { CreateTemplateDialog } from "./CreateTemplateDialog";
+import { userFacingError } from "../../utils/user-facing-error";
 
-// Brazilian Phone Sanitizer & E.164 Validator
-export function sanitizeBrazilianPhoneE164(raw: string): { phoneE164: string } | { error: string } {
-  if (!raw) return { error: "Vazio" };
-  const digits = raw.replace(/\D/g, "");
-  if (!digits) return { error: "Sem dígitos" };
+import { loadSpreadsheetLibrary, parseCsvText, suggestImportColumns, mapImportRows, type ImportRow, type ImportPhoneFormat } from "./import-audience";
+export { sanitizeBrazilianPhoneE164, parseCsvText } from "./import-audience";
 
-  let clean = digits.startsWith("0") ? digits.slice(1) : digits;
-
-  if (clean.startsWith("55")) {
-    clean = clean.slice(2);
-  }
-
-  if (clean.length < 10) {
-    return { error: "Menos de 10 dígitos (DDD ausente)" };
-  }
-
-  const ddd = clean.slice(0, 2);
-  const rest = clean.slice(2);
-
-  // Landlines discard (starting with 2, 3, 4, 5 and 8 digits)
-  if (rest.length === 8 && /^[2-5]/.test(rest)) {
-    return { error: "Telefone fixo descartado" };
-  }
-
-  let finalNumber = rest;
-  if (rest.length === 8 && /^[6-9]/.test(rest)) {
-    finalNumber = `9${rest}`;
-  } else if (rest.length === 9 && rest.startsWith("9")) {
-    finalNumber = rest;
-  } else if (rest.length !== 9) {
-    return { error: "Formato de telefone móvel inválido" };
-  }
-
-  const e164 = `+55${ddd}${finalNumber}`;
-  if (!/^\+55[1-9]{2}9[0-9]{8}$/.test(e164)) {
-    return { error: "Dígitos inválidos" };
-  }
-
-  return { phoneE164: e164 };
-}
-
-function parseCsvText(text: string): Array<Record<string, string>> {
-  const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
-  if (lines.length === 0) return [];
-
-  const firstLine = lines[0]!;
-  const commaCount = (firstLine.match(/,/g) || []).length;
-  const semiCount = (firstLine.match(/;/g) || []).length;
-  const tabCount = (firstLine.match(/\t/g) || []).length;
-  let delimiter = ",";
-  if (semiCount > commaCount && semiCount >= tabCount) delimiter = ";";
-  else if (tabCount > commaCount && tabCount > semiCount) delimiter = "\t";
-
-  const splitLine = (line: string): string[] => {
-    const result: string[] = [];
-    let cur = "";
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      if (char === '"') {
-        if (inQuotes && line[i + 1] === '"') {
-          cur += '"';
-          i++;
-        } else {
-          inQuotes = !inQuotes;
-        }
-      } else if (char === delimiter && !inQuotes) {
-        result.push(cur.trim());
-        cur = "";
-      } else {
-        cur += char;
-      }
-    }
-    result.push(cur.trim());
-    return result;
-  };
-
-  const headers = splitLine(firstLine).map((h) => h.toLowerCase().replace(/["']/g, ""));
-  const rows: Array<Record<string, string>> = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const cells = splitLine(lines[i]!);
-    const row: Record<string, string> = {};
-    headers.forEach((h, idx) => {
-      row[h] = cells[idx] || "";
-    });
-    rows.push(row);
-  }
-  return rows;
-}
-
-function extractContactFromRow(row: Record<string, any>): { name?: string; phoneRaw: string } | null {
-  const keys = Object.keys(row);
-  const phoneKey = keys.find((k) =>
-    /telefone|celular|phone|whatsapp|fone|numero|número|mobile|tel|contato/i.test(k)
-  );
-  const nameKey = keys.find((k) => /nome|name|cliente|lead/i.test(k));
-
-  let phoneRaw = phoneKey ? String(row[phoneKey] || "") : "";
-  let name = nameKey ? String(row[nameKey] || "") : "";
-
-  if (!phoneRaw) {
-    const candidate = keys.find((k) => String(row[k] || "").replace(/\D/g, "").length >= 8);
-    if (candidate) {
-      phoneRaw = String(row[candidate] || "");
-    }
-  }
-  if (!nameKey) {
-    const candidateName = keys.find((k) => k !== phoneKey && typeof row[k] === "string" && !/^\d+$/.test(row[k]));
-    if (candidateName) {
-      name = String(row[candidateName] || "");
-    }
-  }
-
-  if (!phoneRaw) return null;
-  return { name: name.trim() || undefined, phoneRaw };
-}
-
-// Recipient Name Variable Detector
-export function isRecipientNameVariable(key: string): boolean {
-  const clean = key.trim().toLowerCase();
-  return (
-    clean === "1" ||
-    /^(nome|name|cliente|lead|primeiro_nome|cliente_nome|nome_do_cliente|primeiro_nome_cliente)$/i.test(clean)
-  );
-}
+export {isRecipientNameVariable} from "@sos-sales/contracts";
 
 // Format template name for commercial/human readability and cost awareness
 export function formatTemplateDisplayTitle(
@@ -183,8 +63,8 @@ export function formatTemplateDisplayTitle(
     .join(" ");
 
   const isUtility = tpl.category === "UTILITY";
-  const costBadge = isUtility ? "⚡ Utilidade (~R$ 0,04 • -85%)" : "⭐ Marketing (~R$ 0,40)";
-  const approvalBadge = tpl.metaTemplateId ? "Meta Aprovado" : "Local";
+  const costBadge = isUtility ? "Utilidade — consulte tarifa no provedor" : "Marketing — consulte tarifa no provedor";
+  const approvalBadge = tpl.metaTemplateId ? "Identificado na Meta — confira a aprovação" : "Local";
   return `${clean} [${costBadge} • ${approvalBadge}]`;
 }
 
@@ -269,6 +149,11 @@ interface BroadcastTemplateDialogProps {
   onBroadcastSuccess?: () => void;
 }
 
+const validatePreflight=(value:Awaited<ReturnType<typeof apiClient.getBroadcastPreflight>>)=>{
+ if(!value||value.success!==true||!Array.isArray(value.channels)||!Array.isArray(value.templates)||!Number.isSafeInteger(value.totalActiveContacts)||value.totalActiveContacts<0)throw new Error("A consulta não confirmou canais, modelos e público válidos. Atualize o preparo antes de continuar.");
+ return value;
+};
+
 export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
   isOpen,
   onClose,
@@ -277,8 +162,51 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
   initialTemplate,
   onBroadcastSuccess,
 }) => {
+  const variableMetadata=(key:string)=>key.includes(":")?{label:key==="header:media"?"URL da mídia do cabeçalho":key==="header:filename"?"Nome do documento (opcional)":key.startsWith("header:")?`Cabeçalho {{${key.slice(7)}}}`:key.endsWith(":payload")?`Identificador da resposta do botão ${Number(key.split(":")[1])+1} (opcional)`:`Complemento do link do botão ${Number(key.split(":")[1])+1}`,placeholder:key==="header:media"?"https://...":"Confira este campo na prévia",isName:false,suggestions:[] as string[]}:/^\d+$/.test(key)&&key!=="1" ? {label:`Valor para {{${key}}}`,placeholder:"Confira este campo na prévia da mensagem",isName:false,suggestions:[] as string[]} : getVariableMetadata(key);
   const { isMobile } = useBreakpoint();
+  const mobileActionStyle:CSSProperties|undefined=isMobile?{width:"100%",minHeight:44,height:"auto",whiteSpace:"normal",overflowWrap:"anywhere",lineHeight:1.35}:undefined;
+  const submissionRef = useRef<{ fingerprint: string; key: string;payload:Parameters<typeof apiClient.createBroadcast>[1] } | null>(null);
+  const operation=useRef<symbol|null>(null);
+  const initialChoice=useRef<{scope:string;channel:string;modelA:string;modelB:string}|null>(null);
+  const nameRef=useRef<HTMLInputElement>(null);
+  const [confirmationUncertain,setConfirmationUncertain]=useState(false);
+  const availableFor=(channel:ChannelSummary|undefined,items:MessageTemplateSummary[])=>channel?.provider==="meta_waba"?items.filter(template=>template.status==="APPROVED"&&Boolean(template.metaTemplateId)&&template.metaVerifiedChannelId===channel.id&&new Date(template.metaVerifiedAt||"").getTime()>Date.now()-86400000):items;
+  useEffect(() => { if (isOpen) submissionRef.current = null; }, [isOpen]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const scope=useRef("");scope.current=`${workspaceId}:${token}:${isOpen}`;
+  const fileRevision=useRef(0);
+  const dialogGeneration=useRef(0);
+  const [preflightError,setPreflightError]=useState<string | null>(null);
+  const [preflightReload,setPreflightReload]=useState(0);
+  const [countError,setCountError]=useState<string | null>(null);
+  const [countReload,setCountReload]=useState(0);
+  const [readyScope,setReadyScope]=useState<string | null>(null);
+  const [review,setReview]=useState<{scope:string;generation:number;prepared:Awaited<ReturnType<typeof apiClient.prepareBroadcast>>;payload:Parameters<typeof apiClient.createBroadcast>[1];channel:string;modelA:string;modelB:string;bodyA:string;bodyB:string;audience:string} | null>(null);
+  const [testPhone,setTestPhone]=useState("");
+  const [testResults,setTestResults]=useState<Awaited<ReturnType<typeof apiClient.getBroadcastTests>>["tests"]>([]);
+  const [approvedTestIds,setApprovedTestIds]=useState<string[]>([]);
+  const [testBusy,setTestBusy]=useState(false);
+  const [testError,setTestError]=useState("");
+  const testRequest=useRef(0);
+  const testInFlight=useRef(false);
+  useEffect(()=>{testRequest.current++;testInFlight.current=false;setTestBusy(false);setTestPhone("");setTestResults([]);setApprovedTestIds([]);setTestError("");},[review?.prepared.preparedAudienceId,workspaceId,token,isOpen]);
+  const testsApproved=Boolean(review&&["A",...(review.payload.isAbTest?["B"]:[])].every(variant=>testResults.some(test=>test.variant===variant&&test.status==="sent"&&approvedTestIds.includes(test.id))));
+  async function updateMessageTests(variant?:"A"|"B"){
+    if(!isOpen||!review||testInFlight.current||operation.current||discard.isPending||confirmationUncertain||review.scope!==scope.current||review.generation!==dialogGeneration.current)return;
+    const requestedScope=scope.current,generation=review.generation,request=++testRequest.current;
+    const current=()=>requestedScope===scope.current&&generation===dialogGeneration.current&&request===testRequest.current;
+    if(variant&&!/^\+[1-9][0-9]{8,14}$/.test(testPhone.trim())){setTestError("Informe o número de teste com + e código do país, sem espaços. Exemplo: +5511999999999.");return;}
+    testInFlight.current=true;setTestBusy(true);setTestError("");
+    try{
+      if(variant)await apiClient.sendBroadcastTest(workspaceId,{...review.payload,testPhone:testPhone.trim(),testVariant:variant},{token});
+      if(!current())return;
+      const result=await apiClient.getBroadcastTests(workspaceId,review.prepared.preparedAudienceId,{token});
+      if(current()){setTestResults(result.tests);setApprovedTestIds(ids=>ids.filter(id=>result.tests.some(test=>test.id===id&&test.status==="sent")));}
+    }catch(error){if(current())setTestError(userFacingError(error,"Não foi possível consultar ou preparar o teste. Atualize o resultado antes de tentar novamente."));}
+    finally{if(current()){testInFlight.current=false;setTestBusy(false);}}
+  }
+
+  const [reviewAccepted,setReviewAccepted]=useState(false);
 
   const [isLoadingPreflight, setIsLoadingPreflight] = useState(true);
   const [channels, setChannels] = useState<Array<ChannelSummary & { isBlockedForBroadcast: boolean }>>([]);
@@ -300,13 +228,17 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
   // Planilha Import State
   const [isParsingFile, setIsParsingFile] = useState(false);
   const [importedFile, setImportedFile] = useState<File | null>(null);
-  const [importedContacts, setImportedContacts] = useState<Array<{ phoneE164: string; name?: string }>>([]);
-  const [importStats, setImportStats] = useState<{
-    totalRows: number;
-    validCount: number;
-    duplicateCount: number;
-    invalidCount: number;
-  } | null>(null);
+  const [importRows,setImportRows]=useState<ImportRow[]>([]);
+  const phoneColumnRef=useRef<HTMLSelectElement|null>(null);
+  const focusImportMapping=useRef(false);
+  useEffect(()=>{if(!isParsingFile&&importRows.length&&focusImportMapping.current){focusImportMapping.current=false;phoneColumnRef.current?.focus();}},[isParsingFile,importRows]);
+  const [phoneColumn,setPhoneColumn]=useState("");
+  const [nameColumn,setNameColumn]=useState("");
+  const [phoneFormat,setPhoneFormat]=useState<ImportPhoneFormat>("BR");
+  const importColumns=useMemo(()=>suggestImportColumns(importRows).columns,[importRows]);
+  const mappedImport=useMemo(()=>mapImportRows(importRows,phoneColumn,nameColumn,phoneFormat),[importRows,phoneColumn,nameColumn,phoneFormat]);
+  const importedContacts=mappedImport.contacts;
+  const importStats=importRows.length&&phoneColumn?mappedImport.stats:null;
   const [importError, setImportError] = useState<string | null>(null);
 
   const [manualPhones, setManualPhones] = useState("");
@@ -324,16 +256,22 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
   } | null>(null);
   const [isCreateAiModalOpen, setIsCreateAiModalOpen] = useState(false);
 
+  const base=initialChoice.current;
+  const hasDraft=isOpen&&!successInfo&&readyScope===scope.current&&base?.scope===scope.current&&Boolean(review||campaignName||isAbTest||selectedChannelId!==base.channel||selectedTemplateId!==base.modelA||selectedTemplateBId!==base.modelB||audienceType!=="ALL_CONTACTS"||stage!=="LEAD"||smartFilter!=="NON_BUYERS"||manualPhones||importedFile||Object.values(variables).some(Boolean)||Object.values(variablesB).some(Boolean));
+  const discard=useDiscardChanges(Boolean(hasDraft),`${scope.current}:${initialTemplate?.id??""}:${preflightReload}`,()=>nameRef.current,isOpen);
+  const requestClose=()=>{if(!operation.current&&!testInFlight.current)discard.requestExit(onClose);};
+
   const handleTemplateCreated = async () => {
-    setIsCreateAiModalOpen(false);
+    const requestedScope=scope.current,generation=dialogGeneration.current;
     try {
       const res = await apiClient.getBroadcastPreflight(workspaceId, { token });
-      setTemplates(res.templates || []);
-      if (res.templates && res.templates.length > 0) {
-        setSelectedTemplateId(res.templates[0]!.id);
-      }
+      if(requestedScope!==scope.current||generation!==dialogGeneration.current)return;
+      validatePreflight(res);
+      setTemplates(res.templates);
+      const eligible=availableFor(selectedChannel,res.templates);
+      setSelectedTemplateId(current=>eligible.some(item=>item.id===current)?current:eligible[0]?.id||"");
     } catch (e) {
-      console.error("Falha ao recarregar modelos após criação com IA", e);
+      if(requestedScope===scope.current&&generation===dialogGeneration.current)throw e;
     }
   };
 
@@ -342,17 +280,25 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
     if (!isOpen || !workspaceId || !token) return;
 
     let isMounted = true;
+    dialogGeneration.current++;operation.current=null;initialChoice.current=null;setIsSubmitting(false);setConfirmationUncertain(false);submissionRef.current=null;
     setIsLoadingPreflight(true);
     setErrorMessage(null);
     setSuccessInfo(null);
+    setReview(null);setReviewAccepted(false);setReadyScope(null);
+    setPreflightError(null);setChannels([]);setTemplates([]);setSelectedChannelId("");setSelectedTemplateId("");setSelectedTemplateBId("");setTotalActiveContacts(0);
+    setCampaignName("");setIsAbTest(false);setAudienceType("ALL_CONTACTS");setManualPhones("");setVariables({});setVariablesB({});
+    setImportedFile(null);setImportRows([]);setPhoneColumn("");setNameColumn("");setPhoneFormat("BR");setImportError(null);setIsParsingFile(false);fileRevision.current++;
+    setSmartCount(null);setCountError(null);setIsCreateAiModalOpen(false);
 
     apiClient
       .getBroadcastPreflight(workspaceId, { token })
       .then((res) => {
         if (!isMounted) return;
-        setChannels(res.channels || []);
-        setTemplates(res.templates || []);
-        setTotalActiveContacts(res.totalActiveContacts || 0);
+        validatePreflight(res);
+        setChannels(res.channels);
+        setTemplates(res.templates);
+        setTotalActiveContacts(res.totalActiveContacts);
+        setReadyScope(scope.current);
 
         // Pre-select channel: prioritize ready meta_waba or connected channel
         const readyChannel =
@@ -364,91 +310,56 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
           setSelectedChannelId(readyChannel.id);
         }
 
-        // Pre-select template A
-        if (initialTemplate) {
-          setSelectedTemplateId(initialTemplate.id);
-        } else if (res.templates && res.templates.length > 0 && res.templates[0]) {
-          setSelectedTemplateId(res.templates[0].id);
-        }
-
-        // Pre-select template B (prioritize a second template if available)
-        if (res.templates && res.templates.length > 1 && res.templates[1]) {
-          setSelectedTemplateBId(res.templates[1].id);
-        } else if (res.templates && res.templates.length > 0 && res.templates[0]) {
-          setSelectedTemplateBId(res.templates[0].id);
-        }
+        const eligible=availableFor(readyChannel,res.templates);
+        const modelA=initialTemplate&&eligible.some(item=>item.id===initialTemplate.id)?initialTemplate.id:eligible[0]?.id||"";
+        const modelB=eligible[1]?.id||eligible[0]?.id||"";
+        initialChoice.current={scope:scope.current,channel:readyChannel?.id||"",modelA,modelB};
+        setSelectedTemplateId(modelA);setSelectedTemplateBId(modelB);
       })
       .catch((err: unknown) => {
         if (!isMounted) return;
-        setErrorMessage(
-          err instanceof Error ? err.message : "Falha ao carregar canais e modelos para disparo."
-        );
+        setPreflightError(userFacingError(err,"Falha ao carregar canais e modelos para disparo."));
       })
       .finally(() => {
         if (isMounted) setIsLoadingPreflight(false);
       });
 
     return () => {
-      isMounted = false;
+      isMounted = false;dialogGeneration.current++;operation.current=null;
     };
-  }, [isOpen, workspaceId, token, initialTemplate]);
+  }, [isOpen, workspaceId, token, initialTemplate?.id,preflightReload]);
 
   // Selected Channel Object
   const selectedChannel = useMemo(
     () => channels.find((c) => c.id === selectedChannelId),
     [channels, selectedChannelId]
   );
+  const availableTemplates=useMemo(()=>availableFor(selectedChannel,templates),[templates,selectedChannel]);
+  useEffect(()=>{
+    setSelectedTemplateId(current=>availableTemplates.some(template=>template.id===current)?current:availableTemplates[0]?.id||"");
+    setSelectedTemplateBId(current=>availableTemplates.some(template=>template.id===current)?current:availableTemplates[1]?.id||availableTemplates[0]?.id||"");
+  },[availableTemplates]);
 
   // Selected Template A Object
   const selectedTemplate = useMemo(
-    () => templates.find((t) => t.id === selectedTemplateId) || initialTemplate,
-    [templates, selectedTemplateId, initialTemplate]
+    () => availableTemplates.find((t) => t.id === selectedTemplateId),
+    [availableTemplates, selectedTemplateId]
   );
 
   // Selected Template B Object
   const selectedTemplateB = useMemo(
-    () => templates.find((t) => t.id === selectedTemplateBId),
-    [templates, selectedTemplateBId]
+    () => availableTemplates.find((t) => t.id === selectedTemplateBId),
+    [availableTemplates, selectedTemplateBId]
   );
 
-  // Extract variables for Template A (Supports both {{1}} and {{nome_cliente}})
-  const templateVarKeys = useMemo<string[]>(() => {
-    if (!selectedTemplate) return [];
-    if (selectedTemplate.variables && selectedTemplate.variables.length > 0) {
-      return selectedTemplate.variables;
-    }
-    const rawBody = selectedTemplate.bodyText || (selectedTemplate as any)?.body_text || "";
-    if (!rawBody) return [];
-    const matches = rawBody.match(/\{\{([a-zA-Z0-9_]+)\}\}/g);
-    if (!matches) return [];
-    const keys = Array.from<string>(new Set(matches.map((m: string) => m.replace(/[{}]/g, ""))));
-    return keys.sort((a, b) => {
-      const numA = Number(a);
-      const numB = Number(b);
-      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-      return a.localeCompare(b);
-    });
-  }, [selectedTemplate]);
-
-  // Extract variables for Template B (Supports both {{1}} and {{nome_cliente}})
-  const templateVarKeysB = useMemo<string[]>(() => {
-    if (!selectedTemplateB) return [];
-    if (selectedTemplateB.variables && selectedTemplateB.variables.length > 0) {
-      return selectedTemplateB.variables;
-    }
-    const rawBody = selectedTemplateB.bodyText || (selectedTemplateB as any)?.body_text || "";
-    if (!rawBody) return [];
-    const matches = rawBody.match(/\{\{([a-zA-Z0-9_]+)\}\}/g);
-    if (!matches) return [];
-    const keys = Array.from<string>(new Set(matches.map((m: string) => m.replace(/[{}]/g, ""))));
-    return keys.sort((a, b) => {
-      const numA = Number(a);
-      const numB = Number(b);
-      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-      return a.localeCompare(b);
-    });
-  }, [selectedTemplateB]);
-
+  const templateVarKeys=useMemo(()=>selectedTemplate?inspectTemplateLayout(selectedTemplate).fields.filter(field=>selectedChannel?.provider==="meta_waba"||field.kind!=="payload").map(field=>field.key):[],[selectedTemplate,selectedChannel?.provider]);
+  const templateVarKeysB=useMemo(()=>selectedTemplateB?inspectTemplateLayout(selectedTemplateB).fields.filter(field=>selectedChannel?.provider==="meta_waba"||field.kind!=="payload").map(field=>field.key):[],[selectedTemplateB,selectedChannel?.provider]);
+  const previewLayout=(template:MessageTemplateSummary|undefined,values:Record<string,string>)=>{
+    if(!template)return null;const resolved={...values};
+    for(const field of inspectTemplateLayout(template).fields)if(isRecipientNameVariable(field.key))resolved[field.key]="[Nome do contato]";
+    return assembleTemplate(template,resolved);
+  };
+  const layoutPreviewA=previewLayout(selectedTemplate,variables),layoutPreviewB=previewLayout(selectedTemplateB,variablesB);
   // Preview body A with Realistic WYSIWYG
   const previewBody = useMemo(() => {
     if (!selectedTemplate) return "";
@@ -459,7 +370,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
       const userVal = variables[key];
       let val = userVal;
       if (!val || val === "[Nome do Contato]" || (isName && (!val.trim() || val.includes("[Nome")))) {
-        val = isName ? "Francisco" : `[${getVariableMetadata(key).label.split(" (")[0]}]`;
+        val = isName ? "[Nome do contato]" : `[${variableMetadata(key).label.split(" (")[0]}]`;
       }
       body = body.split(`{{${key}}}`).join(val);
     }
@@ -476,7 +387,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
       const userVal = variablesB[key];
       let val = userVal;
       if (!val || val === "[Nome do Contato]" || (isName && (!val.trim() || val.includes("[Nome")))) {
-        val = isName ? "Francisco" : `[${getVariableMetadata(key).label.split(" (")[0]}]`;
+        val = isName ? "[Nome do contato]" : `[${variableMetadata(key).label.split(" (")[0]}]`;
       }
       body = body.split(`{{${key}}}`).join(val);
     }
@@ -486,40 +397,40 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
   // Fetch live count for Smart Filters or Stages
   useEffect(() => {
     if (!isOpen || !workspaceId || !token) return;
-
-    if (audienceType === "SMART_FILTER") {
-      setIsLoadingSmartCount(true);
-      apiClient
-        .getAudienceCount(workspaceId, { type: "SMART_FILTER", smartFilter }, { token })
-        .then((res) => setSmartCount(res.count))
-        .catch(() => setSmartCount(null))
-        .finally(() => setIsLoadingSmartCount(false));
-    } else if (audienceType === "BY_STAGE") {
-      setIsLoadingSmartCount(true);
-      apiClient
-        .getAudienceCount(workspaceId, { type: "BY_STAGE", stage }, { token })
-        .then((res) => setSmartCount(res.count))
-        .catch(() => setSmartCount(null))
-        .finally(() => setIsLoadingSmartCount(false));
-    }
-  }, [isOpen, workspaceId, token, audienceType, smartFilter, stage]);
+    let cancelled=false;
+    setSmartCount(null);setCountError(null);setIsLoadingSmartCount(false);
+    if(audienceType!=="SMART_FILTER"&&audienceType!=="BY_STAGE")return;
+    setIsLoadingSmartCount(true);
+    apiClient.getAudienceCount(workspaceId,audienceType==="SMART_FILTER"?{type:"SMART_FILTER",smartFilter}:{type:"BY_STAGE",stage},{token})
+      .then(res=>{if(!cancelled)setSmartCount(res.count);})
+      .catch(error=>{if(!cancelled)setCountError(userFacingError(error,"Não foi possível consultar o público."));})
+      .finally(()=>{if(!cancelled)setIsLoadingSmartCount(false);});
+    return()=>{cancelled=true;};
+  }, [isOpen, workspaceId, token, audienceType, smartFilter, stage,countReload]);
 
   const processFile = async (file: File) => {
+    if(operation.current||testInFlight.current||discard.isPending||successInfo)return;
+    const revision=++fileRevision.current,requestedScope=scope.current;
+    const valid=()=>revision===fileRevision.current&&requestedScope===scope.current;
     setIsParsingFile(true);
     setImportError(null);
     setImportedFile(file);
+    setImportRows([]);setPhoneColumn("");setNameColumn("");
 
     try {
-      let rows: Array<Record<string, any>> = [];
+      if(file.size>10*1024*1024)throw new Error("A planilha deve ter até 10 MB. Divida o arquivo e tente novamente.");
+      let rows: ImportRow[] = [];
       const isCsv = file.name.toLowerCase().endsWith(".csv");
       const isExcel =
         file.name.toLowerCase().endsWith(".xlsx") || file.name.toLowerCase().endsWith(".xls");
 
       if (isCsv) {
         const text = await file.text();
-        rows = parseCsvText(text);
+        rows = await parseCsvText(text);
       } else if (isExcel) {
         const buffer = await file.arrayBuffer();
+        const XLSX = await loadSpreadsheetLibrary();
+        if(!valid())return;
         const wb = XLSX.read(buffer, { type: "array" });
         const firstSheetName = wb.SheetNames[0];
         if (!firstSheetName) {
@@ -529,7 +440,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
         if (!ws) {
           throw new Error("Aba da planilha vazia.");
         }
-        rows = XLSX.utils.sheet_to_json(ws);
+        rows = XLSX.utils.sheet_to_json<ImportRow>(ws,{defval:"",raw:true});
       } else {
         throw new Error("Formato não suportado. Por favor, envie um arquivo .csv ou .xlsx.");
       }
@@ -538,59 +449,25 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
         throw new Error("Nenhum dado encontrado no arquivo.");
       }
 
-      const phoneMap = new Map<string, { phoneE164: string; name?: string }>();
-      let duplicateCount = 0;
-      let invalidCount = 0;
-
-      for (const row of rows) {
-        const extracted = extractContactFromRow(row);
-        if (!extracted) {
-          invalidCount++;
-          continue;
-        }
-
-        const sanit = sanitizeBrazilianPhoneE164(extracted.phoneRaw);
-        if ("error" in sanit) {
-          invalidCount++;
-          continue;
-        }
-
-        if (phoneMap.has(sanit.phoneE164)) {
-          duplicateCount++;
-        } else {
-          phoneMap.set(sanit.phoneE164, {
-            phoneE164: sanit.phoneE164,
-            name: extracted.name,
-          });
-        }
-      }
-
-      const validList = Array.from(phoneMap.values());
-      if (validList.length === 0) {
-        throw new Error("Nenhum número de WhatsApp válido encontrado na planilha.");
-      }
-
-      setImportedContacts(validList);
-      setImportStats({
-        totalRows: rows.length,
-        validCount: validList.length,
-        duplicateCount,
-        invalidCount,
-      });
+      if(!valid())return;
+      focusImportMapping.current=true;
+      const mapping=suggestImportColumns(rows);
+      setImportRows(rows);setPhoneColumn(mapping.phoneColumn);setNameColumn(mapping.nameColumn);
     } catch (err: unknown) {
+      if(!valid())return;
       setImportError(err instanceof Error ? err.message : "Erro ao processar planilha.");
-      setImportedContacts([]);
-      setImportStats(null);
+      setImportRows([]);setPhoneColumn("");setNameColumn("");
     } finally {
-      setIsParsingFile(false);
+      if(valid())setIsParsingFile(false);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      processFile(file);
+      void processFile(file);
     }
+    e.target.value="";
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -602,9 +479,9 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
   };
 
   const removeImportedFile = () => {
+    fileRevision.current++;setIsParsingFile(false);
     setImportedFile(null);
-    setImportedContacts([]);
-    setImportStats(null);
+    setImportRows([]);setPhoneColumn("");setNameColumn("");
     setImportError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -615,22 +492,30 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
   const isMetaWaba = selectedChannel?.provider === "meta_waba";
   const isMetaBillingConfigured = Boolean(selectedChannel?.metaBillingConfigured);
   const isBillingBlocked = isMetaWaba && !isMetaBillingConfigured;
-  const isChannelConnected = selectedChannel?.status === "connected";
+  const isChannelConnected = selectedChannel?.status === "connected" && selectedChannel?.isActive!==false;
 
   const canSubmit =
     !isLoadingPreflight &&
+    readyScope===scope.current &&
     !isSubmitting &&
+    !discard.isPending &&
+    !isParsingFile &&
+    !preflightError &&
     Boolean(selectedChannelId) &&
     isChannelConnected &&
     !isBillingBlocked &&
-    Boolean(selectedTemplateId) &&
-    (!isAbTest || Boolean(selectedTemplateBId)) &&
-    (audienceType !== "IMPORT_LIST" || importedContacts.length > 0) &&
-    (audienceType !== "MANUAL" || manualPhones.trim().length > 0);
+    Boolean(selectedTemplate) &&
+    (!isAbTest || Boolean(selectedTemplateB)) &&
+    (audienceType !== "IMPORT_LIST" || (importedContacts.length > 0 && !mappedImport.error && !importError)) &&
+    (audienceType !== "MANUAL" || manualPhones.trim().length > 0) &&
+    (!["SMART_FILTER","BY_STAGE"].includes(audienceType)||(!isLoadingSmartCount&&smartCount!==null&&smartCount>0)) &&
+    (audienceType!=="ALL_CONTACTS"||totalActiveContacts>0);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!canSubmit || !selectedChannel || !selectedTemplate) return;
+    if (!isOpen||operation.current||testInFlight.current||!canSubmit || !selectedChannel || !selectedTemplate) return;
+    const requestedScope=scope.current;
+    const generation=dialogGeneration.current,id=Symbol();operation.current=id;
 
     setErrorMessage(null);
     setIsSubmitting(true);
@@ -653,13 +538,17 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
             throw new Error(`Número inválido: "${phone}". Use o formato internacional com + (ex: +554999999999).`);
           }
         }
-        customPhoneNumbers = cleaned;
+        customPhoneNumbers = Array.from(new Set(cleaned));
       }
 
       if (audienceType === "IMPORT_LIST" && importedContacts.length === 0) {
         throw new Error("Faça o upload de uma planilha válida com pelo menos um contato.");
       }
-
+      for(const rendered of [layoutPreviewA,...(isAbTest?[layoutPreviewB]:[])]){
+        if(!rendered)throw new Error("Selecione o modelo para revisar.");
+        const problems=[...rendered.unsupported,...rendered.errors,...rendered.missing.map(label=>`Preencha ${label}.`)];
+        if(problems.length)throw new Error(problems.join(" "));
+      }
       // Prepare sanitized variables: Ensure auto-mapped name variables default to [Nome do Contato] if empty
       const sanitizedVariables: Record<string, string> = { ...variables };
       for (const k of templateVarKeys) {
@@ -675,9 +564,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
         }
       }
 
-      const res = await apiClient.createBroadcast(
-        workspaceId,
-        {
+      const payload = {
           name: campaignName.trim() || undefined,
           channelInstanceId: selectedChannel.id,
           templateId: selectedTemplate.id,
@@ -692,25 +579,49 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
           },
           variables: sanitizedVariables,
           variantBVariables: isAbTest ? sanitizedVariablesB : undefined,
-        },
-        { token }
-      );
+        };
+      const label=audienceType==="ALL_CONTACTS"?"Contatos sem bloqueio comercial":audienceType==="SMART_FILTER"?`Filtro ${smartFilter}`:audienceType==="BY_STAGE"?`Etapa ${stage}`:audienceType==="IMPORT_LIST"?"Planilha importada":"Lista manual";
+      const prepared=await apiClient.prepareBroadcast(workspaceId,payload,{token});
+      if(requestedScope!==scope.current||generation!==dialogGeneration.current)return;
+      setReview({scope:requestedScope,generation,prepared,payload:{...payload,preparedAudienceId:prepared.preparedAudienceId},channel:selectedChannel.displayName,modelA:selectedTemplate.name,modelB:selectedTemplateB?.name||"",bodyA:[layoutPreviewA?.mediaUrl?`Mídia do cabeçalho: ${layoutPreviewA.mediaUrl}`:"",layoutPreviewA?.renderedText].filter(Boolean).join("\n\n"),bodyB:[layoutPreviewB?.mediaUrl?`Mídia do cabeçalho: ${layoutPreviewB.mediaUrl}`:"",layoutPreviewB?.renderedText].filter(Boolean).join("\n\n"),audience:`${label} · ${prepared.included.length} contato(s) incluído(s)`});
+      setReviewAccepted(false);
+    } catch (err: unknown) {
+      if(requestedScope===scope.current&&generation===dialogGeneration.current)setErrorMessage(userFacingError(err,"Não foi possível preparar a revisão."));
+    } finally {if(operation.current===id){operation.current=null;if(requestedScope===scope.current&&generation===dialogGeneration.current)setIsSubmitting(false);}}
+  };
 
+  const confirmBroadcast = async () => {
+    if(!isOpen||operation.current||testInFlight.current||discard.isPending||!review||!testsApproved||!reviewAccepted||review.scope!==scope.current||review.generation!==dialogGeneration.current||isSubmitting||!review.prepared.included.length)return;
+    if(!confirmationUncertain&&new Date(review.prepared.expiresAt).getTime()<=Date.now()){setErrorMessage("A revisão venceu. Volte e prepare o público novamente antes de confirmar.");return;}
+    const requestedScope=scope.current,generation=review.generation,id=Symbol();operation.current=id;
+    const payload=confirmationUncertain&&submissionRef.current?submissionRef.current.payload:{...review.payload,approvedTestIds:[...approvedTestIds]};
+    const current=()=>requestedScope===scope.current&&generation===dialogGeneration.current&&operation.current===id;
+    setErrorMessage(null);setIsSubmitting(true);
+    try {
+      const fingerprint = JSON.stringify(payload);
+      if (submissionRef.current?.fingerprint !== fingerprint) submissionRef.current = { fingerprint, key: crypto.randomUUID(),payload };
+      const res = await apiClient.createBroadcast(workspaceId, { ...payload, requestKey: submissionRef.current.key }, { token });
+      if(!current())return;
+      if (!res.success) throw new Error("Nenhuma mensagem foi preparada; confira as falhas da campanha antes de tentar novamente.");
+
+      setConfirmationUncertain(false);
       setSuccessInfo({
         batchId: res.batchId,
         enqueuedCount: res.enqueuedCount,
         totalTargeted: res.totalTargeted,
         templateName: res.template.name,
-        isAbTest,
+        isAbTest:Boolean(payload.isAbTest),
       });
 
-      onBroadcastSuccess?.();
+      void Promise.resolve().then(()=>{if(requestedScope===scope.current&&generation===dialogGeneration.current)return onBroadcastSuccess?.();}).catch(error=>{if(requestedScope===scope.current&&generation===dialogGeneration.current)setErrorMessage(userFacingError(error,"A campanha foi confirmada, mas não foi possível atualizar a lista. Consulte as campanhas; não inicie outro disparo para corrigir esta atualização."));});
     } catch (err: unknown) {
+      if(!current())return;
+      if(!(err instanceof ApiError&&err.status>=400&&err.status<500&&err.status!==408))setConfirmationUncertain(true);
       setErrorMessage(
-        err instanceof Error ? err.message : "Falha ao enfileirar disparo em massa."
+        userFacingError(err,"Falha ao preparar disparo em massa. Os dados foram preservados.")
       );
     } finally {
-      setIsSubmitting(false);
+      if(operation.current===id){operation.current=null;if(requestedScope===scope.current&&generation===dialogGeneration.current)setIsSubmitting(false);}
     }
   };
 
@@ -718,17 +629,64 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
     <>
       <Dialog
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={requestClose}
       title={isAbTest ? "Disparo com Teste A/B (Divisão 50/50)" : "Disparo em Massa de Modelo WABA"}
       maxWidth="840px"
-      description="Envie mensagens ativas aprovadas pela Meta com rastreamento completo de entrega, leitura, resposta e cliques."
+      description="Revise canal, público e mensagem antes de iniciar. Os resultados disponíveis dependem do canal e das confirmações recebidas do provedor."
     >
+      {discard.isPending&&<div style={{display:"grid",gap:8}}><UnsavedChangesNotice onKeep={discard.keepEditing} onDiscard={discard.discard} disabled={isSubmitting||testBusy}/>{review&&<p>Sair descarta apenas esta revisão local. Não cancela testes já enviados nem um disparo confirmado pelo servidor; confira a campanha antes de criar outro.</p>}</div>}
+      <fieldset disabled={discard.isPending||isSubmitting||testBusy} style={{border:0,padding:0,margin:0,minWidth:0}}>
       {isLoadingPreflight ? (
         <div style={{ padding: "32px 0" }}>
           <LoadingState variant="spinner" text="Verificando canais, trava de faturamento e base..." />
         </div>
+      ) : preflightError ? <Alert variant="danger" title="Não foi possível carregar o disparo">{preflightError}<Button size="sm" onClick={()=>setPreflightReload(value=>value+1)}>Tentar novamente</Button></Alert> : review && !successInfo ? (
+        <div style={{display:"grid",gap:16}}>
+          <h3 style={{margin:0}}>Revise antes de iniciar</h3>
+          {errorMessage&&<Alert variant="danger" title="Não foi possível confirmar o resultado">{errorMessage}</Alert>}
+          {confirmationUncertain&&<Alert variant="warning" title="Resultado incerto">A campanha pode já ter sido iniciada. Público, mensagem e aprovação ficam preservados; confira novamente a mesma solicitação ou consulte Campanhas. Não prepare outro disparo para resolver esta dúvida.</Alert>}
+          <dl style={{display:"grid",gap:8,margin:0}}>
+            <div><dt>Canal</dt><dd style={{margin:0,fontWeight:600}}>{review.channel}</dd></div>
+            <div><dt>Público</dt><dd style={{margin:0}}>{review.audience}</dd></div>
+            <div><dt>Modelo A</dt><dd style={{margin:0}}>{review.modelA}</dd></div>
+            {review.payload.isAbTest&&<div><dt>Modelo B</dt><dd style={{margin:0}}>{review.modelB}</dd></div>}
+          </dl>
+          <p style={{margin:0,fontSize:13}}>Esta lista foi preparada no servidor. Novos contatos não serão adicionados; quem deixar de ser elegível será excluído. Revisão válida até {new Date(review.prepared.expiresAt).toLocaleTimeString("pt-BR")}.</p>
+          <p style={{margin:0,fontSize:12}}>Este lote considera até {review.prepared.limit} registros. Custos e condições dependem do provedor do canal.</p>
+          <details><summary>Incluídos ({review.prepared.included.length})</summary><div style={{maxHeight:240,overflowY:"auto",overflowWrap:"anywhere"}}><ul>{review.prepared.included.map(target=><li key={target.phoneE164}>{target.name||"Sem nome"} · {target.phoneE164}</li>)}</ul></div></details>
+          <details><summary>Excluídos ({review.prepared.excluded.length})</summary><div style={{maxHeight:240,overflowY:"auto",overflowWrap:"anywhere"}}><ul>{review.prepared.excluded.map(target=><li key={target.phoneE164}>{target.name||"Sem nome"} · {target.phoneE164} · {target.reason}</li>)}</ul></div></details>
+          {!review.prepared.included.length&&<Alert variant="warning" title="Nenhum destinatário elegível">Revise os excluídos ou volte e ajuste o público.</Alert>}
+          <div style={{padding:14,border:"1px solid var(--border-default)",borderRadius:8,whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}><strong>Mensagem A</strong><div>{renderWhatsappMarkdown(review.bodyA)}</div></div>
+          {review.payload.isAbTest&&<div style={{padding:14,border:"1px solid var(--border-default)",borderRadius:8,whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}><strong>Mensagem B</strong><div>{renderWhatsappMarkdown(review.bodyB)}</div></div>}
+          <p style={{margin:0,fontSize:12}}>A prévia utiliza dados de exemplo. Variáveis automáticas serão preenchidas para cada destinatário.</p>
+          <section aria-label="Teste da mensagem" style={{display:"grid",gap:12,padding:14,border:"1px solid var(--border-default)",borderRadius:8}}>
+            <h4 style={{margin:0}}>Teste antes de liberar</h4>
+            <p style={{margin:0,fontSize:13}}>Use um número já cadastrado em Contatos & Leads que você possa conferir. O teste envia uma mensagem real pelo canal escolhido e pode gerar custo no provedor. O teste usa o nome do contato cadastrado. Não inicia a campanha.</p>
+            <label style={{display:"grid",gap:6}}>Número para teste (com + e código do país)<input type="tel" value={testPhone} disabled={confirmationUncertain||testBusy||testResults.length>0} onChange={event=>setTestPhone(event.target.value)} placeholder="+5511999999999" style={{minWidth:0,width:"100%",boxSizing:"border-box",minHeight:40,padding:8}}/></label>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {(["A",...(review.payload.isAbTest?["B"]:[])] as Array<"A"|"B">).map(variant=><Button key={variant} size="sm" style={mobileActionStyle} disabled={confirmationUncertain||testBusy||isSubmitting||testResults.some(test=>test.variant===variant)} onClick={()=>void updateMessageTests(variant)}>Enviar teste {variant}</Button>)}
+              <Button size="sm" style={mobileActionStyle} variant="secondary" disabled={confirmationUncertain||testBusy||isSubmitting} onClick={()=>void updateMessageTests()}>Atualizar resultado do teste</Button>
+            </div>
+            {testBusy&&<p role="status" style={{margin:0}}>Consultando teste...</p>}
+            {testError&&<p role="alert" style={{margin:0}}>{testError}</p>}
+            {testResults.map(test=><div key={test.id} style={{display:"grid",gap:6,overflowWrap:"anywhere"}}>
+              <strong>Teste {test.variant} · {test.phoneE164}</strong>
+              <span>{test.status==="sent"?"Envio confirmado pelo provedor — confira a mensagem no destino.":["dead_letter","failed"].includes(test.status)?"Teste falhou. Volte e prepare nova revisão após corrigir a causa.":["reconciliation_required","reconciling"].includes(test.status)?"Resultado incerto. Aguarde conferência; não repita o envio.":"Aguardando envio. Atualize o resultado para conferir."}</span>
+              <details><summary>Mensagem usada no teste {test.variant}</summary><p style={{whiteSpace:"pre-wrap"}}>{test.body}</p></details>
+              {test.status==="sent"&&<label style={{display:"flex",gap:8,alignItems:"flex-start"}}><input type="checkbox" disabled={confirmationUncertain||isSubmitting||testBusy} checked={approvedTestIds.includes(test.id)} onChange={event=>{setReviewAccepted(false);setApprovedTestIds(ids=>event.target.checked?[...ids,test.id]:ids.filter(id=>id!==test.id));}}/>Recebi e conferi a mensagem do teste {test.variant}.</label>}
+            </div>)}
+            {!testsApproved&&<p style={{margin:0,fontSize:12}}>A liberação exige envio confirmado e conferência de cada variante.</p>}
+          </section>
+          <label style={{display:"flex",gap:8,alignItems:"flex-start",fontSize:13}}><input type="checkbox" checked={reviewAccepted} disabled={confirmationUncertain||isSubmitting||!testsApproved||testBusy} onChange={event=>setReviewAccepted(event.target.checked)}/>Revisei canal, público e mensagem e autorizo iniciar este disparo agora.</label>
+          <div style={{display:"flex",gap:8,justifyContent:"space-between",flexWrap:"wrap",flexDirection:isMobile?"column":"row"}}>
+            <Button type="button" size="sm" style={mobileActionStyle} disabled={confirmationUncertain||isSubmitting||testBusy} onClick={()=>{if(operation.current||confirmationUncertain||discard.isPending)return;setReview(null);setReviewAccepted(false);setErrorMessage(null);}}>Voltar e editar</Button>
+            <Button type="button" size="sm" style={mobileActionStyle} variant="primary" disabled={!reviewAccepted||!testsApproved||testBusy||isSubmitting||!review.prepared.included.length} loading={isSubmitting} onClick={()=>void confirmBroadcast()}>{confirmationUncertain?"Conferir novamente o mesmo disparo":"Confirmar e iniciar disparo"}</Button>
+          </div>
+        </div>
       ) : successInfo ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "12px 0" }}>
+          {errorMessage&&<Alert variant="warning" title="Campanha confirmada; atualização local pendente">{errorMessage}</Alert>}
+          {successInfo.enqueuedCount<successInfo.totalTargeted&&<Alert variant="warning" title="Preparação parcial">Foram preparadas {successInfo.enqueuedCount} de {successInfo.totalTargeted} mensagens. Consulte a campanha para revisar o que não foi preparado.</Alert>}
           <div
             style={{
               padding: "20px",
@@ -745,14 +703,14 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
             <CheckCircle2 size={48} color="#10b981" />
             <div>
               <h3 style={{ margin: "0 0 4px 0", fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)" }}>
-                Campanha Enfileirada com Sucesso!
+                Solicitação da campanha confirmada
               </h3>
               <p style={{ margin: 0, fontSize: "var(--font-size-sm)", color: "var(--text-secondary)" }}>
-                {successInfo.enqueuedCount} mensagens foram geradas e enviadas ao Outbox via{" "}
+                {successInfo.enqueuedCount} mensagens foram preparadas para envio pelo canal{" "}
                 <strong>{selectedChannel?.displayName}</strong>.
                 {successInfo.isAbTest && (
                   <span style={{ display: "block", marginTop: "4px", color: "var(--color-operational)", fontWeight: 600 }}>
-                    ⚡ Teste A/B ativo: O público foi dividido 50% para a Variante A e 50% para a Variante B.
+                    Teste A/B: os destinatários foram distribuídos entre as variantes A e B.
                   </span>
                 )}
               </p>
@@ -781,12 +739,11 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
               border: "1px solid var(--border-default)",
             }}
           >
-            <strong>Regra de Faturamento Meta:</strong> O SOS Sales não cobra nem intermedeia tarifas. Todas as mensagens
-            entregues são tarifadas diretamente pela Meta no cartão cadastrado na sua conta do WhatsApp Business Manager.
+            A preparação da campanha não confirma entrega. Consulte o relatório para acompanhar o resultado e confira custos e condições no provedor do canal.
           </div>
 
           <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "8px" }}>
-            <Button variant="primary" size="sm" onClick={onClose}>
+            <Button variant="primary" size="sm" onClick={requestClose}>
               Ver Métricas da Campanha
             </Button>
           </div>
@@ -802,6 +759,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
           {/* 1. Nome da Campanha & Modo A/B */}
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.2fr) minmax(0, 1fr)", gap: "12px", alignItems: "end" }}>
             <Input
+              ref={nameRef}
               label="Nome da Campanha (Opcional)"
               placeholder="Ex: Oferta Relâmpago - Leads Qualificados"
               value={campaignName}
@@ -812,7 +770,8 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
               <label style={{ fontSize: "var(--font-size-xs)", fontWeight: 600, color: "var(--text-primary)" }}>
                 Tipo de Disparo
               </label>
-              <SegmentedControl
+              {isMobile?<select aria-label="Tipo de disparo" value={isAbTest?"AB_TEST":"SINGLE"} onChange={event=>setIsAbTest(event.target.value==="AB_TEST")} style={{width:"100%",minHeight:44}}><option value="SINGLE">Disparo único</option><option value="AB_TEST">Teste A/B</option></select>:(
+              <SegmentedControl aria-label="Tipo de disparo"
                 value={isAbTest ? "AB_TEST" : "SINGLE"}
                 onChange={(val) => setIsAbTest(val === "AB_TEST")}
                 options={[
@@ -820,6 +779,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                   { value: "AB_TEST", label: "Teste A/B (50/50)" },
                 ]}
               />
+              )}
             </div>
           </div>
 
@@ -834,10 +794,16 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                 const isBlocked = ch.provider === "meta_waba" && !ch.metaBillingConfigured;
 
                 return (
-                  <div
+                  <button
+                    type="button"
+                    disabled={discard.isPending || isSubmitting || testBusy}
+                    aria-label={`Canal ${ch.displayName}`}
+                    aria-pressed={isSelected}
                     key={ch.id}
-                    onClick={() => setSelectedChannelId(ch.id)}
+                    onClick={() => { if (!operation.current && !testInFlight.current && !discard.isPending) setSelectedChannelId(ch.id); }}
                     style={{
+                      textAlign: "left",
+                      font: "inherit",
                       border: isSelected
                         ? (isBlocked ? "2px solid #ef4444" : "2px solid var(--color-action)")
                         : (isBlocked ? "1px dashed rgba(239, 68, 68, 0.4)" : "1px solid var(--border-default)"),
@@ -881,7 +847,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                               gap: "4px",
                             }}
                           >
-                            <ShieldCheck size={12} /> Cartão Meta Configurado
+                            <ShieldCheck size={12} /> Faturamento declarado pelo responsável
                           </span>
                         ) : (
                           <span
@@ -897,12 +863,12 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                               gap: "4px",
                             }}
                           >
-                            <ShieldAlert size={12} /> Cartão Meta Não Vinculado
+                            <ShieldAlert size={12} /> Faturamento Meta não declarado
                           </span>
                         )}
                       </div>
                     )}
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -924,14 +890,14 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                 <ShieldAlert size={24} color="#ef4444" style={{ flexShrink: 0, marginTop: "2px" }} />
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                   <span style={{ fontWeight: 700, fontSize: "var(--font-size-sm)", color: "#b91c1c" }}>
-                    Disparo Ativo Bloqueado — Cartão Meta Não Vinculado
+                    Disparo Ativo Bloqueado — Faturamento Meta não declarado
                   </span>
                   <span style={{ fontSize: "var(--font-size-xs)", color: "var(--text-secondary)", lineHeight: 1.5 }}>
                     O <strong>SOS Sales não cobra nem intermedeia tarifas</strong> de mensagens da Meta.
-                    Para realizar disparos ativos neste canal oficial, você deve ter um cartão de crédito cadastrado diretamente no seu <strong>Gerenciador de Negócios da Meta (Business Manager)</strong>.
+                    Confira diretamente no <strong>Gerenciador de Negócios da Meta</strong> as condições de faturamento vinculadas a este número.
                   </span>
                   <span style={{ fontSize: "var(--font-size-xs)", color: "var(--text-secondary)", lineHeight: 1.5 }}>
-                    Cadastre o cartão na Meta e vá em <strong>Configurações &gt; Canais WhatsApp</strong> para confirmar a vinculação.
+                    Confira o faturamento diretamente na Meta e vá em <strong>Configurações &gt; Canais WhatsApp</strong> para registrar sua declaração. O CHAT-SALES não verifica nem cadastra cartão.
                   </span>
                 </div>
               </div>
@@ -972,7 +938,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
               >
                 <AlertTriangle size={16} color="var(--color-warning)" style={{ flexShrink: 0 }} />
                 <span style={{ fontSize: "var(--font-size-xs)", color: "var(--text-secondary)" }}>
-                  Canal via QR Code (WAHA). Sem custo por mensagem, porém sujeito a limites e moderação do WhatsApp.
+                  Canal via QR Code (WAHA). Confira os custos do serviço contratado e as condições de uso do WhatsApp antes de enviar.
                 </span>
               </div>
             )}
@@ -983,19 +949,28 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
             <label style={{ fontSize: "var(--font-size-xs)", fontWeight: 600, color: "var(--text-primary)" }}>
               Público-Alvo do Disparo
             </label>
-            <SegmentedControl
+            {isMobile ? <select aria-label="Público-alvo do disparo" value={audienceType} onChange={event=>setAudienceType(event.target.value as typeof audienceType)} style={{width:"100%",minHeight:42,padding:"8px 12px",border:"1px solid var(--border-default)",borderRadius:8,background:"var(--bg-surface)",color:"var(--text-primary)",font:"inherit"}}>
+              <option value="ALL_CONTACTS">Sem bloqueio ({totalActiveContacts})</option>
+              <option value="SMART_FILTER">Filtro inteligente</option>
+              <option value="IMPORT_LIST">Planilha (CSV / Excel)</option>
+              <option value="BY_STAGE">Por etapa do funil</option>
+              <option value="MANUAL">Lista manual</option>
+            </select> : <SegmentedControl aria-label="Público-alvo do disparo"
               value={audienceType}
               onChange={(v) => setAudienceType(v as typeof audienceType)}
               options={[
-                { value: "ALL_CONTACTS", label: `Todos Ativos (${totalActiveContacts})` },
+                { value: "ALL_CONTACTS", label: `Sem bloqueio (${totalActiveContacts})` },
                 { value: "SMART_FILTER", label: "Filtro Inteligente" },
                 { value: "IMPORT_LIST", label: "Planilha (CSV / Excel)" },
                 { value: "BY_STAGE", label: "Por Estágio" },
                 { value: "MANUAL", label: "Manual" },
               ]}
-            />
+            />}
+
+            {audienceType==="ALL_CONTACTS"&&<p style={{fontSize:12,color:"var(--text-secondary)",margin:0}}>Contatos com telefone cadastrado e sem bloqueio comercial. Isso não indica atividade recente nem confirma que todos podem receber: confira as exclusões na prévia e as condições do canal antes de liberar.</p>}
 
             {/* A. Filtro Inteligente Soberano */}
+          {countError&&<Alert variant="danger" title="Público indisponível">{countError}<Button type="button" size="sm" onClick={()=>setCountReload(value=>value+1)}>Consultar público novamente</Button></Alert>}
             {audienceType === "SMART_FILTER" && (
               <div
                 style={{
@@ -1010,14 +985,15 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontSize: "var(--font-size-xs)", fontWeight: 600, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "6px" }}>
-                    <Filter size={13} color="var(--color-operational)" /> Critério de Segmentação Soberana:
+                    <Filter size={13} color="var(--color-operational)" /> Critério do público:
                   </span>
                   <Badge variant={smartCount && smartCount > 0 ? "action" : "neutral"}>
-                    {isLoadingSmartCount ? "Calculando..." : `${smartCount ?? 0} contatos elegíveis`}
+                    {isLoadingSmartCount ? "Calculando..." : smartCount===null ? "Consulta indisponível" : smartCount===1 ? "1 contato elegível" : `${smartCount} contatos elegíveis`}
                   </Badge>
                 </div>
 
                 <select
+                  aria-label="Critério do filtro de público"
                   value={smartFilter}
                   onChange={(e) => setSmartFilter(e.target.value as typeof smartFilter)}
                   style={{
@@ -1071,6 +1047,10 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
 
                 {!importedFile ? (
                   <div
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Selecionar planilha de contatos"
+                    onKeyDown={event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();fileInputRef.current?.click();}}}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={handleDrop}
                     onClick={() => fileInputRef.current?.click()}
@@ -1094,7 +1074,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                       {isParsingFile ? "Processando e validando planilha..." : "Clique ou arraste uma planilha (.csv, .xlsx, .xls) aqui"}
                     </span>
                     <span style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)" }}>
-                      Reconhece colunas de <strong>Nome</strong> e <strong>Telefone</strong> com sanitização E.164 automática (+55DD9XXXXXXXX)
+                      Até 10 MB. Confira as colunas de <strong>Nome</strong> e <strong>Telefone</strong> antes de revisar o público.
                     </span>
                   </div>
                 ) : (
@@ -1103,6 +1083,8 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
+                        flexWrap:"wrap",
+                        gap:10,
                         alignItems: "center",
                         backgroundColor: "var(--bg-surface)",
                         padding: "10px 14px",
@@ -1110,14 +1092,14 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                         border: "1px solid var(--border-default)",
                       }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px",minWidth:0 }}>
                         <FileSpreadsheet size={22} color="var(--color-operational)" />
                         <div>
-                          <div style={{ fontWeight: 600, fontSize: "var(--font-size-sm)", color: "var(--text-primary)" }}>
+                          <div style={{ fontWeight: 600, fontSize: "var(--font-size-sm)", color: "var(--text-primary)",overflowWrap:"anywhere" }}>
                             {importedFile.name}
                           </div>
                           <div style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)" }}>
-                            {(importedFile.size / 1024).toFixed(1)} KB · {importStats?.totalRows || 0} linhas analisadas
+                            {(importedFile.size / 1024).toFixed(1)} KB · {isParsingFile?"Lendo arquivo...":`${importRows.length} linhas lidas`}
                           </div>
                         </div>
                       </div>
@@ -1126,16 +1108,39 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                         type="button"
                         variant="secondary"
                         size="sm"
-                        onClick={removeImportedFile}
-                        prefixIcon={<Trash2 size={14} />}
+                        onClick={()=>fileInputRef.current?.click()}
+                        prefixIcon={<UploadCloud size={14} />}
                       >
                         Trocar Planilha
                       </Button>
+                      <Button type="button" size="sm" variant="ghost" onClick={removeImportedFile} prefixIcon={<Trash2 size={14}/>}>Remover</Button>
                     </div>
 
-                    {importError && (
+                    {isParsingFile&&<p role="status">Processando a planilha...</p>}
+                    {importRows.length>0&&<div style={{display:"grid",gap:12}}>
+                      <p style={{margin:0,fontSize:13}}>Confira o mapeamento. Quando houver mais de uma coluna de telefone, escolha a que deve receber a campanha.</p>
+                      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:12}}>
+                        <label style={{display:"grid",gap:6,fontSize:13}}>Coluna de telefone
+                          <select ref={phoneColumnRef} value={phoneColumn} onChange={event=>{setPhoneColumn(event.target.value);if(nameColumn===event.target.value)setNameColumn("");}} style={{minWidth:0,width:"100%",minHeight:40,font:"inherit",background:"var(--bg-surface)",color:"var(--text-primary)",border:"1px solid var(--border-default)",borderRadius:6,padding:8}}>
+                            <option value="">Selecione a coluna</option>{importColumns.map(column=><option key={column} value={column}>{column}</option>)}
+                          </select>
+                        </label>
+                        <label style={{display:"grid",gap:6,fontSize:13}}>Coluna de nome (opcional)
+                          <select value={nameColumn} onChange={event=>setNameColumn(event.target.value)} style={{minWidth:0,width:"100%",minHeight:40,font:"inherit",background:"var(--bg-surface)",color:"var(--text-primary)",border:"1px solid var(--border-default)",borderRadius:6,padding:8}}>
+                            <option value="">Não importar nome</option>{importColumns.map(column=><option key={column} value={column} disabled={column===phoneColumn}>{column}</option>)}
+                          </select>
+                        </label>
+                      </div>
+                      <label style={{display:"grid",gap:6,fontSize:13}}>Formato dos telefones
+                        <select value={phoneFormat} onChange={event=>setPhoneFormat(event.target.value as ImportPhoneFormat)} style={{minWidth:0,width:"100%",minHeight:40,font:"inherit",background:"var(--bg-surface)",color:"var(--text-primary)",border:"1px solid var(--border-default)",borderRadius:6,padding:8}}>
+                          <option value="BR">Brasil — celular com DDD</option><option value="E164">Com + e código do país — formato E.164</option>
+                        </select>
+                      </label>
+                      <details><summary>Ver amostra das colunas lidas</summary><div style={{maxHeight:180,overflow:"auto"}}><table style={{borderCollapse:"collapse",fontSize:12,textAlign:"left"}}><caption style={{textAlign:"left",padding:6}}>Primeiras {Math.min(3,importRows.length)} linhas de dados</caption><thead><tr>{importColumns.map(column=><th key={column} scope="col" style={{padding:8,minWidth:130,borderBottom:"1px solid var(--border-default)"}}>{column}</th>)}</tr></thead><tbody>{importRows.slice(0,3).map((row,index)=><tr key={index}>{importColumns.map(column=><td key={column} style={{padding:8,borderBottom:"1px solid var(--border-subtle)",overflowWrap:"anywhere"}}>{String(row[column]??"").slice(0,80)}{String(row[column]??"").length>80?"…":""}</td>)}</tr>)}</tbody></table></div></details>
+                    </div>}
+                    {(importError||mappedImport.error) && (
                       <Alert variant="danger" title="Aviso de Importação">
-                        {importError}
+                        {importError||mappedImport.error}
                       </Alert>
                     )}
 
@@ -1155,7 +1160,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                               gap: "4px",
                             }}
                           >
-                            <CheckCircle2 size={12} /> {importStats.validCount} Telefones Válidos (E.164)
+                            <CheckCircle2 size={12} /> {importStats.validCount} {importStats.validCount===1?"telefone com formato válido":"telefones com formato válido"}
                           </span>
                           {importStats.duplicateCount > 0 && (
                             <span
@@ -1168,7 +1173,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                                 fontWeight: 600,
                               }}
                             >
-                              {importStats.duplicateCount} Duplicados Unificados
+                              {importStats.duplicateCount} {importStats.duplicateCount===1?"repetido ignorado":"repetidos ignorados"}
                             </span>
                           )}
                           {importStats.invalidCount > 0 && (
@@ -1182,10 +1187,12 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                                 fontWeight: 600,
                               }}
                             >
-                              {importStats.invalidCount} Inválidos/Fixos Descartados
+                              {importStats.invalidCount} Linhas inválidas
                             </span>
                           )}
                         </div>
+                        <p style={{margin:0,fontSize:12}}>Formato conferido na planilha. Bloqueios comerciais e elegibilidade serão verificados na revisão do público.</p>
+                        {mappedImport.issues.length>0&&<details><summary>Ver linhas descartadas ou repetidas ({mappedImport.issues.length})</summary><div style={{maxHeight:180,overflowY:"auto"}}><ul>{mappedImport.issues.map(issue=><li key={issue.row}>Linha {issue.row}: {issue.reason}</li>)}</ul></div></details>}
 
                         {importedContacts.length > 0 && (
                           <div
@@ -1210,7 +1217,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                               }}
                             >
                               <span>Nome</span>
-                              <span>Telefone Sanitizado</span>
+                              <span>Telefone formatado</span>
                               <span style={{ textAlign: "right" }}>Status</span>
                             </div>
                             {importedContacts.slice(0, 10).map((c, idx) => (
@@ -1231,7 +1238,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                                   {c.phoneE164}
                                 </span>
                                 <span style={{ textAlign: "right", color: "var(--color-action)", fontWeight: 600 }}>
-                                  Pronto
+                                  Formato válido
                                 </span>
                               </div>
                             ))}
@@ -1244,7 +1251,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                                   fontSize: "0.75rem",
                                 }}
                               >
-                                + {importedContacts.length - 10} outros contatos prontos para envio
+                                + {importedContacts.length - 10} outros contatos com formato válido
                               </div>
                             )}
                           </div>
@@ -1264,11 +1271,12 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                     Selecione a etapa dos contatos no funil comercial:
                   </span>
                   <Badge variant={smartCount && smartCount > 0 ? "action" : "neutral"}>
-                    {isLoadingSmartCount ? "Calculando..." : `${smartCount ?? 0} contatos nesta etapa`}
+                    {isLoadingSmartCount ? "Calculando..." : smartCount===null ? "Consulta indisponível" : `${smartCount} contatos nesta etapa`}
                   </Badge>
                 </div>
                 <select
                   value={stage}
+                  aria-label="Etapa do público no funil"
                   onChange={(e) => setStage(e.target.value)}
                   style={{
                     padding: "8px 12px",
@@ -1296,6 +1304,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                   Cole os números de telefone em formato internacional (separados por vírgula ou linha):
                 </span>
                 <textarea
+                  aria-label="Telefones dos destinatários"
                   rows={3}
                   value={manualPhones}
                   onChange={(e) => setManualPhones(e.target.value)}
@@ -1346,8 +1355,9 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                 </div>
                 <select
                   value={selectedTemplateId}
+                  aria-label="Modelo de mensagem do disparo"
                   onChange={(e) => setSelectedTemplateId(e.target.value)}
-                  disabled={templates.length === 0}
+                  disabled={availableTemplates.length === 0}
                   style={{
                     padding: "9px 12px",
                     borderRadius: "var(--radius-md)",
@@ -1357,10 +1367,10 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                     color: "var(--text-primary)",
                   }}
                 >
-                  {templates.length === 0 ? (
+                  {availableTemplates.length === 0 ? (
                     <option value="">Nenhum modelo cadastrado</option>
                   ) : (
-                    templates.map((tpl) => (
+                    availableTemplates.map((tpl) => (
                       <option key={tpl.id} value={tpl.id}>
                         {formatTemplateDisplayTitle(tpl)}
                       </option>
@@ -1371,7 +1381,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "2px" }}>
                     <Badge variant={selectedTemplate.category === "UTILITY" ? "operational" : "neutral"}>
                       {selectedTemplate.category === "UTILITY"
-                        ? "⚡ Utilidade (~R$ 0,04 • Economia de 85% + Janela 24h Grátis)"
+                        ? "Utilidade — aprovação e tarifas dependem do provedor"
                         : "⭐ Marketing (~R$ 0,40 • Custo Padrão)"}
                     </Badge>
                   </div>
@@ -1401,7 +1411,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
 
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                     {templateVarKeys.map((k) => {
-                      const meta = getVariableMetadata(k);
+                      const meta = variableMetadata(k);
                       if (meta.isName) {
                         return (
                           <div
@@ -1438,7 +1448,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                                   👤 {meta.label} (Automático)
                                 </span>
                                 <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>
-                                  Substituído automaticamente pelo primeiro nome de cada cliente da lista (ex: "Francisco").
+                                  Substituído automaticamente pelo primeiro nome de cada contato cadastrado.
                                 </span>
                               </div>
                             </div>
@@ -1463,6 +1473,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                           <Input
                             label={meta.label}
                             placeholder={meta.placeholder}
+                            maxLength={k==="header:media"?2048:k==="header:filename"?128:k.endsWith(":payload")?256:k.startsWith("header:")?60:200}
                             value={variables[k] || ""}
                             onChange={(e) => setVariables({ ...variables, [k]: e.target.value })}
                           />
@@ -1501,10 +1512,10 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontSize: "var(--font-size-xs)", fontWeight: 600, color: "var(--text-primary)" }}>
-                      Prévia Real da Mensagem (WhatsApp)
+                      Prévia da mensagem
                     </span>
                     <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
-                      Simulação real com lead de exemplo (Francisco)
+                      Simulação; o nome será preenchido para cada contato.
                     </span>
                   </div>
                   <div
@@ -1535,7 +1546,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                     >
                       {selectedTemplate.headerText && (
                         <div style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text-primary)" }}>
-                          {selectedTemplate.headerText}
+                          {layoutPreviewA?.renderedHeader}
                         </div>
                       )}
                       <div
@@ -1546,6 +1557,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                           whiteSpace: "pre-wrap",
                         }}
                       >
+                        {layoutPreviewA?.mediaUrl&&<p style={{fontSize:12,overflowWrap:"anywhere"}}>Mídia do cabeçalho: {layoutPreviewA.mediaUrl}</p>}
                         {renderWhatsappMarkdown(previewBody)}
                       </div>
                       <div
@@ -1562,12 +1574,12 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                             {selectedTemplate.footerText}
                           </span>
                         )}
-                        <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>10:42</span>
-                        <CheckCircle2 size={12} color="#53bdeb" />
+                        <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>Prévia — não enviado</span>
+
                       </div>
                     </div>
 
-                    {selectedTemplate.buttons && selectedTemplate.buttons.length > 0 && (
+                    {layoutPreviewA && layoutPreviewA.renderedButtons.length > 0 && (
                       <div
                         style={{
                           marginTop: "4px",
@@ -1577,7 +1589,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                           width: "92%",
                         }}
                       >
-                        {selectedTemplate.buttons.map((btn, idx) => (
+                        {layoutPreviewA.renderedButtons.map((btn, idx) => (
                           <div
                             key={idx}
                             style={{
@@ -1593,6 +1605,8 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                             }}
                           >
                             {btn.text}
+                            {btn.url&&<div style={{fontWeight:400,overflowWrap:"anywhere"}}>{btn.url}</div>}
+                            {btn.phone_number&&<div style={{fontWeight:400}}>{btn.phone_number}</div>}
                           </div>
                         ))}
                       </div>
@@ -1662,7 +1676,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {templates.map((tpl) => (
+                      {availableTemplates.map((tpl) => (
                         <option key={tpl.id} value={tpl.id}>
                           {formatTemplateDisplayTitle(tpl)}
                         </option>
@@ -1674,7 +1688,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                       <span style={{ fontSize: "var(--font-size-xs)", fontWeight: 600 }}>Variáveis A:</span>
                       {templateVarKeys.map((k) => {
-                        const meta = getVariableMetadata(k);
+                        const meta = variableMetadata(k);
                         if (meta.isName) {
                           return (
                             <div
@@ -1698,6 +1712,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                             key={k}
                             label={meta.label}
                             placeholder={meta.placeholder}
+                            maxLength={k==="header:media"?2048:k==="header:filename"?128:k.endsWith(":payload")?256:k.startsWith("header:")?60:200}
                             value={variables[k] || ""}
                             onChange={(e) => setVariables({ ...variables, [k]: e.target.value })}
                           />
@@ -1720,7 +1735,8 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                         overflowY: "auto",
                       }}
                     >
-                      {renderWhatsappMarkdown(previewBody)}
+                      {layoutPreviewA?.mediaUrl&&<p style={{fontSize:12,overflowWrap:"anywhere"}}>Mídia do cabeçalho: {layoutPreviewA.mediaUrl}</p>}
+                        {renderWhatsappMarkdown(previewBody)}
                     </div>
                   )}
                 </div>
@@ -1765,7 +1781,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {templates.map((tpl) => (
+                      {availableTemplates.map((tpl) => (
                         <option key={tpl.id} value={tpl.id}>
                           {formatTemplateDisplayTitle(tpl)}
                         </option>
@@ -1777,7 +1793,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                       <span style={{ fontSize: "var(--font-size-xs)", fontWeight: 600 }}>Variáveis B:</span>
                       {templateVarKeysB.map((k) => {
-                        const meta = getVariableMetadata(k);
+                        const meta = variableMetadata(k);
                         if (meta.isName) {
                           return (
                             <div
@@ -1801,6 +1817,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                             key={k}
                             label={meta.label}
                             placeholder={meta.placeholder}
+                            maxLength={k==="header:media"?2048:k==="header:filename"?128:k.endsWith(":payload")?256:k.startsWith("header:")?60:200}
                             value={variablesB[k] || ""}
                             onChange={(e) => setVariablesB({ ...variablesB, [k]: e.target.value })}
                           />
@@ -1823,6 +1840,7 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
                         overflowY: "auto",
                       }}
                     >
+                      {layoutPreviewB?.mediaUrl&&<p style={{fontSize:12,overflowWrap:"anywhere"}}>Mídia do cabeçalho: {layoutPreviewB.mediaUrl}</p>}
                       {renderWhatsappMarkdown(previewBodyB)}
                     </div>
                   )}
@@ -1836,18 +1854,21 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
             style={{
               display: "flex",
               justifyContent: "space-between",
-              alignItems: "center",
+              alignItems: isMobile?"stretch":"center",
+              flexDirection:isMobile?"column":"row",
+              gap:8,
               marginTop: "8px",
               borderTop: "1px solid var(--border-subtle)",
               paddingTop: "14px",
             }}
           >
-            <Button type="button" variant="secondary" size="sm" onClick={onClose} disabled={isSubmitting}>
+            <Button type="button" variant="secondary" size="sm" style={mobileActionStyle} onClick={requestClose} disabled={isSubmitting}>
               Cancelar
             </Button>
 
             <Button
               type="submit"
+              style={mobileActionStyle}
               variant="primary"
               size="sm"
               loading={isSubmitting}
@@ -1855,27 +1876,28 @@ export const BroadcastTemplateDialog: FC<BroadcastTemplateDialogProps> = ({
               prefixIcon={isAbTest ? <Layers size={14} /> : <Send size={14} />}
               title={
                 isBillingBlocked
-                  ? "Disparo travado: Cadastre o cartão no Meta Business Manager e confirme nas configurações de canais"
+                  ? "Disparo bloqueado: confira o faturamento na Meta e registre a declaração nas configurações de canais"
                   : !isChannelConnected
                     ? "Canal selecionado está desconectado"
                     : isAbTest
-                      ? "Iniciar Teste A/B 50/50"
-                      : "Iniciar disparo ativo"
+                      ? "Revisar Teste A/B 50/50"
+                      : "Revisar disparo antes de iniciar"
               }
             >
               {isBillingBlocked
-                ? "Disparo Travado (Sem Cartão Meta)"
+                ? "Disparo bloqueado (faturamento não declarado)"
                 : isAbTest
-                  ? "Iniciar Teste A/B (50/50)"
-                  : "Iniciar Disparo em Massa"}
+                  ? "Revisar Teste A/B (50/50)"
+                  : "Revisar disparo"}
             </Button>
           </div>
         </form>
       )}
+      </fieldset>
     </Dialog>
 
       {/* Modal Integrado de Criação de Modelo com IA & Redução de Custo */}
-      {isCreateAiModalOpen && (
+      {isOpen && isCreateAiModalOpen && (
         <CreateTemplateDialog
           isOpen={isCreateAiModalOpen}
           onClose={() => setIsCreateAiModalOpen(false)}

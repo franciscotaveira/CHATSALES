@@ -4,8 +4,8 @@
  * NEVER leaks into production bundle. Strictly guarded by import.meta.env.DEV.
  */
 
-import { useState, type FC } from "react";
-import { Button, Input, Badge } from "@sos-sales/ui";
+import { useState, useEffect, useRef, type FC } from "react";
+import { Button, Input, Badge, useBreakpoint } from "@sos-sales/ui";
 import { FlaskConical, KeyRound, WifiOff, RefreshCw, LayoutTemplate, Copy, Check, X } from "lucide-react";
 
 interface DevLabToolbarProps {
@@ -29,12 +29,18 @@ export const DevLabToolbar: FC<DevLabToolbarProps> = ({
   onToggleView,
   onRefresh,
 }) => {
+  const {isMobile,isTablet}=useBreakpoint();
+  const inlineLayout=isMobile||isTablet;
   const LOCAL_DEV_DEMO_TOKEN =
     (import.meta.env.VITE_DEV_DEMO_TOKEN as string | undefined)?.trim() || "";
 
   const [inputToken, setInputToken] = useState<string>(token || "");
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
+  const [copyPending,setCopyPending]=useState(false),[copyError,setCopyError]=useState("");
+  const copyEpoch=useRef(0),copyBusy=useRef(false),copyTimer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
+  useEffect(()=>{copyEpoch.current++;copyBusy.current=false;clearTimeout(copyTimer.current);setCopied(false);setCopyPending(false);setCopyError("");return()=>{copyEpoch.current++;clearTimeout(copyTimer.current);};},[token,isOpen]);
+
 
   const handleApplyToken = () => {
     onTokenChange(inputToken.trim() ? inputToken.trim() : null);
@@ -60,12 +66,12 @@ export const DevLabToolbar: FC<DevLabToolbarProps> = ({
     onTokenChange(LOCAL_DEV_DEMO_TOKEN);
   };
 
-  const handleCopyToken = () => {
-    if (token && typeof navigator !== "undefined" && navigator.clipboard) {
-      navigator.clipboard.writeText(token);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
+  const handleCopyToken = async () => {
+    if(!token||copyBusy.current)return;
+    const request=copyEpoch.current;copyBusy.current=true;setCopyPending(true);setCopied(false);setCopyError("");clearTimeout(copyTimer.current);
+    try{await navigator.clipboard.writeText(token);if(request!==copyEpoch.current)return;setCopied(true);copyTimer.current=setTimeout(()=>{if(request===copyEpoch.current)setCopied(false);},2000);}
+    catch{if(request===copyEpoch.current)setCopyError("Não foi possível copiar o token. Tente novamente.");}
+    finally{if(request===copyEpoch.current){copyBusy.current=false;setCopyPending(false);}}
   };
 
   const maskedToken = token
@@ -77,9 +83,13 @@ export const DevLabToolbar: FC<DevLabToolbarProps> = ({
       role="region"
       aria-label="Barra de Laboratório de Desenvolvimento"
       style={{
-        position: "fixed",
-        bottom: "calc(var(--mobile-nav-h, 56px) + 16px)",
-        left: "16px",
+        position: inlineLayout ? "relative" : "fixed",
+        bottom: inlineLayout ? undefined : "calc(var(--mobile-nav-h, 56px) + 16px)",
+        left: inlineLayout ? undefined : "16px",
+        padding: inlineLayout ? "4px 12px" : undefined,
+        flexShrink: 0,
+        maxHeight: "calc(100dvh - 120px)",
+        overflowY: "auto",
         zIndex: 9999,
         fontFamily: "var(--font-sans, sans-serif)",
       }}
@@ -182,6 +192,7 @@ export const DevLabToolbar: FC<DevLabToolbarProps> = ({
                 type="button"
                 onClick={handleCopyToken}
                 title="Copiar JWT"
+                aria-label="Copiar JWT" disabled={copyPending}
                 style={{
                   background: "none",
                   border: "none",
@@ -195,10 +206,12 @@ export const DevLabToolbar: FC<DevLabToolbarProps> = ({
                 }}
               >
                 {copied ? <Check size={14} /> : <Copy size={14} />}
-                <span>{copied ? "Copiado" : "Copiar"}</span>
+                <span>{copyPending?"Copiando…":copied ? "Copiado" : "Copiar"}</span>
               </button>
             )}
           </div>
+          {copied&&<p role="status">Token copiado para a área de transferência.</p>}
+          {copyError&&<p role="alert">{copyError}</p>}
 
           {/* Input & Token Action Buttons */}
           <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>

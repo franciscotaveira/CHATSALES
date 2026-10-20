@@ -35,10 +35,11 @@ const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" 
 export const formatCents = (cents: number): string => brl.format(cents / 100);
 
 export function getStageLabel(stageId: string, customMap?: CustomStagesMap): string {
-  if (customMap && customMap[stageId as JourneyStage]) {
-    return customMap[stageId as JourneyStage]!;
+  const defaultStage = STAGES.find((stage) => stage.id === stageId);
+  if (!defaultStage) return "Etapa não reconhecida";
+  if (customMap && typeof customMap === "object" && !Array.isArray(customMap) && Object.prototype.hasOwnProperty.call(customMap, defaultStage.id)) {
+    const label = customMap[defaultStage.id];
+    if (typeof label === "string" && label.trim() && label.length <= 60) return label.trim();
   }
-  const defaultStage = STAGES.find((s) => s.id === stageId);
-  return defaultStage ? defaultStage.label : stageId;
+  return defaultStage.label;
 }
-

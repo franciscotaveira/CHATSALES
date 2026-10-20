@@ -13,6 +13,7 @@ import {
   type OutboundSendParams,
   type ChannelSendResult,
 } from "@sos-sales/application";
+import {templateLayoutSignature} from "@sos-sales/contracts";
 import { InboxProcessor } from "../processors/inbox-processor";
 import { OutboxDispatcher } from "../processors/outbox-dispatcher";
 
@@ -239,6 +240,11 @@ describe("Worker Operational Resilience & P0/P1 Edge Case Verification", () => {
         ) RETURNING id;
       `, [workspaceId, channelInstanceId, baseThreadId]);
       const messageId = msgRes.rows[0].id;
+      await ownerPool.query(`INSERT INTO message_templates
+        (workspace_id,name,category,body_text,status,language,meta_template_id,meta_verified_at,meta_verified_channel_id)
+        VALUES($1,'appointment_reminder','UTILITY','Olá {{1}}','APPROVED','pt_BR','SIM_APPOINTMENT_TEMPLATE',NOW(),$2)`,[workspaceId,channelInstanceId]);
+      const layoutHash=crypto.createHash('sha256').update(templateLayoutSignature({bodyText:'Olá {{1}}'})).digest('hex');
+      await ownerPool.query(`UPDATE messages SET metadata=jsonb_build_object('systemTemplateLayoutHash',$2::text) WHERE id=$1`,[messageId,layoutHash]);
 
       const templateComponents = [
         {
@@ -303,6 +309,25 @@ describe("Worker Operational Resilience & P0/P1 Edge Case Verification", () => {
         language: "pt_BR",
         components: templateComponents,
       });
+
+      // A later sync changing a header must invalidate the queued layout before adapter execution.
+      const nextMessage = await ownerPool.query(`INSERT INTO messages
+        (workspace_id,channel_instance_id,thread_id,provider,direction,sender_e164,recipient_e164,content_type,body,delivery_status,status_rank,metadata)
+        SELECT workspace_id,channel_instance_id,thread_id,provider,direction,sender_e164,recipient_e164,content_type,body,'queued',0,metadata
+        FROM messages WHERE id=$1 RETURNING id`,[messageId]);
+      const nextCommand = await ownerPool.query(`INSERT INTO outbound_commands
+        (workspace_id,channel_instance_id,thread_id,message_id,recipient_e164,body,idempotency_key,status,template_name,template_language,template_components)
+        SELECT workspace_id,channel_instance_id,thread_id,$2,recipient_e164,body,$3,'pending',template_name,template_language,template_components
+        FROM outbound_commands WHERE id=$1 RETURNING id`,[commandId,nextMessage.rows[0].id,`sim-layout-change-${crypto.randomUUID()}`]);
+      await ownerPool.query(`UPDATE message_templates SET header_text='Novo cabeçalho' WHERE workspace_id=$1 AND name='appointment_reminder'`,[workspaceId]);
+      capturedTemplate=null;
+      const changed=(await dispatcher.claimBatch(workerPool,'changed-layout-worker',100)).find(item=>item.id===nextCommand.rows[0].id);
+      expect(changed).toBeDefined();
+      const blocked=await dispatcher.dispatchItem(workerPool,changed!,'changed-layout-worker',registry,secretResolver);
+      expect(blocked.success).toBe(false);
+      expect(capturedTemplate).toBeNull();
+      const status=await ownerPool.query('SELECT status FROM outbound_commands WHERE id=$1',[nextCommand.rows[0].id]);
+      expect(status.rows[0].status).toBe('dead_letter');
     });
   });
 

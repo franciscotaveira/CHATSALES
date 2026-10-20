@@ -8,7 +8,7 @@
 set -euo pipefail
 
 LOG_FILE="${LOG_FILE:-/var/log/chat-sales-watchdog.log}"
-API_URL="${API_URL:-https://crm.iaparavendas.tech/ready}"
+API_URL="${API_URL:-https://chat.automatizaprocessos.tech/ready}"
 DISK_THRESHOLD="${DISK_THRESHOLD:-85}"
 
 log() {

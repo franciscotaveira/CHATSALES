@@ -62,7 +62,7 @@ export const CANONICAL_MASTER_FLOWS: CanonicalMasterFlow[] = [
     title: "Agendamento de Horário 🗓️",
     description: "Permite ao cliente escolher data, horário e serviço diretamente na tela do WhatsApp.",
     category: "APPOINTMENT_BOOKING" as FlowCategory,
-    status: "PUBLISHED" as FlowStatus,
+    status: "DRAFT" as FlowStatus,
     meta_flow_id: "meta_flow_booking_canon_01",
     cta_label: "Escolher Horário 🗓️",
     header_text: "Agendamento Online",
@@ -116,7 +116,7 @@ export const CANONICAL_MASTER_FLOWS: CanonicalMasterFlow[] = [
     title: "Qualificação Comercial 🎯",
     description: "Mapeia porte da empresa, orçamento e urgência do lead em poucos segundos.",
     category: "LEAD_GENERATION" as FlowCategory,
-    status: "PUBLISHED" as FlowStatus,
+    status: "DRAFT" as FlowStatus,
     meta_flow_id: "meta_flow_qualify_canon_02",
     cta_label: "Iniciar Diagnóstico 🎯",
     header_text: "Diagnóstico Comercial",
@@ -159,7 +159,7 @@ export const CANONICAL_MASTER_FLOWS: CanonicalMasterFlow[] = [
     title: "Pesquisa de Satisfação ⭐",
     description: "Coleta feedback rápido com nota NPS e comentário para melhoria contínua.",
     category: "SURVEY" as FlowCategory,
-    status: "PUBLISHED" as FlowStatus,
+    status: "DRAFT" as FlowStatus,
     meta_flow_id: "meta_flow_nps_canon_03",
     cta_label: "Avaliar Atendimento ⭐",
     header_text: "Sua Avaliação",
@@ -239,13 +239,6 @@ export async function listWhatsAppFlows(
 
   const result = await client.query(query, params);
 
-  // If no flows exist yet for this workspace, auto-seed the 3 canonical flows
-  if (result.rows.length === 0 && !options?.category && !options?.status) {
-    await seedMasterFlows(client, workspaceId);
-    const recheck = await client.query(query, params);
-    return recheck.rows.map(mapRowToFlow);
-  }
-
   return result.rows.map(mapRowToFlow);
 }
 
@@ -308,7 +301,7 @@ export async function upsertWhatsAppFlow(
     flow.title,
     flow.description || null,
     flow.category || "LEAD_GENERATION",
-    flow.status || "PUBLISHED",
+    flow.status || "DRAFT",
     flow.metaFlowId,
     flow.ctaLabel,
     flow.headerText || null,

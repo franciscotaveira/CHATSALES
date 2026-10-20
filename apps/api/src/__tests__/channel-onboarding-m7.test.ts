@@ -1,9 +1,13 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import crypto from "node:crypto";
 import { createTestDatabasePools } from "@sos-sales/database";
 import { SignJWT } from "@sos-sales/auth";
 import { buildApp } from "../index";
 import type { FastifyInstance } from "fastify";
+
+const providerMock=vi.hoisted(()=>({fetch:vi.fn()}));
+vi.mock('@sos-sales/application',async original=>({...await original<typeof import('@sos-sales/application')>(),safeFetchWithSsrfGuard:(...args:unknown[])=>providerMock.fetch(...args)}));
+providerMock.fetch.mockImplementation(async(url:string)=>new Response(JSON.stringify(url.includes('/api/sessions/')?{name:decodeURIComponent(url.split('/api/sessions/')[1]!.split('/')[0]!),status:'WORKING',me:{id:'5511999992222@c.us'}}:url.includes('/subscribed_apps')?{data:[{whatsapp_business_api_data:{id:'2294262161340902'}}]}:url.includes('/phone_numbers')?{data:[{id:'phone_id_9999',display_phone_number:'5511999991111'}]}:{id:'phone_id_9999',display_phone_number:'5511999991111'}),{status:200,headers:{'content-type':'application/json'}}));
 
 describe("M7 Channel Onboarding, Governance & Revocation Integration (Fastify + RLS + Audit)", () => {
   const jwtSecret = "test_jwt_secret_key_minimum_32_characters_long_2026!";
@@ -27,6 +31,7 @@ describe("M7 Channel Onboarding, Governance & Revocation Integration (Fastify + 
   let adminBToken: string;
 
   beforeAll(async () => {
+    vi.stubEnv("META_APP_ID","2294262161340902");
     app = await buildApp({
       providerType: "local-jwt",
       jwtSecret,
@@ -136,6 +141,7 @@ describe("M7 Channel Onboarding, Governance & Revocation Integration (Fastify + 
   afterAll(async () => {
     await app.close();
     await ownerPool.end();
+    vi.unstubAllEnvs();
   });
 
   it("provisions a Meta WABA channel with encrypted credentials without leaking secrets in responses", async () => {
@@ -155,7 +161,7 @@ describe("M7 Channel Onboarding, Governance & Revocation Integration (Fastify + 
         credentials: {
           accessToken: rawToken,
           phoneNumberId: "phone_id_9999",
-          wabaAccountId: "waba_id_8888",
+          wabaAccountId: "987654321",
           appSecret: rawSecret,
         },
       },
@@ -170,10 +176,13 @@ describe("M7 Channel Onboarding, Governance & Revocation Integration (Fastify + 
     expect(body.channel.status).toBe("validating");
     expect(body.channel.isActive).toBe(false);
 
+    const observed=async()=>(await app.inject({url:`/v1/workspaces/${workspaceAId}/channels?includeInactive=true`,headers:{authorization:`Bearer ${adminAToken}`}})).json().channels.find((ch:any)=>ch.id===body.channel.id).revision;
+    const subscription=await app.inject({method:"POST",url:`/v1/workspaces/${workspaceAId}/channels/${body.channel.id}/meta-subscription/check`,headers:{authorization:`Bearer ${adminAToken}`},payload:{expectedRevision:await observed()}});expect(subscription.statusCode,subscription.body).toBe(200);expect(subscription.json().subscriptionStatus).toBe("confirmed");
     // Verify session to transition channel to connected
     const verifyWabaRes = await app.inject({
       method: "POST",
       url: `/v1/workspaces/${workspaceAId}/channels/${body.channel.id}/verify-session`,
+      payload: {expectedRevision:(await app.inject({url:`/v1/workspaces/${workspaceAId}/channels?includeInactive=true`,headers:{authorization:`Bearer ${adminAToken}`}})).json().channels.find((ch:any)=>ch.id===body.channel.id).revision,acknowledgedConnection:true},
       headers: { authorization: `Bearer ${adminAToken}` },
     });
     expect(verifyWabaRes.statusCode).toBe(200);
@@ -199,7 +208,7 @@ describe("M7 Channel Onboarding, Governance & Revocation Integration (Fastify + 
     expect(cred.encrypted_payload).not.toBe(rawSecret);
   });
 
-  it("lists channels with honest status ('connected') and environment ('production_certified' / 'lab_local')", async () => {
+  it("lists connection status separately from the configured runtime environment", async () => {
     // Also create a WAHA channel in Workspace A
     const wahaRes = await app.inject({
       method: "POST",
@@ -223,6 +232,7 @@ describe("M7 Channel Onboarding, Governance & Revocation Integration (Fastify + 
     const verifyWahaRes = await app.inject({
       method: "POST",
       url: `/v1/workspaces/${workspaceAId}/channels/${wahaRes.json().channel.id}/verify-session`,
+      payload: {expectedRevision:(await app.inject({url:`/v1/workspaces/${workspaceAId}/channels?includeInactive=true`,headers:{authorization:`Bearer ${adminAToken}`}})).json().channels.find((ch:any)=>ch.id===wahaRes.json().channel.id).revision,acknowledgedConnection:true},
       headers: { authorization: `Bearer ${adminAToken}` },
     });
     expect(verifyWahaRes.statusCode).toBe(200);
@@ -243,13 +253,13 @@ describe("M7 Channel Onboarding, Governance & Revocation Integration (Fastify + 
     const waba = body.channels.find((c: any) => c.provider === "meta_waba");
     expect(waba).toBeDefined();
     expect(waba.status).toBe("connected");
-    expect(waba.environment).toBe("production_certified");
+    expect(waba.environment).toBe("lab");
     expect(waba.isActive).toBe(true);
 
     const waha = body.channels.find((c: any) => c.provider === "waha");
     expect(waha).toBeDefined();
     expect(waha.status).toBe("connected");
-    expect(waha.environment).toBe("lab_local");
+    expect(waha.environment).toBe("lab");
     expect(waha.isActive).toBe(true);
 
     // Verify zero credential leaks in channel listing
@@ -278,8 +288,8 @@ describe("M7 Channel Onboarding, Governance & Revocation Integration (Fastify + 
         authorization: `Bearer ${adminAToken}`,
       },
     });
-    expect(wabaQrRes.statusCode).toBe(400);
-    expect(wabaQrRes.json().detail).toContain("QR Code generation is only supported for WAHA");
+    expect(wabaQrRes.statusCode).toBe(422);
+    expect(wabaQrRes.json().detail).toContain("somente ao WAHA");
 
     // 2. Fetching QR code for WAHA channel returns safe QR code in lab mode
     const wahaQrRes = await app.inject({
@@ -292,9 +302,9 @@ describe("M7 Channel Onboarding, Governance & Revocation Integration (Fastify + 
     expect(wahaQrRes.statusCode).toBe(200);
     const qrBody = wahaQrRes.json();
     expect(qrBody.success).toBe(true);
-    expect(qrBody.status).toBe("SCAN_QR_CODE");
-    expect(qrBody.qrDataUri).toBeDefined();
-    expect(qrBody.qrDataUri).toContain("data:image/svg+xml");
+    expect(qrBody.status).toBe("CONNECTED");
+    expect(qrBody.qrDataUri).toBeUndefined();
+    expect(qrBody.isSimulated).toBe(false);
     // Ensure no apiKey or session token is leaked
     expect(JSON.stringify(qrBody)).not.toContain("local-waha-key-12345");
   });
@@ -335,6 +345,7 @@ describe("M7 Channel Onboarding, Governance & Revocation Integration (Fastify + 
     const crossRevokeRes = await app.inject({
       method: "POST",
       url: `/v1/workspaces/${workspaceBId}/channels/${chanA.id}/revoke`,
+      payload: {expectedRevision:chanA.revision},
       headers: {
         authorization: `Bearer ${adminBToken}`,
       },
@@ -367,6 +378,7 @@ describe("M7 Channel Onboarding, Governance & Revocation Integration (Fastify + 
     const revokeRes = await app.inject({
       method: "POST",
       url: `/v1/workspaces/${workspaceAId}/channels/${wahaChan.id}/revoke`,
+      payload: {expectedRevision:wahaChan.revision},
       headers: {
         authorization: `Bearer ${adminAToken}`,
       },
@@ -416,6 +428,6 @@ describe("M7 Channel Onboarding, Governance & Revocation Integration (Fastify + 
       },
     });
     expect(qrRevokedRes.statusCode).toBe(409);
-    expect(qrRevokedRes.json().detail).toContain("inactive or revoked");
+    expect(qrRevokedRes.json().detail).toContain("suspenso ou arquivado");
   });
 });

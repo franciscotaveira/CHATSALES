@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 export interface NavItem {
   id: string;
   label: string;
+  mobileLabel?: string;
   icon: ReactNode;
   badge?: string | number;
   active?: boolean;

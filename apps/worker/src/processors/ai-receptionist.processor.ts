@@ -1,8 +1,9 @@
-import crypto from "node:crypto";
+import {writeAiReply} from "./ai-reply-writer";
+import {resolveAiCapabilities,aiCapabilitySignature,parseAiCheckoutConfirmation} from '@sos-sales/contracts';
 import type { Pool } from "pg";
 import {
   withWorkerTransaction,
-  createPixCharge,
+  prepareAiCheckout,confirmAiCheckout,linkAiCheckoutSummary,AiCheckoutError,
 } from "@sos-sales/database";
 import {
   buildGroundedSystemPrompt,
@@ -36,6 +37,8 @@ export interface AiReceptionistResult {
   needsHandoff?: boolean;
   handoffReason?: string;
   generatedPixChargeId?: string | null;
+  checkoutRequestId?:string|null;
+  blockedPixReason?: string;
   provider?: string;
   model?: string;
 }
@@ -59,7 +62,6 @@ export class AiReceptionistProcessor {
       inboundMessageId,
       inboundBody,
       senderPhoneE164,
-      recipientPhoneE164,
     } = event;
 
     if (!inboundBody || !inboundBody.trim()) {
@@ -69,6 +71,10 @@ export class AiReceptionistProcessor {
     return await withWorkerTransaction(
       workspaceId,
       async (client) => {
+        // Serialize a given inbound intention before any model call or financial effect.
+        await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0));", [`ai-inbound:${workspaceId}:${inboundMessageId}`]);
+        const replay=await client.query("SELECT id FROM public.outbound_commands WHERE workspace_id=$1 AND idempotency_key=$2 LIMIT 1", [workspaceId,`ai-reply-${inboundMessageId}`]);
+        if(replay.rows.length) return {handled:false,reason:"inbound_already_replied"};
         // 1. Fetch workspace AI configuration
         const wsRes = await client.query<{
           workspace_name: string | null;
@@ -105,7 +111,7 @@ export class AiReceptionistProcessor {
         );
 
         const ws = wsRes.rows[0];
-        if (!ws || ws.ai_receptionist_enabled === false) {
+        if (!ws || ws.ai_receptionist_enabled !== true) {
           return { handled: false, reason: "ai_receptionist_disabled" };
         }
 
@@ -128,16 +134,8 @@ export class AiReceptionistProcessor {
         const contactId = threadRes.rows[0]?.contact_id || event.contactId;
         const contactName = threadRes.rows[0]?.contact_name || null;
         const contactPhone = threadRes.rows[0]?.phone_e164 || senderPhoneE164;
-        const isOptedOut = Boolean(threadRes.rows[0]?.opt_out);
 
-        if (isOptedOut) {
-          logger.info(
-            { workspaceId, threadId, contactId },
-            "AI Receptionist skipped: contact has opted out"
-          );
-          return { handled: false, reason: "contact_opted_out" };
-        }
-
+        // A commercial opt-out blocks campaigns; it does not suppress a new inbound request.
         if (currentStatus === "waiting_human") {
           logger.info(
             { workspaceId, threadId },
@@ -152,22 +150,6 @@ export class AiReceptionistProcessor {
             "AI Receptionist skipped: thread is closed"
           );
           return { handled: false, reason: "thread_closed" };
-        }
-
-        // 3. Resolve active provider and credentials (Nvidia NIM or OpenRouter)
-        const provider: AiProvider = (ws.ai_provider as AiProvider) || "nvidia";
-        const apiKey =
-          ws.ai_api_key?.trim() ||
-          (provider === "nvidia"
-            ? process.env.NVIDIA_API_KEY || process.env.NVAPI_KEY
-            : process.env.OPENROUTER_API_KEY);
-
-        if (!apiKey || !apiKey.trim()) {
-          logger.warn(
-            { workspaceId, threadId, provider },
-            `AI Receptionist skipped: API key for provider '${provider}' is not configured`
-          );
-          return { handled: false, reason: `missing_${provider}_api_key` };
         }
 
         // 4. Fetch channel instance details
@@ -187,6 +169,34 @@ export class AiReceptionistProcessor {
           return { handled: false, reason: "channel_not_active" };
         }
 
+        if(parseAiCheckoutConfirmation(inboundBody)){
+          let replyText:string,needsHandoff=false,handoffReason:string|undefined,generatedPixChargeId:string|undefined,checkoutRequestId:string|undefined,blockedPixReason:string|undefined;
+          let preparedSummary=false,checkoutMessageKind="status";
+          try{const result=await confirmAiCheckout(client,{...event,contactId});replyText=result.replyText;generatedPixChargeId=result.generatedPixChargeId;checkoutRequestId=result.checkoutRequestId;preparedSummary=!generatedPixChargeId;checkoutMessageKind=preparedSummary?"summary":result.containsPixCode?"charge":"status";}
+          catch(error){needsHandoff=true;blockedPixReason=error instanceof AiCheckoutError?error.reason:'checkout_confirmation_failed';handoffReason=error instanceof AiCheckoutError?error.message:'A cobrança precisa de revisão da equipe';replyText=`${handoffReason} Vou encaminhar para a equipe. Nenhuma nova cobrança foi gerada automaticamente.`;}
+          const current=(await client.query<{ai_receptionist_enabled:boolean;ai_skills:Record<string,boolean>|null}>('SELECT ai_receptionist_enabled,ai_skills FROM workspaces WHERE id=$1',[workspaceId])).rows[0];
+          if(current?.ai_receptionist_enabled!==true)return {handled:false,reason:'ai_disabled_before_confirmation_reply'};
+          const messageId=await writeAiReply(client,event,channel,{replyText,needsHandoff,handoffReason,generatedPixChargeId,metadata:{source:'ai_receptionist',capabilitySignature:aiCapabilitySignature(current.ai_skills),capabilities:resolveAiCapabilities(current.ai_skills),agentName:ws.ai_agent_name,provider:'system',model:'confirmed-checkout',checkoutMessageKind,needsHandoff,handoffReason:handoffReason??null,generatedPixChargeId:generatedPixChargeId??null,blockedPixReason:blockedPixReason??null,checkoutRequestId:checkoutRequestId??null}});
+          if(preparedSummary&&checkoutRequestId&&messageId)await linkAiCheckoutSummary(client,workspaceId,checkoutRequestId,messageId);
+          return {handled:true,replyText,needsHandoff,handoffReason,generatedPixChargeId:generatedPixChargeId??null,checkoutRequestId:checkoutRequestId??null,blockedPixReason,provider:'system',model:'confirmed-checkout'};
+        }
+
+        // 3. Resolve active provider and credentials (Nvidia NIM or OpenRouter)
+        const provider: AiProvider = (ws.ai_provider as AiProvider) || "nvidia";
+        const apiKey =
+          ws.ai_api_key?.trim() ||
+          (provider === "nvidia"
+            ? process.env.NVIDIA_API_KEY || process.env.NVAPI_KEY
+            : process.env.OPENROUTER_API_KEY);
+
+        if (!apiKey || !apiKey.trim()) {
+          logger.warn(
+            { workspaceId, threadId, provider },
+            `AI Receptionist skipped: API key for provider '${provider}' is not configured`
+          );
+          return { handled: false, reason: `missing_${provider}_api_key` };
+        }
+
         // 5. Fetch CTWA Ad Hook context (Meta Click to WhatsApp Ads)
         const journeyRes = await client.query<{
           ad_headline: string | null;
@@ -201,7 +211,8 @@ export class AiReceptionistProcessor {
         const adJourney = journeyRes.rows[0];
 
         // 6. Fetch grounded active catalog products (Truth in Data)
-        const productsRes = await client.query<{
+        const capabilities=resolveAiCapabilities(ws.ai_skills);
+        const productsRes = capabilities.readCatalog ? await client.query<{
           id: string;
           title: string;
           description: string | null;
@@ -215,7 +226,7 @@ export class AiReceptionistProcessor {
            ORDER BY is_featured DESC, title ASC
            LIMIT 50;`,
           [workspaceId]
-        );
+        ) : {rows:[]};
 
         const products: GroundedProduct[] = productsRes.rows.map((r) => ({
           id: r.id,
@@ -287,6 +298,7 @@ export class AiReceptionistProcessor {
         };
 
         const aiConfig: GroundedAiConfig = {
+          skills:ws.ai_skills,
           name: ws.ai_agent_name || "Assistente Virtual",
           personality,
           systemPrompt: ws.ai_system_prompt || "",
@@ -358,180 +370,80 @@ export class AiReceptionistProcessor {
         // 10. Parse response for human handoff
         const parsed = parseAiResponse(rawReply);
 
-        if (parsed.needsHandoff) {
-          await client.query(
-            `UPDATE public.commercial_threads
-             SET status = 'waiting_human',
-                 handoff_reason = $1,
-                 handoff_at = clock_timestamp(),
-                 updated_at = clock_timestamp()
-             WHERE workspace_id = $2 AND id = $3;`,
-            [parsed.handoffReason || "Dúvida fora do catálogo/FAQ", workspaceId, threadId]
-          );
-
-          logger.info(
-            {
-              workspaceId,
-              threadId,
-              handoffReason: parsed.handoffReason,
-            },
-            "AI Receptionist triggered handoff with executive briefing"
-          );
-        }
-
         // 11. Handle automatic Pix generation if AI flagged OFFER_PIX
         let replyBodyToSend = parsed.cleanReplyText ? parsed.cleanReplyText.trim() : "";
         let generatedPixChargeId: string | null = null;
+        let checkoutRequestId:string|null=null;
+        let needsHandoff = parsed.needsHandoff;
+        let handoffReason = parsed.handoffReason;
+        let blockedPixReason: string | undefined;
+        const blockPix = (reason: string) => {
+          blockedPixReason = reason;
+          needsHandoff = true;
+          handoffReason = handoffReason || "Solicitação de pagamento requer atendimento humano";
+          replyBodyToSend = "Vou encaminhar sua solicitação de pagamento para um atendente. Nenhuma cobrança foi gerada automaticamente.";
+          logger.info({ workspaceId, threadId, reason }, "AI Pix action blocked");
+        };
 
+          // Recheck and lock the current configuration after the model returns.
+          // A concurrent disable must be observed before the financial action.
+          await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0));", [`ai-config:${workspaceId}`]);
+          const actionConfigRes = await client.query<{
+            ai_receptionist_enabled: boolean | null;
+            ai_skills: Record<string, boolean> | null;
+          }>(
+            `SELECT ai_receptionist_enabled, ai_skills FROM public.workspaces WHERE id = $1;`,
+            [workspaceId]
+          );
+          const actionConfig = actionConfigRes.rows[0];
+          if (!actionConfig || actionConfig.ai_receptionist_enabled !== true) {
+            return { handled: false, reason: parsed.offerPixProductId ? "ai_disabled_before_pix_action" : "ai_disabled_before_reply" };
+          }
+          const actionThreadRes = await client.query<{ status: string }>(
+            `SELECT status FROM public.commercial_threads WHERE workspace_id = $1 AND id = $2 FOR UPDATE;`,
+            [workspaceId, threadId]
+          );
+          if (actionThreadRes.rows[0]?.status !== "active") {
+            return { handled: false, reason: parsed.offerPixProductId ? "thread_unavailable_before_pix_action" : "thread_unavailable_before_reply" };
+          }
+        if(!parsed.offerPixProductId&&aiCapabilitySignature(actionConfig.ai_skills)!==aiCapabilitySignature(ws.ai_skills)){
+          needsHandoff=true;handoffReason='As funções da IA mudaram durante o atendimento';
+          replyBodyToSend='Vou encaminhar sua solicitação para a equipe confirmar as informações.';
+        }
         if (parsed.offerPixProductId) {
-          const targetProduct = products.find((p) => p.id === parsed.offerPixProductId);
-          if (targetProduct) {
-            try {
-              const pixCharge = await createPixCharge(client, {
-                workspaceId,
-                threadId,
-                contactId,
-                productId: targetProduct.id,
-                title: targetProduct.title,
-                amountCents: targetProduct.priceCents,
-                expiresMinutes: 30,
-              });
-
-              generatedPixChargeId = pixCharge.id;
-
-              const reais = (targetProduct.priceCents / 100).toLocaleString("pt-BR", {
-                style: "currency",
-                currency: "BRL",
-              });
-
-              const pixSnippet = `\n\n⚡ *PAGAMENTO INSTANTÂNEO VIA PIX*\n📦 *Item:* ${targetProduct.title}\n💰 *Valor:* ${reais}\n⏳ *Validade:* 30 minutos\n\n*Código Pix Copia e Cola:*\n\`\`\`\n${pixCharge.pix_code}\n\`\`\`\n_Copie o código acima e cole na opção "Pix Copia e Cola" no app do seu banco para confirmar sua vaga na hora!_`;
-
-              replyBodyToSend = (replyBodyToSend ? `${replyBodyToSend}\n` : "") + pixSnippet;
-
-              logger.info(
-                {
-                  workspaceId,
-                  threadId,
-                  contactId,
-                  productId: targetProduct.id,
-                  chargeId: pixCharge.id,
-                  amountCents: targetProduct.priceCents,
-                },
-                "AI Receptionist generated Pix Copia e Cola for instant offer closing"
-              );
-            } catch (pixErr: unknown) {
-              logger.warn(
-                {
-                  workspaceId,
-                  threadId,
-                  productId: targetProduct.id,
-                  error: pixErr instanceof Error ? pixErr.message : String(pixErr),
-                },
-                "Could not generate Pix charge in AI Receptionist"
-              );
-            }
+          const supplied=products.find(product=>product.id===parsed.offerPixProductId);
+          if(parsed.needsHandoff)blockPix('human_handoff');
+          else if(actionConfig.ai_skills?.pix_charges!==true)blockPix('pix_skill_disabled');
+          else if(aiCapabilitySignature(actionConfig.ai_skills)!==aiCapabilitySignature(ws.ai_skills))blockPix('ai_capabilities_changed');
+          else if(!Number.isInteger(parsed.offerPixQuantity)||parsed.offerPixQuantity!<1||parsed.offerPixQuantity!>999)blockPix('invalid_product_quantity');
+          else if(!supplied)blockPix('product_not_in_context');
+          else {
+            const currentProduct=await client.query<{id:string;title:string;price_cents:number}>("SELECT id,title,price_cents FROM public.products WHERE workspace_id=$1 AND id=$2 AND status='ACTIVE'",[workspaceId,supplied.id]);
+            const row=currentProduct.rows[0];
+            if(!row)blockPix('product_unavailable');
+            else if(!Number.isSafeInteger(Number(row.price_cents))||Number(row.price_cents)<=0)blockPix('invalid_product_amount');
+            else if(Number(row.price_cents)!==supplied.priceCents||row.title!==supplied.title)blockPix('product_changed_during_inference');
+            else {try{
+              const prepared=await prepareAiCheckout(client,{...event,contactId},row.id,parsed.offerPixQuantity!);
+              checkoutRequestId=prepared.checkoutRequestId;replyBodyToSend=prepared.replyText;
+            }catch(error){blockPix(error instanceof AiCheckoutError?error.reason:'checkout_preparation_failed');logger.warn({workspaceId,threadId,reason:blockedPixReason},'Could not prepare checkout confirmation');}}
           }
         }
 
-        // 12. Enqueue outbound message and outbox command if there is reply text
-        if (replyBodyToSend) {
-          const idempotencyKey = `ai-reply-${inboundMessageId}`;
-          const payloadFingerprint = crypto
-            .createHash("sha256")
-            .update(
-              JSON.stringify({
-                workspaceId,
-                channelInstanceId,
-                threadId,
-                recipientPhoneE164: senderPhoneE164,
-                body: replyBodyToSend,
-                idempotencyKey,
-              })
-            )
-            .digest("hex");
-
-          // Insert outbound message
-          const msgRes = await client.query<{ id: string }>(
-            `INSERT INTO public.messages (
-               workspace_id, channel_instance_id, thread_id, provider, direction,
-               sender_e164, recipient_e164, content_type, body,
-               metadata, delivery_status, status_rank
-             ) VALUES (
-               $1, $2, $3, $4, 'outbound',
-               $5, $6, 'text', $7,
-               $8::jsonb, 'queued', 0
-             )
-             RETURNING id;`,
-            [
-              workspaceId,
-              channelInstanceId,
-              threadId,
-              channel.provider,
-              channel.phone_number_e164 || recipientPhoneE164,
-              senderPhoneE164,
-              replyBodyToSend,
-              JSON.stringify({
-                source: "ai_receptionist",
-                agentName: aiConfig.name,
-                provider: completion.provider,
-                model: completion.model,
-                needsHandoff: parsed.needsHandoff,
-                handoffReason: parsed.handoffReason || null,
-                generatedPixChargeId,
-                offerPixProductId: parsed.offerPixProductId || null,
-              }),
-            ]
-          );
-
-          const outboundMessageId = msgRes.rows[0]!.id;
-
-          // Insert outbound outbox command
-          await client.query(
-            `INSERT INTO public.outbound_commands (
-               workspace_id, channel_instance_id, thread_id, message_id,
-               recipient_e164, body,
-               idempotency_key, payload_fingerprint,
-               status, retry_count, max_retries, next_attempt_at
-             ) VALUES (
-               $1, $2, $3, $4,
-               $5, $6,
-               $7, $8,
-               'pending', 0, 3, clock_timestamp()
-             )
-             ON CONFLICT (workspace_id, idempotency_key) DO NOTHING;`,
-            [
-              workspaceId,
-              channelInstanceId,
-              threadId,
-              outboundMessageId,
-              senderPhoneE164,
-              replyBodyToSend,
-              idempotencyKey,
-              payloadFingerprint,
-            ]
-          );
-
-          logger.info(
-            {
-              workspaceId,
-              threadId,
-              outboundMessageId,
-              idempotencyKey,
-              needsHandoff: parsed.needsHandoff,
-              hasPix: Boolean(generatedPixChargeId),
-              provider: completion.provider,
-              model: completion.model,
-            },
-            "AI Receptionist reply successfully enqueued to outbox"
-          );
-        }
+        const outboundMessageId=await writeAiReply(client,event,channel,{replyText:replyBodyToSend,needsHandoff,handoffReason,generatedPixChargeId,metadata:{
+          source:'ai_receptionist',capabilities,capabilitySignature:aiCapabilitySignature(actionConfig.ai_skills),agentName:aiConfig.name,provider:completion.provider,model:completion.model,
+          needsHandoff,handoffReason:handoffReason??null,generatedPixChargeId,blockedPixReason:blockedPixReason??null,offerPixProductId:parsed.offerPixProductId??null,checkoutRequestId,checkoutMessageKind:checkoutRequestId?"summary":null,
+        }});
+        if(checkoutRequestId&&outboundMessageId)await linkAiCheckoutSummary(client,workspaceId,checkoutRequestId,outboundMessageId);
 
         return {
           handled: true,
           replyText: replyBodyToSend,
-          needsHandoff: parsed.needsHandoff,
-          handoffReason: parsed.handoffReason,
+          needsHandoff,
+          handoffReason,
           generatedPixChargeId,
+          checkoutRequestId,
+          blockedPixReason,
           provider: completion.provider,
           model: completion.model,
         };

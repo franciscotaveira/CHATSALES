@@ -1,8 +1,9 @@
 import crypto from "node:crypto";
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
+import { safeFetchWithSsrfGuard,getInternalAllowedHosts } from "@sos-sales/application";
 import { META_GRAPH_API_VERSION } from "@sos-sales/contracts";
-import { DatabaseSigningSecretResolver, getDatabasePool } from "@sos-sales/database";
+import { decryptPayload, parseKeyringFromEnv, withTenantTransaction } from "@sos-sales/database";
 import { createMediaStorageFromEnv, type MediaStorage } from "../services/media-storage";
 
 type Category = "image" | "audio" | "video" | "document";
@@ -69,6 +70,15 @@ export function sanitizeFileName(raw: unknown): string {
  * 1. GET /v1/workspaces/:workspaceId/media/proxy - Proxies protected Meta media (audios, photos, docs)
  * 2. POST /v1/workspaces/:workspaceId/media - Binary file upload with optional public persistence
  */
+async function resolveMediaCredentials(workspaceId:string,channelId:string,provider:"waha"|"meta_waba"):Promise<Record<string,unknown>|null>{
+  const row=await withTenantTransaction(workspaceId,async client=>(await client.query<{encrypted_payload:string;iv:string;auth_tag:string}>(`SELECT pc.encrypted_payload,pc.iv,pc.auth_tag FROM public.channel_instances ch JOIN public.provider_credentials pc ON pc.id=ch.credential_id AND pc.workspace_id=ch.workspace_id
+    WHERE ch.workspace_id=$1 AND ch.id=$2 AND ch.provider=$3 AND ch.is_active AND pc.status='ACTIVE'`,[workspaceId,channelId,provider])).rows[0]);
+  if(!row)return null;
+  const key=parseKeyringFromEnv()?.keyring??process.env.MCT_CREDENTIALS_MASTER_KEY??process.env.APP_MASTER_KEY;
+  if(!key)throw new Error("Media credential configuration unavailable");
+  return JSON.parse(decryptPayload(row.encrypted_payload,row.iv,row.auth_tag,key)) as Record<string,unknown>;
+}
+
 export const mediaUploadRoutes: FastifyPluginAsync<MediaUploadRoutesOptions> = async (app, options) => {
   const storage = options.storage === undefined ? createMediaStorageFromEnv() : options.storage;
 
@@ -79,6 +89,7 @@ export const mediaUploadRoutes: FastifyPluginAsync<MediaUploadRoutesOptions> = a
       preHandler: [
         app.authenticate,
         app.requireWorkspaceContext,
+        app.requirePermission("cockpit:access"),
       ],
     },
     async (request, reply) => {
@@ -151,25 +162,26 @@ export const mediaUploadRoutes: FastifyPluginAsync<MediaUploadRoutesOptions> = a
           });
         }
 
-        const wahaBaseUrl = (
-          process.env.WAHA_BASE_URL ||
-          "http://sos-sales-waha:3000"
-        ).replace(/\/$/, "");
-        const wahaApiKey = process.env.WAHA_API_KEY || "mct_sos_waha_master_2026";
-
-        const targetUrl = `${wahaBaseUrl}${cleanPath}`;
-        const forwardHeaders: Record<string, string> = {
-          "x-api-key": wahaApiKey,
-        };
+        if(!/^\/api\/files\/[a-zA-Z0-9_./-]+$/.test(cleanPath))return reply.code(400).send({detail:"Invalid media path"});
+        const owned=await withTenantTransaction(workspaceId,async client=>(await client.query<{id:string}>(`SELECT ch.id FROM public.messages m JOIN public.channel_instances ch ON ch.id=m.channel_instance_id AND ch.workspace_id=m.workspace_id
+          WHERE m.workspace_id=$1 AND ch.provider='waha' AND ch.is_active AND ($3::uuid IS NULL OR ch.id=$3)
+          AND (right(split_part(COALESCE(m.media_url,''),'?',1),length($2))=$2 OR right(split_part(COALESCE(m.metadata->>'mediaUrl',m.metadata->'media'->>'url',m.metadata->>'url',''),'?',1),length($2))=$2)
+          LIMIT 1`,[workspaceId,cleanPath,channelInstanceId??null])).rows[0]);
+        if(!owned)return reply.code(404).send({detail:"Mídia não encontrada nas mensagens deste canal e empresa."});
+        const credentials=await resolveMediaCredentials(workspaceId,owned.id,"waha");
+        const baseUrl=credentials?.base_url;const apiKey=credentials?.api_key??credentials?.apiKey;
+        if(typeof baseUrl!=="string"||typeof apiKey!=="string"||!apiKey)return reply.code(503).send({detail:"Credenciais e URL do canal precisam estar configuradas para consultar a mídia."});
+        const targetUrl=new URL(cleanPath,baseUrl).toString();
+        const forwardHeaders: Record<string,string>={"x-api-key":apiKey};
         const rangeHeader = request.headers["range"];
         if (typeof rangeHeader === "string") {
           forwardHeaders["range"] = rangeHeader;
         }
 
         try {
-          const wahaResp = await fetch(targetUrl, {
-            headers: forwardHeaders,
-          });
+          const wahaResp = await safeFetchWithSsrfGuard(targetUrl, {
+            headers: forwardHeaders,redirect:"error",
+          },{timeoutMs:10000,allowLocalTest:process.env.NODE_ENV==="test",allowedInternalHosts:getInternalAllowedHosts()});
 
           if (!wahaResp.ok) {
             request.log.warn({ targetUrl, status: wahaResp.status }, "WAHA media fetch failed");
@@ -190,7 +202,7 @@ export const mediaUploadRoutes: FastifyPluginAsync<MediaUploadRoutesOptions> = a
 
           reply.header("Content-Type", contentType);
           reply.header("Accept-Ranges", acceptRanges);
-          reply.header("Cache-Control", "public, max-age=86400, immutable");
+          reply.header("Cache-Control", "private, no-store");
           if (contentLength) reply.header("Content-Length", contentLength);
           if (contentRange) reply.header("Content-Range", contentRange);
 
@@ -221,19 +233,10 @@ export const mediaUploadRoutes: FastifyPluginAsync<MediaUploadRoutesOptions> = a
         });
       }
 
-      const pool = getDatabasePool();
-
       // Resolve channel instance
-      let targetChannelId = channelInstanceId;
-      if (!targetChannelId) {
-        const chRes = await pool.query<{ id: string }>(
-          `SELECT id FROM public.channel_instances 
-           WHERE workspace_id = $1 AND provider = 'meta_waba' AND is_active = true 
-           ORDER BY created_at DESC LIMIT 1;`,
-          [workspaceId]
-        );
-        targetChannelId = chRes.rows[0]?.id;
-      }
+      const owned=await withTenantTransaction(workspaceId,async client=>(await client.query<{id:string}>(`SELECT ch.id FROM public.messages m JOIN public.channel_instances ch ON ch.id=m.channel_instance_id AND ch.workspace_id=m.workspace_id
+        WHERE m.workspace_id=$1 AND m.metadata->>'mediaId'=$2 AND ch.provider='meta_waba' AND ch.is_active AND ($3::uuid IS NULL OR ch.id=$3) LIMIT 1`,[workspaceId,mediaId,channelInstanceId??null])).rows[0]);
+      const targetChannelId=owned?.id;
 
       if (!targetChannelId) {
         return reply.status(404).send({
@@ -246,22 +249,17 @@ export const mediaUploadRoutes: FastifyPluginAsync<MediaUploadRoutesOptions> = a
         });
       }
 
-      const resolver = new DatabaseSigningSecretResolver({
-        pool,
-        masterKeyHex: process.env.MCT_CREDENTIALS_MASTER_KEY || process.env.APP_MASTER_KEY,
-      });
-
       try {
-        const streamResult = await resolver.useWabaOutboundCredentials(
-          targetChannelId,
-          workspaceId,
-          async ({ accessToken }) => {
+        const credentials=await resolveMediaCredentials(workspaceId,targetChannelId,"meta_waba");
+        if(typeof credentials?.access_token!=="string")return reply.code(503).send({detail:"Credenciais Meta indisponíveis para este canal."});
+        const accessToken=credentials.access_token;
+        const streamResult=await (async()=>{
             // 1. Fetch media metadata from Meta Graph API
-            const metaResp = await fetch(
+            const metaResp = await safeFetchWithSsrfGuard(
               `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${encodeURIComponent(mediaId)}`,
               {
-                headers: { Authorization: `Bearer ${accessToken}` },
-              }
+                headers: { Authorization: `Bearer ${accessToken}` },redirect:"error",
+              },{timeoutMs:10000,allowedProtocols:["https:"]}
             );
 
             if (!metaResp.ok) {
@@ -275,10 +273,12 @@ export const mediaUploadRoutes: FastifyPluginAsync<MediaUploadRoutesOptions> = a
               return { status: 404, error: "Meta media download URL not found", contentType: "text/plain", buffer: null };
             }
 
+            const downloadUrl=new URL(metaData.url);
+            if(downloadUrl.protocol!=="https:" || !["lookaside.fbsbx.com","lookaside.facebook.com","graph.facebook.com"].includes(downloadUrl.hostname)) throw new Error("Unexpected media download host");
             // 2. Fetch media binary from Meta CDN
-            const binaryResp = await fetch(metaData.url, {
-              headers: { Authorization: `Bearer ${accessToken}` },
-            });
+            const binaryResp = await safeFetchWithSsrfGuard(metaData.url, {
+              headers: { Authorization: `Bearer ${accessToken}` },redirect:"error",
+            },{timeoutMs:10000,allowedProtocols:["https:"]});
 
             if (!binaryResp.ok) {
               return { status: binaryResp.status, error: "Failed to download media from Meta CDN", contentType: "text/plain", buffer: null };
@@ -291,8 +291,7 @@ export const mediaUploadRoutes: FastifyPluginAsync<MediaUploadRoutesOptions> = a
               contentType,
               buffer,
             };
-          }
-        );
+          })();
 
         if (!streamResult) {
           return reply.status(404).send({
@@ -318,7 +317,7 @@ export const mediaUploadRoutes: FastifyPluginAsync<MediaUploadRoutesOptions> = a
 
         return reply
           .header("Content-Type", streamResult.contentType)
-          .header("Cache-Control", "public, max-age=86400, immutable")
+          .header("Cache-Control", "private, no-store")
           .header("Content-Length", streamResult.buffer.length)
           .send(streamResult.buffer);
       } catch (err: unknown) {

@@ -1,3 +1,6 @@
+import {commercialHistoryRoutes} from './commercial-history.routes';
+import {hasWorkspacePermission} from "@sos-sales/contracts";
+import { stageSettingsRoutes } from "./stage-settings.routes";
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import {
@@ -28,7 +31,7 @@ const createJourneyBodySchema = z.object({
   contactId: z.string().uuid(),
   threadId: z.string().uuid().optional().nullable(),
   title: z.string().min(1).max(200).optional(),
-  stage: z.enum(["lead", "qualified", "proposal", "scheduled", "won", "lost"] as const).optional(),
+  stage: z.enum(["lead", "qualified", "proposal", "scheduled"] as const).optional(),
   attributionSource: z.enum([
     "ctwa_meta",
     "lead_ads_meta",
@@ -39,14 +42,16 @@ const createJourneyBodySchema = z.object({
   campaignId: z.string().optional().nullable(),
   adId: z.string().optional().nullable(),
   ctwaClid: z.string().optional().nullable(),
-  estimatedValueCents: z.number().int().nonnegative().optional(),
+  estimatedValueCents: z.number().int().nonnegative().max(2147483647).optional(),
 });
 
 const transitionJourneyBodySchema = z.object({
+  expectedUpdatedAt:z.string().datetime().optional(),
   stage: z.enum(["lead", "qualified", "proposal", "scheduled"] as const),
 });
 
 const recordOutcomeBodySchema = z.object({
+  expectedUpdatedAt:z.string().datetime().optional(),
   status: z.enum(["won", "lost"]),
   valueCents: z.number().int().nonnegative(),
   currency: z.string().min(3).max(3).default("BRL"),
@@ -55,6 +60,8 @@ const recordOutcomeBodySchema = z.object({
 });
 
 export const commercialRoutes: FastifyPluginAsync = async (app) => {
+  await app.register(stageSettingsRoutes);
+  await app.register(commercialHistoryRoutes);
   // 1. List commercial journeys (opportunities)
   app.get(
     "/v1/workspaces/:workspaceId/journeys",
@@ -79,15 +86,22 @@ export const commercialRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const { workspaceId } = parsedParams.data;
-      const query = request.query as { status?: any; limit?: string };
-      const limit = query.limit ? parseInt(query.limit, 10) : 50;
+      const parsedQuery=z.object({search:z.string().trim().max(200).optional(),profile:z.enum(['all','recurring','new']).default('all'),value:z.enum(['all','has_value','no_value']).default('all'),period:z.enum(['all','7d','30d']).default('all'),status:z.enum(['open','won','lost','archived']).optional(),limit:z.coerce.number().int().min(1).max(100).default(50),beforeUpdatedAt:z.string().datetime({offset:true}).optional(),beforeId:z.string().uuid().optional()}).strict().refine(q=>Boolean(q.beforeUpdatedAt)===Boolean(q.beforeId)).safeParse(request.query);
+      if(!parsedQuery.success)return reply.status(400).send({message:'Consulta de oportunidades inválida. Confira o limite e o cursor.'});
+      const query=parsedQuery.data;
+      if(query.profile!=='all'&&!hasWorkspacePermission(request.activeRole,'cockpit:access'))return reply.status(403).send({message:'Seu perfil não permite filtrar por informações do contato.'});
+      const rows=await withTenantTransaction(workspaceId,async client=>(await client.query<Awaited<ReturnType<typeof listCommercialJourneys>>[number]&{cursor_updated_at:string}>(`SELECT j.*,to_char(j.updated_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_updated_at
+        FROM public.commercial_journeys j WHERE j.workspace_id=$1 AND ($2::text IS NULL OR j.status=$2)
+        AND ($3::timestamptz IS NULL OR (j.updated_at,j.id)<($3::timestamptz,$4::uuid))
+        AND ($6::text IS NULL OR strpos(lower(COALESCE(j.title,'')),lower($6))>0 OR ($7::boolean AND EXISTS(SELECT 1 FROM public.contacts c WHERE c.workspace_id=j.workspace_id AND c.id=j.contact_id AND (strpos(lower(COALESCE(c.name,'')),lower($6))>0 OR strpos(COALESCE(c.phone_e164,''),$6)>0))))
+        AND ($8::text='all' OR ($8='has_value' AND j.estimated_value_cents IS NOT NULL AND j.estimated_value_cents>=0) OR ($8='no_value' AND (j.estimated_value_cents IS NULL OR j.estimated_value_cents<0)))
+        AND ($9::int IS NULL OR (j.created_at<=now() AND j.created_at>=now()-($9*interval '1 day')))
+        AND ($10::text='all' OR ($10='recurring')=EXISTS(SELECT 1 FROM public.contacts c WHERE c.workspace_id=j.workspace_id AND c.id=j.contact_id AND (c.metadata->'isRecurring'='true'::jsonb OR (jsonb_typeof(c.metadata->'totalOrders')='number' AND CASE WHEN jsonb_typeof(c.metadata->'totalOrders')='number' THEN (c.metadata->>'totalOrders')::numeric BETWEEN 1 AND 9007199254740991 AND trunc((c.metadata->>'totalOrders')::numeric)=(c.metadata->>'totalOrders')::numeric ELSE false END) OR (jsonb_typeof(c.metadata->'tags')='array' AND c.metadata->'tags' @> '["cliente_recorrente"]'::jsonb))))
+        ORDER BY j.updated_at DESC,j.id DESC LIMIT $5`,[workspaceId,query.status??null,query.beforeUpdatedAt??null,query.beforeId??null,query.limit+1,query.search||null,hasWorkspacePermission(request.activeRole,'cockpit:access'),query.value,query.period==='all'?null:query.period==='7d'?7:30,query.profile])).rows);
+      const journeys=rows.slice(0,query.limit),last=journeys.at(-1),hasMore=rows.length>query.limit;
+      const contactIds=Array.from(new Set(journeys.map(j=>j.contact_id)));
+      const contacts=hasWorkspacePermission(request.activeRole,'cockpit:access')&&contactIds.length?await withTenantTransaction(workspaceId,async client=>(await client.query(`SELECT id,workspace_id,phone_e164,name,opt_out,metadata,created_at,updated_at FROM public.contacts WHERE workspace_id=$1 AND id=ANY($2::uuid[])`,[workspaceId,contactIds])).rows):[];
 
-      const journeys = await withTenantTransaction(workspaceId, async (client) => {
-        return listCommercialJourneys(client, workspaceId, {
-          status: query.status,
-          limit,
-        });
-      });
 
       return reply.status(200).send({
         items: journeys.map((j) => ({
@@ -107,7 +121,9 @@ export const commercialRoutes: FastifyPluginAsync = async (app) => {
           createdAt: j.created_at.toISOString(),
           updatedAt: j.updated_at.toISOString(),
         })),
+        contacts:contacts.map(c=>({id:c.id,workspaceId:c.workspace_id,phoneE164:c.phone_e164,name:c.name,optOut:c.opt_out,metadata:c.metadata,createdAt:c.created_at.toISOString(),updatedAt:c.updated_at.toISOString()})),
         total: journeys.length,
+        pagination:{hasMore,nextCursor:hasMore&&last?{updatedAt:last.cursor_updated_at,id:last.id}:null},
       });
     }
   );
@@ -152,6 +168,7 @@ export const commercialRoutes: FastifyPluginAsync = async (app) => {
       const data = parseResult.data;
 
       const journey = await withTenantTransaction(workspaceId, async (client) => {
+        if(data.threadId){const linked=await client.query('SELECT id FROM public.commercial_threads WHERE workspace_id=$1 AND id=$2 AND contact_id=$3 FOR KEY SHARE',[workspaceId,data.threadId,data.contactId]);if(!linked.rows.length)return null;}
         return createCommercialJourney(client, workspaceId, {
           contactId: data.contactId,
           threadId: data.threadId,
@@ -165,6 +182,8 @@ export const commercialRoutes: FastifyPluginAsync = async (app) => {
           estimatedValueCents: data.estimatedValueCents,
         });
       });
+
+      if(!journey)return reply.status(409).send({message:'A conversa não corresponde ao contato nesta empresa. Atualize antes de criar a oportunidade.'});
 
       return reply.status(201).send({
         id: journey.id,
@@ -207,10 +226,15 @@ export const commercialRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const { workspaceId, journeyId } = parsedParams.data;
+      let stale=false;
       const journey = await withTenantTransaction(workspaceId, async (client) => {
+        if(parsedBody.data.expectedUpdatedAt){
+          const current=await client.query("SELECT updated_at FROM public.commercial_journeys WHERE workspace_id=$1 AND id=$2 FOR UPDATE",[workspaceId,journeyId]);
+          if(current.rows[0]&&current.rows[0].updated_at.toISOString()!==parsedBody.data.expectedUpdatedAt){stale=true;return null;}
+        }
         const result = await client.query(
           `UPDATE public.commercial_journeys
-           SET stage = $1, updated_at = clock_timestamp()
+           SET stage = $1, updated_at = GREATEST(clock_timestamp(),updated_at+interval '1 millisecond')
            WHERE workspace_id = $2 AND id = $3
              AND status NOT IN ('won', 'lost')
            RETURNING *;`,
@@ -219,6 +243,7 @@ export const commercialRoutes: FastifyPluginAsync = async (app) => {
         return result.rows[0];
       });
 
+      if(stale)return reply.status(409).send({type:"https://sos-sales.mct.br/errors/conflict",title:"Conflict",status:409,detail:"Esta oportunidade foi alterada por outra ação. Atualize a lista e confira os dados antes de salvar.",instance:request.url,correlationId:request.id});
       if (!journey) {
         return reply.status(404).send({
           type: "https://sos-sales.mct.br/errors/not-found",
@@ -286,6 +311,10 @@ export const commercialRoutes: FastifyPluginAsync = async (app) => {
 
       try {
         const result = await withTenantTransaction(workspaceId, async (client) => {
+          if(data.expectedUpdatedAt){
+            const current=await client.query("SELECT updated_at FROM public.commercial_journeys WHERE workspace_id=$1 AND id=$2 FOR UPDATE",[workspaceId,journeyId]);
+            if(current.rows[0]&&current.rows[0].updated_at.toISOString()!==data.expectedUpdatedAt)throw Object.assign(new Error("Esta oportunidade foi alterada por outra ação. Atualize a lista e confira os dados antes de registrar o desfecho."),{status:409});
+          }
           return recordCommercialOutcome(client, workspaceId, {
             journeyId,
             status: data.status,
@@ -405,6 +434,8 @@ export const commercialRoutes: FastifyPluginAsync = async (app) => {
             workspaceId: journey.workspace_id,
             contactId: journey.contact_id,
             threadId: journey.thread_id,
+            title:journey.title,
+            updatedAt:journey.updated_at.toISOString(),
             stage: journey.stage,
             status: journey.status,
             estimatedValueCents: journey.estimated_value_cents,
@@ -601,19 +632,29 @@ export const commercialRoutes: FastifyPluginAsync = async (app) => {
 
       const { workspaceId } = parsedParams.data;
 
+      const query=z.object({beforeId:z.string().uuid().optional()}).strict().safeParse(request.query);
+      if(!query.success)return reply.status(400).send({detail:"Cursor de conversões inválido."});
+      const beforeId=query.data.beforeId;
       const rows = await withTenantTransaction(workspaceId, async (client) => {
+        if(beforeId){
+          const cursor=await client.query(`SELECT id FROM public.conversion_events WHERE workspace_id=$1 AND id=$2`,[workspaceId,beforeId]);
+          if(!cursor.rowCount)return null;
+        }
         const res = await client.query(
           `SELECT * FROM public.conversion_events
            WHERE workspace_id = $1
-           ORDER BY created_at DESC
-           LIMIT 50;`,
-          [workspaceId]
+             AND ($2::uuid IS NULL OR (created_at,id)<(SELECT created_at,id FROM public.conversion_events WHERE workspace_id=$1 AND id=$2))
+           ORDER BY created_at DESC,id DESC
+           LIMIT 51;`,
+          [workspaceId,beforeId??null]
         );
         return res.rows;
       });
+      if(rows===null)return reply.status(400).send({detail:"A continuação não está disponível nesta empresa. Atualize a consulta."});
+      const hasMore=rows.length>50,page=rows.slice(0,50);
 
       return reply.status(200).send({
-        items: rows.map((r: any) => ({
+        items: page.map((r: any) => ({
           id: r.id,
           journeyId: r.journey_id,
           outcomeId: r.outcome_id,
@@ -625,7 +666,8 @@ export const commercialRoutes: FastifyPluginAsync = async (app) => {
           errorMessage: r.error_message,
           createdAt: r.created_at.toISOString(),
         })),
-        total: rows.length,
+        total: page.length,
+        pagination:{hasMore,nextCursor:hasMore?page[page.length-1].id:null},
       });
     }
   );

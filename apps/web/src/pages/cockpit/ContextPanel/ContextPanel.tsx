@@ -34,6 +34,7 @@ interface ContextPanelProps {
   onUpdateStage?: (newStage: string) => Promise<void> | void;
   customStages?: Record<string, string>;
   isUpdatingStage?: boolean;
+  stageError?:string|null;
   // Proposals (F3)
   proposals?: CommercialProposalSummary[];
   onCreateProposal?: () => void;
@@ -43,20 +44,24 @@ interface ContextPanelProps {
   ) => Promise<void>;
   onGenerateProposalPix?: (proposal: CommercialProposalSummary) => void;
   proposalError?: string | null;
+  proposalsLoading?:boolean;
+  proposalBusy?:boolean;
+  proposalReview?:boolean;
+  onRefreshProposals?:()=>void;
   // Pix
-  pixStatus?: "paid" | "pending" | "none";
-  pixPaidAt?: string | null;
+  workspaceId?:string;
+  token?:string;
+  pixRefreshKey?:number;
   onGeneratePix?: () => void;
   // Notes
   notes?: string;
-  onSaveNotes?: (notes: string) => void;
+  onSaveNotes?: (notes: string) => Promise<void> | void;
   isSavingNotes?: boolean;
   // Outcome
   onMarkWon?: () => void;
   onMarkLost?: () => void;
   currentOutcome?: "won" | "lost" | null;
   // Action History
-  actionHistory?: Array<{ id: string; actionType: string; actor?: string | null; createdAt: string }>;
   isMobile?: boolean;
 }
 
@@ -69,14 +74,13 @@ export const ContextPanel: FC<ContextPanelProps> = ({
   onEditLead,
   onUpdateStage,
   customStages,
-  isUpdatingStage,
+  isUpdatingStage,stageError,
   proposals = [],
   onCreateProposal,
   onUpdateProposalStatus,
   onGenerateProposalPix,
-  proposalError,
-  pixStatus,
-  pixPaidAt,
+  proposalError,proposalsLoading,proposalBusy,proposalReview,onRefreshProposals,
+  workspaceId,token,pixRefreshKey,
   onGeneratePix,
   notes,
   onSaveNotes,
@@ -84,7 +88,6 @@ export const ContextPanel: FC<ContextPanelProps> = ({
   onMarkWon,
   onMarkLost,
   currentOutcome,
-  actionHistory,
   isMobile = false,
 }) => {
   return (
@@ -94,7 +97,8 @@ export const ContextPanel: FC<ContextPanelProps> = ({
         width: isMobile ? "100%" : "var(--context-panel-w, 360px)",
         minWidth: isMobile ? "100%" : "var(--context-panel-w, 360px)",
         maxWidth: isMobile ? "100%" : "var(--context-panel-w, 360px)",
-        height: "100%",
+        height: isMobile ? "auto" : "100%",
+        minHeight: 0,
         backgroundColor: "var(--bg-surface-subtle)",
         ...panelFrame(isMobile),
         display: "flex",
@@ -102,8 +106,8 @@ export const ContextPanel: FC<ContextPanelProps> = ({
         boxSizing: "border-box",
       }}
     >
-      {/* Panel Header */}
-      <div
+      {/* The containing drawer already provides a title and close action. */}
+      {!isMobile && <div
         style={{
           height: "var(--topbar-h, 56px)",
           minHeight: "var(--topbar-h, 56px)",
@@ -135,14 +139,15 @@ export const ContextPanel: FC<ContextPanelProps> = ({
             onClick={onClose}
           />
         )}
-      </div>
+      </div>}
 
       {/* Scrollable Sections as Framed Cards */}
       <div
         style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: "var(--space-3, 12px) var(--space-4, 16px)",
+          flex: isMobile ? undefined : 1,
+          minHeight: 0,
+          overflowY: isMobile ? "visible" : "auto",
+          padding: isMobile ? 0 : "var(--space-3, 12px) var(--space-4, 16px)",
           display: "flex",
           flexDirection: "column",
           gap: "12px",
@@ -185,6 +190,7 @@ export const ContextPanel: FC<ContextPanelProps> = ({
             onUpdateStage={onUpdateStage}
             customStages={customStages}
             isUpdatingStage={isUpdatingStage}
+            error={stageError}
             onEditLead={onEditLead}
           />
         </section>
@@ -226,10 +232,14 @@ export const ContextPanel: FC<ContextPanelProps> = ({
           </div>
           <ProposalsSection
             proposals={proposals}
-            onCreateProposal={onCreateProposal || (() => {})}
-            onUpdateStatus={onUpdateProposalStatus || (async () => {})}
+            onCreateProposal={onCreateProposal}
+            onUpdateStatus={onUpdateProposalStatus}
             onGeneratePix={onGenerateProposalPix}
             error={proposalError}
+            isLoading={proposalsLoading}
+            busy={proposalBusy}
+            reviewRequired={proposalReview}
+            onRefresh={onRefreshProposals}
           />
         </section>
 
@@ -265,12 +275,14 @@ export const ContextPanel: FC<ContextPanelProps> = ({
                 color: "var(--text-secondary)",
               }}
             >
-              Cobrança Pix Oficial
+              Cobranças Pix
             </span>
           </div>
           <PixStatus
-            status={pixStatus}
-            paidAt={pixPaidAt}
+            workspaceId={workspaceId}
+            token={token}
+            threadId={thread.id}
+            refreshKey={pixRefreshKey}
             onGeneratePix={onGeneratePix}
           />
         </section>
@@ -307,12 +319,15 @@ export const ContextPanel: FC<ContextPanelProps> = ({
                 color: "var(--text-secondary)",
               }}
             >
-              Jornada & Histórico
+              Negociação & Registros
             </span>
           </div>
           <JourneyTimeline
-            currentStage={journeyStage}
-            actionHistory={actionHistory}
+            workspaceId={workspaceId}
+            threadId={thread.id}
+            token={token}
+            customStages={customStages}
+            refreshKey={`${pixRefreshKey}:${journeyStage}:${proposals.map(proposal=>`${proposal.id}:${proposal.stateVersion}`).join(",")}`}
           />
         </section>
 
@@ -352,6 +367,7 @@ export const ContextPanel: FC<ContextPanelProps> = ({
             </span>
           </div>
           <Notes
+            key={thread.id}
             initialNotes={notes}
             onSaveNotes={onSaveNotes}
             isSaving={isSavingNotes}

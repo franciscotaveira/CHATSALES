@@ -146,6 +146,17 @@ describe("Commercial Core & Meta CAPI Return Loop Integration", () => {
 
   let createdJourneyId: string;
 
+  it("rejects estimated values above the integer storage boundary without creating a journey", async () => {
+    const before=await ownerPool.query("SELECT count(*)::int AS count FROM commercial_journeys WHERE workspace_id=$1",[workspaceAId]);
+    for(const estimatedValueCents of [2147483648,Number.MAX_SAFE_INTEGER]){
+      const res=await app.inject({method:"POST",url:`/v1/workspaces/${workspaceAId}/journeys`,headers:{authorization:`Bearer ${tokenA}`,"x-workspace-id":workspaceAId},payload:{contactId:contactAId,stage:"lead",estimatedValueCents}});
+      expect(res.statusCode).toBe(400);
+      expect(res.json().details.estimatedValueCents).toBeDefined();
+    }
+    const after=await ownerPool.query("SELECT count(*)::int AS count FROM commercial_journeys WHERE workspace_id=$1",[workspaceAId]);
+    expect(after.rows[0].count).toBe(before.rows[0].count);
+  });
+
   it("CRM-01: should create a commercial journey (opportunity) with CTWA attribution under tenant RLS", async () => {
     const payload = {
       contactId: contactAId,
@@ -367,4 +378,14 @@ describe("Commercial Core & Meta CAPI Return Loop Integration", () => {
     });
     expect(crossAudit.statusCode).toBe(403);
   });
+  it("CRM-07: paginates tied timestamps without duplicates and rejects invalid or foreign cursors",async()=>{
+    await ownerPool.query(`INSERT INTO conversion_events(workspace_id,journey_id,event_name,created_at) SELECT $1,$2,'LeadQualified','2026-10-18T12:00:00.123456Z'::timestamptz FROM generate_series(1,51)`,[workspaceAId,createdJourneyId]);
+    const read=(suffix='')=>app.inject({method:'GET',url:`/v1/workspaces/${workspaceAId}/conversions${suffix}`,headers:{authorization:`Bearer ${tokenA}`,'x-workspace-id':workspaceAId}});
+    const first=await read();expect(first.statusCode).toBe(200);const a=first.json();expect(a.items).toHaveLength(50);expect(a.pagination.hasMore).toBe(true);
+    const second=await read(`?beforeId=${a.pagination.nextCursor}`);expect(second.statusCode).toBe(200);const b=second.json();expect(b.items.length).toBeGreaterThanOrEqual(2);expect(b.pagination.hasMore).toBe(false);
+    const ids=[...a.items,...b.items].map(item=>item.id);expect(new Set(ids).size).toBe(ids.length);
+    expect((await read('?beforeId=invalid')).statusCode).toBe(400);expect((await read(`?beforeId=${crypto.randomUUID()}`)).statusCode).toBe(400);
+    const cross=await app.inject({method:'GET',url:`/v1/workspaces/${workspaceBId}/conversions?beforeId=${a.pagination.nextCursor}`,headers:{authorization:`Bearer ${tokenB}`,'x-workspace-id':workspaceBId}});expect(cross.statusCode).toBe(400);
+  });
+
 });

@@ -1,12 +1,12 @@
+import crypto from "node:crypto";
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import {
   withTenantTransaction,
   createPixCharge,
+  type PixChargeRecord,
   listPixChargesByThread,
   confirmPixChargeManual,
-  createCommercialJourney,
-  recordCommercialOutcome,
 } from "@sos-sales/database";
 import { enqueuePixConfirmationMessage } from "../services/pix-notification";
 
@@ -21,14 +21,36 @@ const chargeParamsSchema = z.object({
 });
 
 const createChargeBodySchema = z.object({
+  requestKey: z.string().uuid().optional(),
   contactId: z.string().uuid(),
   productId: z.string().uuid().nullable().optional(),
   title: z.string().min(1).max(120),
-  amountCents: z.number().int().min(100), // Mínimo R$ 1,00
+  amountCents: z.number().int().min(100).max(2147483647), // Mínimo R$ 1,00
   expiresMinutes: z.number().int().min(5).max(1440).default(30),
 });
 
 export const pixRoutes: FastifyPluginAsync = async (app) => {
+  app.get('/v1/workspaces/:workspaceId/threads/:threadId/checkout-requests',{preHandler:[app.authenticate,app.requireWorkspaceContext,app.requirePermission('cockpit:access')]},async(request,reply)=>{
+    const params=workspaceParamsSchema.safeParse(request.params),query=z.object({before:z.string().max(150).optional()}).strict().safeParse(request.query);
+    if(!params.success||!query.success)return reply.code(400).send({detail:'Conversa ou página inválida.'});
+    let beforeTime:string|null=null,beforeId:string|null=null;
+    if(query.data.before){const parts=query.data.before.split('~');if(parts.length!==2||!z.string().datetime().safeParse(parts[0]).success||!z.string().uuid().safeParse(parts[1]).success)return reply.code(400).send({detail:'Página de resumos inválida.'});[beforeTime,beforeId]=parts as [string,string];}
+    const {workspaceId,threadId}=params.data;
+    return withTenantTransaction(workspaceId,async client=>{
+      if(!(await client.query('SELECT id FROM commercial_threads WHERE workspace_id=$1 AND id=$2',[workspaceId,threadId])).rows.length)return reply.code(404).send({detail:'Conversa não encontrada.'});
+      const rows=(await client.query(`SELECT r.*,p.stock_policy,c.created_at AS confirmed_at,
+        to_char(r.created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_time,
+        (r.status='pending' AND r.valid_until<=clock_timestamp()) AS has_expired,
+        EXISTS(SELECT 1 FROM messages m JOIN outbound_commands o ON o.workspace_id=m.workspace_id AND o.message_id=m.id WHERE m.workspace_id=r.workspace_id AND m.id=r.summary_message_id AND m.delivery_status IN ('sent','delivered','read') AND o.status='sent' AND o.external_message_id IS NOT NULL) AS summary_sent
+        FROM ai_checkout_requests r JOIN products p ON p.workspace_id=r.workspace_id AND p.id=r.product_id
+        LEFT JOIN messages c ON c.workspace_id=r.workspace_id AND c.id=r.confirmation_message_id
+        WHERE r.workspace_id=$1 AND r.thread_id=$2 AND ($3::timestamptz IS NULL OR (r.created_at,r.id)<($3::timestamptz,$4::uuid))
+        ORDER BY r.created_at DESC,r.id DESC LIMIT 21`,[workspaceId,threadId,beforeTime,beforeId])).rows;
+      const items=rows.slice(0,20),last=items.at(-1);
+      return {items:items.map(r=>({id:r.id,productTitle:r.product_title,retailerId:r.retailer_id,quantity:r.quantity,unitPriceCents:r.unit_price_cents,totalCents:r.total_cents,status:r.has_expired?'expired':r.status,validUntil:r.valid_until.toISOString(),createdAt:r.created_at.toISOString(),summarySent:r.summary_sent,confirmedAt:r.confirmed_at?.toISOString()??null,chargeId:r.charge_id,stockPolicy:r.stock_policy})),nextCursor:rows.length>20?`${last.cursor_time}~${last.id}`:null};
+    });
+  });
+
   // 1. Create a new Pix charge for a thread
   app.post(
     "/v1/workspaces/:workspaceId/threads/:threadId/pix-charges",
@@ -69,7 +91,13 @@ export const pixRoutes: FastifyPluginAsync = async (app) => {
 
       try {
         const charge = await withTenantTransaction(workspaceId, async (client) => {
-          return createPixCharge(client, {
+          const fingerprint=crypto.createHash("sha256").update(JSON.stringify({threadId,contactId:body.contactId,productId:body.productId??null,title:body.title,amountCents:body.amountCents,expiresMinutes:body.expiresMinutes})).digest("hex");
+          if(body.requestKey){
+            await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`${workspaceId}:${body.requestKey}`]);
+            const existing=(await client.query<PixChargeRecord&{request_fingerprint:string}>("SELECT p.*,r.request_fingerprint FROM pix_creation_requests r JOIN pix_charges p ON p.id=r.charge_id AND p.workspace_id=r.workspace_id WHERE r.workspace_id=$1 AND r.request_key=$2",[workspaceId,body.requestKey])).rows[0];
+            if(existing){if(existing.request_fingerprint!==fingerprint)throw new Error("PIX_REQUEST_CONFLICT");return existing;}
+          }
+          const created=await createPixCharge(client, {
             workspaceId,
             threadId,
             contactId: body.contactId,
@@ -78,6 +106,8 @@ export const pixRoutes: FastifyPluginAsync = async (app) => {
             amountCents: body.amountCents,
             expiresMinutes: body.expiresMinutes,
           });
+          if(body.requestKey)await client.query("INSERT INTO pix_creation_requests(workspace_id,request_key,request_fingerprint,charge_id) VALUES($1,$2,$3,$4)",[workspaceId,body.requestKey,fingerprint,created.id]);
+          return created;
         });
 
         const amountFormatted = new Intl.NumberFormat("pt-BR", {
@@ -92,6 +122,7 @@ export const pixRoutes: FastifyPluginAsync = async (app) => {
             threadId: charge.thread_id,
             contactId: charge.contact_id,
             productId: charge.product_id,
+            proposalId: charge.proposal_id ?? null,
             title: charge.title,
             amountCents: charge.amount_cents,
             amountFormatted,
@@ -107,6 +138,7 @@ export const pixRoutes: FastifyPluginAsync = async (app) => {
         });
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
+        if(message==="PIX_REQUEST_CONFLICT")return reply.code(409).send({detail:"Esta solicitação já foi usada para outra cobrança. Confira a lista antes de criar uma nova."});
         if (message.includes("PIX_KEY_NOT_CONFIGURED")) {
           return reply.status(422).send({
             type: "https://sos-sales.mct.br/errors/pix-key-not-configured",
@@ -158,6 +190,7 @@ export const pixRoutes: FastifyPluginAsync = async (app) => {
           threadId: c.thread_id,
           contactId: c.contact_id,
           productId: c.product_id,
+          proposalId: c.proposal_id ?? null,
           title: c.title,
           amountCents: c.amount_cents,
           amountFormatted: new Intl.NumberFormat("pt-BR", {
@@ -219,7 +252,7 @@ export const pixRoutes: FastifyPluginAsync = async (app) => {
       }
 
       try {
-        const { charge, alreadySettled } = await withTenantTransaction(
+        const { charge, alreadySettled, notification } = await withTenantTransaction(
           workspaceId,
           async (client) => {
             const res = await confirmPixChargeManual(client, {
@@ -229,43 +262,11 @@ export const pixRoutes: FastifyPluginAsync = async (app) => {
               verificationNotes: "Conferência manual efetuada pelo operador",
             });
 
-            // Automatically evolve commercial journey to 'won' and enqueue Meta CAPI PurchaseCompleted
-            if (!res.alreadySettled) {
-              let journeyId: string | undefined;
-              const jRes = await client.query<{ id: string }>(
-                `SELECT id FROM public.commercial_journeys
-                 WHERE workspace_id = $1 AND (thread_id = $2 OR contact_id = $3) AND status = 'open'
-                 ORDER BY created_at DESC LIMIT 1 FOR UPDATE;`,
-                [workspaceId, res.charge.thread_id, res.charge.contact_id]
-              );
-              if (jRes.rows[0]) {
-                journeyId = jRes.rows[0].id;
-              } else {
-                const created = await createCommercialJourney(client, workspaceId, {
-                  contactId: res.charge.contact_id,
-                  threadId: res.charge.thread_id,
-                  title: res.charge.title || "Venda Concluída (Pix)",
-                  stage: "proposal",
-                  attributionSource: "organic_whatsapp",
-                  estimatedValueCents: res.charge.amount_cents,
-                });
-                journeyId = created.id;
-              }
-
-              await recordCommercialOutcome(client, workspaceId, {
-                journeyId,
-                status: "won",
-                valueCents: res.charge.amount_cents,
-                currency: res.charge.currency || "BRL",
-                reason: "Liquidação Pix confirmada pelo operador",
-                registeredByUserId: actorUserId,
-              });
-
-              // Enqueue celebratory payment confirmation message to WhatsApp thread
-              await enqueuePixConfirmationMessage(client, workspaceId, res.charge);
-            }
-
-            return res;
+            // A financial receipt is not authority to choose or close a negotiation.
+            // Commercial outcomes remain an explicit operation on the correct journey.
+            const notification = res.alreadySettled ? "unchanged" :
+              (await enqueuePixConfirmationMessage(client, workspaceId, res.charge) ? "queued" : "not_queued");
+            return {...res,notification};
           }
         );
 
@@ -277,8 +278,11 @@ export const pixRoutes: FastifyPluginAsync = async (app) => {
         return reply.status(200).send({
           success: true,
           alreadySettled: !!alreadySettled,
+          notification,
+          commercialOutcome: "unchanged",
           charge: {
             id: charge.id,
+            proposalId: charge.proposal_id ?? null,
             status: charge.status,
             verificationMethod: charge.verification_method,
             verifiedByUserId: charge.verified_by_user_id,

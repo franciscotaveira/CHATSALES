@@ -26,7 +26,10 @@ function verifyCaktoSignature(
   bodySecret: string | undefined
 ): boolean {
   // Method 1: Check HMAC-SHA256 signature in X-Cakto-Signature header
-  if (signatureHeader && timestamp && rawBody) {
+  if (signatureHeader) {
+    if (!timestamp || !rawBody || !/^\d+$/.test(timestamp)) return false;
+    const receivedSeconds = Number(timestamp);
+    if (!Number.isSafeInteger(receivedSeconds) || Math.abs(Date.now() / 1000 - receivedSeconds) > 300) return false;
     const expectedPrefix = "v1=";
     const cleanSig = signatureHeader.startsWith(expectedPrefix)
       ? signatureHeader.slice(expectedPrefix.length)
@@ -47,6 +50,8 @@ function verifyCaktoSignature(
       }
     }
   }
+
+  if (signatureHeader) return false;
 
   // Method 2: Fallback to body.secret comparison (supported by Cakto V1 and V2)
   if (bodySecret && typeof bodySecret === "string") {
@@ -95,9 +100,12 @@ export const caktoWebhookRoutes: FastifyPluginAsync = async (app) => {
     const timestampHeader = request.headers["x-cakto-timestamp"] as string | undefined;
 
     // Resolve workspace secret for Cakto
-    const expectedSecret = process.env.CAKTO_WEBHOOK_SECRET || process.env.PIX_WEBHOOK_SECRET;
+    const expectedSecret = process.env.CAKTO_WEBHOOK_SECRET;
 
-    if (expectedSecret && expectedSecret.length >= 8) {
+    if (!expectedSecret || expectedSecret.length < 8) {
+      return reply.code(503).send({ detail: "Webhook Cakto não configurado neste ambiente" });
+    }
+    {
       const isValid = verifyCaktoSignature(
         expectedSecret,
         timestampHeader,
@@ -123,12 +131,39 @@ export const caktoWebhookRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const dataObj = body.data;
-    logger.info(
-      { workspaceId, eventName, correlationId: request.id },
-      "Received verified Cakto webhook event"
-    );
+    if (eventName === "purchase_approved") {
+      const order = dataObj as Record<string, unknown> | undefined;
+      const cents = Math.round(Number(order?.amount) * 100);
+      if (!order || !String(order.id ?? "").trim() || !Number.isSafeInteger(cents) || cents <= 0) {
+        return reply.code(400).send({ detail: "Compra exige identificador e valor positivo válidos" });
+      }
+    }
+    if (!["purchase_approved", "checkout_abandonment"].includes(eventName)) {
+      return reply.code(200).send({ received: true, ignored: true, event: eventName });
+    }
+    const eventData = dataObj as Record<string, unknown> | undefined;
+    const externalId = String(eventData?.id ?? eventData?.checkoutId ?? "").trim();
+    if (!externalId || externalId.length > 200) return reply.code(400).send({ detail: "Evento exige identificador estável da compra/checkout" });
+    const phone = eventName === "purchase_approved"
+      ? (eventData?.customer as Record<string, unknown> | undefined)?.phone
+      : eventData?.customerCellphone;
+    if (!normalizePhoneToE164(typeof phone === "string" ? phone : null)) return reply.code(400).send({ detail: "Telefone válido obrigatório para este evento" });
+    const payloadHash = crypto.createHash("sha256").update(JSON.stringify(dataObj)).digest("hex");
+    logger.info({ workspaceId, eventName, correlationId: request.id }, "Received verified Cakto webhook event");
 
-    await withTenantTransaction(workspaceId, async (client) => {
+    const outcome = await withTenantTransaction(workspaceId, async (client) => {
+      const receipt = await client.query(
+        `INSERT INTO public.integration_event_receipts(workspace_id,provider,event_key,payload_hash)
+         VALUES ($1,'cakto',$2,$3) ON CONFLICT DO NOTHING RETURNING event_key`,
+        [workspaceId, `${eventName}:${externalId}`, payloadHash]
+      );
+      if (!receipt.rows.length) {
+        const previous = await client.query<{ payload_hash: string }>(
+          "SELECT payload_hash FROM public.integration_event_receipts WHERE workspace_id=$1 AND provider='cakto' AND event_key=$2",
+          [workspaceId, `${eventName}:${externalId}`]
+        );
+        return previous.rows[0]?.payload_hash === payloadHash ? "duplicate" : "conflict";
+      }
       // 1. PURCHASE APPROVED: Advance CRM to 'won' and enqueue WhatsApp confirmation
       if (eventName === "purchase_approved" && dataObj && typeof dataObj === "object") {
         const orderData = dataObj as Record<string, unknown>;
@@ -145,9 +180,10 @@ export const caktoWebhookRoutes: FastifyPluginAsync = async (app) => {
         const phoneE164 = normalizePhoneToE164(rawPhone);
         if (!phoneE164) {
           logger.warn({ orderId, rawPhone }, "Cakto webhook: customer phone is invalid or missing");
-          return;
+          throw new Error("Invalid customer phone");
         }
 
+        if (!phoneE164) throw new Error("Invalid customer phone");
         // Upsert contact
         const contactRes = await client.query<{ id: string }>(
           `INSERT INTO public.contacts (workspace_id, phone_e164, name, metadata)
@@ -184,38 +220,18 @@ export const caktoWebhookRoutes: FastifyPluginAsync = async (app) => {
           threadId = threadRes.rows[0]?.id ?? null;
         }
 
-        // Evolve Commercial Journey to 'won'
-        const journeyRes = await client.query<{ id: string }>(
-          `SELECT id FROM public.commercial_journeys
-           WHERE workspace_id = $1 AND contact_id = $2
-           ORDER BY created_at DESC LIMIT 1;`,
-          [workspaceId, contactId]
-        );
-
-        if (journeyRes.rows.length > 0) {
-          await client.query(
-            `UPDATE public.commercial_journeys
-             SET stage = 'won', status = 'won',
-                 closed_at = COALESCE(closed_at, clock_timestamp()),
-                 updated_at = clock_timestamp()
-             WHERE id = $1 AND workspace_id = $2;`,
-            [journeyRes.rows[0]!.id, workspaceId]
-          );
-        } else {
-          await client.query(
-            `INSERT INTO public.commercial_journeys (
-               workspace_id, contact_id, thread_id, title, stage, status,
-               attribution_source, closed_at
-             ) VALUES (
-               $1, $2, $3, $4, 'won', 'won', 'cakto_checkout', clock_timestamp()
-             );`,
-            [workspaceId, contactId, threadId, `Venda Cakto: ${productName}`]
-          );
-        }
+        // Record external financial evidence without overwriting a negotiation selected by contact.
+        await client.query(`INSERT INTO public.external_payment_confirmations
+          (workspace_id,provider,external_order_id,contact_id,amount_cents,title)
+          VALUES ($1,'cakto',$2,$3,$4,$5) ON CONFLICT DO NOTHING`,
+          [workspaceId,orderId,contactId,amountCents,productName]);
+        await client.query(`INSERT INTO public.audit_events(workspace_id,actor_id,actor_type,action,resource_type,resource_id,metadata)
+          VALUES ($1,$1,'integration','external.payment.approved','cakto_order',$2,$3::jsonb)`,
+          [workspaceId,orderId,JSON.stringify({provider:"cakto",amountCents,contactId})]);
 
         // Enqueue automated WhatsApp confirmation if channel is active
         if (defaultChannel && threadId) {
-          const receiptText = `🎉 Pagamento Confirmado!\n\nOlá, *${customerName}*! Seu pagamento de *R$ ${amountBrl.toFixed(2)}* referente a *${productName}* foi compensado com sucesso.\n\nSeja muito bem-vindo(a)! Em instantes você receberá os detalhes de acesso e orientações.`;
+          const receiptText = `🎉 Pagamento Confirmado!\n\nOlá, *${customerName}*! Seu pagamento de *R$ ${amountBrl.toFixed(2)}* referente a *${productName}* foi compensado com sucesso.\n\nSeja muito bem-vindo(a)! A equipe dará continuidade ao seu pedido.`;
           const receiptFingerprint = crypto.createHash("sha256").update(receiptText).digest("hex");
           const receiptIdempotencyKey = `cakto-receipt-${orderId}`;
 
@@ -264,7 +280,7 @@ export const caktoWebhookRoutes: FastifyPluginAsync = async (app) => {
 
         logger.info(
           { workspaceId, orderId, phoneE164, amountBrl, amountCents, productName },
-          "Cakto sale approved: contact upserted, journey won and WhatsApp receipt queued"
+          "Cakto payment evidence recorded; commercial outcome remains independent"
         );
       }
 
@@ -292,7 +308,7 @@ export const caktoWebhookRoutes: FastifyPluginAsync = async (app) => {
             `INSERT INTO public.commercial_journeys (
                workspace_id, contact_id, title, stage, status, attribution_source
              ) VALUES (
-               $1, $2, 'Abandono de Checkout (Cakto)', 'qualified', 'open', 'cakto_abandonment'
+               $1, $2, 'Abandono de Checkout (Cakto)', 'lead', 'open', 'cakto_abandonment'
              )
              ON CONFLICT DO NOTHING;`,
             [workspaceId, contactId]
@@ -304,9 +320,12 @@ export const caktoWebhookRoutes: FastifyPluginAsync = async (app) => {
           );
         }
       }
+      return "processed";
     });
 
+    if (outcome === "conflict") return reply.code(409).send({ detail: "Identificador já recebido com conteúdo diferente; revisão necessária" });
     return reply.status(200).send({
+      duplicate: outcome === "duplicate",
       received: true,
       event: eventName,
       correlationId: request.id,

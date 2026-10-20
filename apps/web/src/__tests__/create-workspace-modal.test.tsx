@@ -121,12 +121,12 @@ describe("CreateWorkspaceModal Component", () => {
       name: "Studio Bella Vista",
       ownerName: "Camila Santos",
       ownerEmail: "camila@studiobella.com.br",
-      initialPassword: "MctSoberana2026!",
+      initialPassword: undefined,
     });
 
     // Check success title
     const updatedTitle = document.body.querySelector("h2");
-    expect(updatedTitle?.textContent).toContain("Empresa Provisionada com Sucesso!");
+    expect(updatedTitle?.textContent).toContain("Empresa criada");
 
     // Click switch button
     const switchBtn = Array.from(document.body.querySelectorAll("button")).find((btn) =>
@@ -143,4 +143,24 @@ describe("CreateWorkspaceModal Component", () => {
     mockCreateWorkspace.mockRestore();
     root.unmount();
   });
+  it("preserves the exact password and keeps the created result when switching fails", async () => {
+    const create = vi.spyOn(apiClient, "createWorkspace").mockResolvedValueOnce({
+      success:true,workspace:{id:"synthetic-ws",name:"SIMULADO",slug:"simulado"},
+      owner:{id:"synthetic-owner",name:"Responsável LAB",email:"owner@example.test",tempPassword:" senha "},welcomeMessage:"SIMULADO"
+    });
+    const root=createRoot(container);const close=vi.fn();
+    await act(async()=>{root.render(createElement(CreateWorkspaceModal,{isOpen:true,onClose:close,onCreated:async()=>{throw new Error("Falha de entrada");}}));});
+    const inputs=Array.from(document.body.querySelectorAll("input"));
+    await act(async()=>{["SIMULADO","Responsável LAB","owner@example.test"," senha "].forEach((value,i)=>setNativeValue(inputs[i]!,value));});
+    const button=(text:string)=>Array.from(document.body.querySelectorAll("button")).find(b=>b.textContent?.includes(text))!;
+    await act(async()=>{button("Criar Empresa").click();button("Criar Empresa").click();});
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(create.mock.calls[0]?.[0].initialPassword).toBe(" senha ");
+    await act(async()=>{button("Entrar nesta Empresa").click();});
+    expect(close).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain("A empresa já foi criada");
+    expect(button("Entrar nesta Empresa").disabled).toBe(false);
+    await act(async()=>root.unmount());container.remove();create.mockRestore();
+  });
+
 });

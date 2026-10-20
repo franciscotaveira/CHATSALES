@@ -266,7 +266,7 @@ export const MessageSchema = z.object({
   body: z.string().nullable().optional(),
   mediaUrl: z.string().url().nullable().optional(),
   providerMessageId: z.string().nullable().optional(),
-  deliveryStatus: MessageDeliveryStatusEnum.default("queued"),
+  deliveryStatus: MessageDeliveryStatusEnum.or(z.literal("unknown")).default("queued"),
   statusRank: z.number().int().default(0),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),

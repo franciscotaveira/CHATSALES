@@ -20,6 +20,8 @@ import {
 } from "@sos-sales/database";
 import { InboxProcessor } from "./processors/inbox-processor";
 import { OutboxDispatcher } from "./processors/outbox-dispatcher";
+import { OperationalWebhookDispatcher } from "./processors/operational-webhook-dispatcher";
+export * from "./processors/operational-webhook-dispatcher";
 import { CapiDispatcher } from "./processors/capi-dispatcher";
 
 export * from "./processors/inbox-processor";
@@ -84,6 +86,7 @@ export class WorkerRuntime {
 
   private inboxProcessor: InboxProcessor | null = null;
   private outboxDispatcher: OutboxDispatcher | null = null;
+  private operationalWebhookDispatcher: OperationalWebhookDispatcher | null = null;
   private capiDispatcher: CapiDispatcher | null = null;
   private registry: ChannelAdapterRegistry | null = null;
   private secretResolver: DatabaseSigningSecretResolver | null = null;
@@ -177,6 +180,7 @@ export class WorkerRuntime {
       masterKeyHex: this.masterKeyHex,
     });
     this.capiDispatcher = new CapiDispatcher();
+    this.operationalWebhookDispatcher = process.env.OUTBOUND_WEBHOOK_DISPATCH_ENABLED === "true" ? new OperationalWebhookDispatcher() : null;
 
     if (!this.registry) {
       this.registry = new ChannelAdapterRegistry();
@@ -437,6 +441,12 @@ export class WorkerRuntime {
       }
     }
 
+    if(this.operationalWebhookDispatcher && this.pool && !signal?.aborted){
+      try {
+        const jobs=await this.operationalWebhookDispatcher.claimBatch(this.pool,this.workerId,this.batchSize);
+        for(const job of jobs){if(signal?.aborted) break;await this.operationalWebhookDispatcher.dispatchItem(this.pool,job);}
+      } catch {logger.error({workerId:this.workerId},"Operational webhook processing failed; jobs remain available for review");}
+    }
     return { inboxProcessed, outboxDispatched, outboxReconciled, capiDispatched };
   }
 

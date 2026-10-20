@@ -34,9 +34,9 @@ export interface UseSessionReturn {
   isLoadingMe: boolean;
   isLoadingWorkspace: boolean;
   error: SessionError | null;
-  selectWorkspace: (workspaceId: string) => Promise<void>;
+  selectWorkspace: (workspaceId: string, options?:{preserveView?:boolean;throwOnError?:boolean}) => Promise<void>;
   refreshSession: () => Promise<void>;
-  refreshWorkspace: () => Promise<void>;
+  refreshWorkspace: (options?:{preserveView?:boolean}) => Promise<void>;
   logout: () => void;
   clearError: () => void;
 }
@@ -58,6 +58,7 @@ export function useSession(token: string | null): UseSessionReturn {
   const workspaceAbortControllerRef = useRef<AbortController | null>(null);
   const workspaceRequestIdRef = useRef<number>(0);
   const activeWorkspaceIdRef = useRef<string | null>(null);
+  const detailsRef=useRef(activeWorkspaceDetails);detailsRef.current=activeWorkspaceDetails;
 
   // Keep ref updated synchronously
   useEffect(() => {
@@ -87,7 +88,7 @@ export function useSession(token: string | null): UseSessionReturn {
     setActiveWorkspaceId(null);
     activeWorkspaceIdRef.current = null;
     if (typeof window !== "undefined") {
-      localStorage.removeItem("sos_sales_active_workspace_id");
+      try { localStorage.removeItem("sos_sales_active_workspace_id"); } catch { /* Continue wiping in-memory identity even when browser storage is blocked. */ }
     }
     setActiveWorkspaceDetails(null);
     setError(null);
@@ -104,15 +105,14 @@ export function useSession(token: string | null): UseSessionReturn {
    *    (sessionGen === currentSessionGen && reqId === workspaceRequestId && targetId === activeWorkspaceIdRef)
    */
   const selectWorkspace = useCallback(
-    async (targetWorkspaceId: string) => {
+    async (targetWorkspaceId: string,options?:{preserveView?:boolean;throwOnError?:boolean}) => {
       if (!token) return;
 
       const currentSessionGen = sessionGenerationRef.current;
 
-      // 1. Synchronous state clear
-      setActiveWorkspaceDetails(null);
-      setIsLoadingWorkspace(true);
-      setError(null);
+      // Preserve only a confirmed view of the same workspace. Switching still clears synchronously.
+      const preserveView=options?.preserveView===true&&targetWorkspaceId===activeWorkspaceIdRef.current&&detailsRef.current?.workspace.id===targetWorkspaceId;
+      if(!preserveView){detailsRef.current=null;setActiveWorkspaceDetails(null);setIsLoadingWorkspace(true);setError(null);}
       setActiveWorkspaceId(targetWorkspaceId);
       activeWorkspaceIdRef.current = targetWorkspaceId;
       if (typeof window !== "undefined") {
@@ -144,7 +144,8 @@ export function useSession(token: string | null): UseSessionReturn {
           return; // Stale response discarded
         }
 
-        setActiveWorkspaceDetails(details);
+        detailsRef.current=details;setActiveWorkspaceDetails(details);
+        if(typeof details.userRole==='string')setWorkspaces(items=>items.map(workspace=>workspace.id===targetWorkspaceId?{...workspace,role:details.userRole}:workspace));
       } catch (err: unknown) {
         if (err instanceof Error && err.name === "AbortError") {
           return; // Request was aborted, ignore silently
@@ -158,6 +159,8 @@ export function useSession(token: string | null): UseSessionReturn {
           return; // Stale error discarded
         }
 
+        if(preserveView&&!(err instanceof ApiError&&[401,403,404].includes(err.status)))throw err;
+        if(preserveView){detailsRef.current=null;setActiveWorkspaceDetails(null);}
         if (err instanceof ForbiddenError) {
           setError({
             status: 403,
@@ -195,6 +198,7 @@ export function useSession(token: string | null): UseSessionReturn {
             type: "generic",
           });
         }
+        if(options?.throwOnError)throw err;
       } finally {
         if (
           currentSessionGen === sessionGenerationRef.current &&
@@ -352,9 +356,9 @@ export function useSession(token: string | null): UseSessionReturn {
     };
   }, [token]);
 
-  const refreshWorkspace = useCallback(async () => {
+  const refreshWorkspace = useCallback(async (options?:{preserveView?:boolean}) => {
     if (activeWorkspaceId) {
-      await selectWorkspace(activeWorkspaceId);
+      await selectWorkspace(activeWorkspaceId,options);
     }
   }, [activeWorkspaceId, selectWorkspace]);
 

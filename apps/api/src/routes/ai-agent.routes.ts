@@ -1,78 +1,17 @@
+import {withTenantTransaction} from "@sos-sales/database";
+import {listAiRevisionTests,runAiRevisionTest,reviewAiRevisionTest} from '../services/ai-revision-tests';
+import {simulateAiText} from '../services/ai-agent-simulation';
+import {getEditableAiConfig,saveAiConfigDraft,prepareGuidedAiDraft,getAiSimulationBase,suspendActiveAi,AiDraftError} from "../services/ai-config-drafts";
+import {updateAiAgentBodySchema} from "../services/ai-config-schema";
+import { guidedAgentRoutes } from "./guided-agent.routes";
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
-import { withTenantTransaction } from "@sos-sales/database";
-import {
-  SovereignLlmClient,
-  buildGroundedSystemPrompt,
-  parseAiResponse,
-  DEFAULT_MODELS,
-  NICHE_PLAYBOOKS,
-  type GroundedAiConfig,
-  type GroundedProduct,
-  type GroundedLeadContext,
-  type AiProvider,
-} from "@sos-sales/application";
+import {NICHE_PLAYBOOKS} from "@sos-sales/application";
 
 const workspaceParamsSchema = z.object({
   workspaceId: z.string().uuid(),
 });
 
-const updateAiAgentBodySchema = z.object({
-  enabled: z.boolean().optional(),
-  name: z.string().min(1).max(100).optional(),
-  systemPrompt: z.string().min(1).max(5000).optional(),
-  personality: z
-    .enum(["cordial_comercial", "direto_objetivo", "especialista_consultivo", "empatico_acolhedor"])
-    .optional(),
-  provider: z.enum(["nvidia", "openrouter"]).optional(),
-  model: z.string().min(1).max(100).optional(),
-  apiKey: z.string().max(300).optional(),
-  skills: z
-    .object({
-      qualify_lead: z.boolean().optional(),
-      catalog_offers: z.boolean().optional(),
-      pix_charges: z.boolean().optional(),
-      appointments: z.boolean().optional(),
-      capi_tracking: z.boolean().optional(),
-    })
-    .passthrough()
-    .optional(),
-  businessRules: z
-    .object({
-      companyName: z.string().max(200).optional(),
-      agentRole: z.string().max(200).optional(),
-      valueProposition: z.string().max(1000).optional(),
-      niche: z.string().max(100).optional(),
-      openingHours: z.string().max(1000).optional(),
-      address: z.string().max(1000).optional(),
-      cancellationPolicy: z.string().max(1000).optional(),
-      paymentMethods: z.string().max(1000).optional(),
-      generalRules: z.string().max(2000).optional(),
-      objections: z
-        .object({
-          priceDiscount: z.string().max(2000).optional(),
-          thinkAboutIt: z.string().max(2000).optional(),
-          guaranteeTrust: z.string().max(2000).optional(),
-          deliveryTimeline: z.string().max(2000).optional(),
-        })
-        .optional(),
-      ctaRule: z.boolean().optional(),
-      emojiDensity: z.enum(["sober", "moderate", "expressive"]).optional(),
-    })
-    .passthrough()
-    .optional(),
-  faq: z
-    .array(
-      z.object({
-        id: z.string().optional(),
-        question: z.string().min(1).max(500),
-        answer: z.string().min(1).max(2000),
-      })
-    )
-    .optional(),
-  strictMode: z.boolean().optional(),
-  temperature: z.number().min(0).max(1).optional(),
-});
 
 const simulateBodySchema = z.object({
   message: z.string().min(1).max(2000),
@@ -80,11 +19,12 @@ const simulateBodySchema = z.object({
     .array(
       z.object({
         role: z.enum(["user", "assistant"]),
-        content: z.string().max(2000),
+        content: z.string().max(8000),
       })
-    )
+    ).max(16).refine(items=>items.reduce((sum,item)=>sum+item.content.length,0)<=32000,"Histórico excede o limite de 32000 caracteres.")
     .optional(),
-  draftConfig: updateAiAgentBodySchema.optional(),
+  draftRevision: z.number().int().min(0).optional(),
+  draftConfig: updateAiAgentBodySchema.omit({expectedRevision:true}).optional(),
   mockLead: z
     .object({
       name: z.string().max(100).optional(),
@@ -96,11 +36,36 @@ const simulateBodySchema = z.object({
 });
 
 export const aiAgentRoutes: FastifyPluginAsync = async (app) => {
+  await app.register(guidedAgentRoutes);
+  app.get('/v1/workspaces/:workspaceId/ai-agent/availability',{preHandler:[app.authenticate,app.requireWorkspaceContext,app.requirePermission('cockpit:handoff')]},async(request,reply)=>{
+    const params=workspaceParamsSchema.safeParse(request.params);if(!params.success)return reply.code(400).send({detail:'Empresa inválida.'});
+    return withTenantTransaction(params.data.workspaceId,async client=>{
+      const row=(await client.query<{ai_receptionist_enabled:boolean}>('SELECT ai_receptionist_enabled FROM public.workspaces WHERE id=$1',[params.data.workspaceId])).rows[0];
+      if(!row)return reply.code(404).send({detail:'Empresa não encontrada.'});
+      return {success:true,activeEnabled:row.ai_receptionist_enabled===true};
+    });
+  });
+  const guarded={preHandler:[app.authenticate,app.requireWorkspaceContext,app.requirePermission("workspace:manage")]};
+  app.get('/v1/workspaces/:workspaceId/ai-agent/tests',guarded,async(request,reply)=>{
+    const params=workspaceParamsSchema.safeParse(request.params),query=z.object({revision:z.coerce.number().int().positive()}).strict().safeParse(request.query);
+    if(!params.success||!query.success)return reply.code(400).send({detail:'Informe uma revisão salva válida.'});
+    try{return await listAiRevisionTests(params.data.workspaceId,query.data.revision);}catch(error){if(error instanceof AiDraftError)return reply.code(error.status).send({detail:error.message});throw error;}
+  });
+  app.post('/v1/workspaces/:workspaceId/ai-agent/tests',guarded,async(request,reply)=>{
+    const params=workspaceParamsSchema.safeParse(request.params),body=z.object({expectedRevision:z.number().int().positive(),scenarioId:z.string().min(1).max(100),requestKey:z.string().uuid()}).strict().safeParse(request.body);
+    if(!params.success||!body.success)return reply.code(400).send({detail:'Revisão, cenário ou identificador de teste inválido.'});
+    try{const result=await runAiRevisionTest(params.data.workspaceId,request.user!.id,body.data);return reply.code(result.status==='running'?202:200).send(result);}catch(error){if(error instanceof AiDraftError)return reply.code(error.status).send({detail:error.message});throw error;}
+  });
+  app.post('/v1/workspaces/:workspaceId/ai-agent/tests/:runId/review',guarded,async(request,reply)=>{
+    const params=workspaceParamsSchema.extend({runId:z.string().uuid()}).safeParse(request.params),body=z.object({expectedRevision:z.number().int().positive(),expectedReviewRevision:z.number().int().min(0),verdict:z.enum(['adequate','needs_changes']),note:z.string().trim().min(10).max(2000)}).strict().safeParse(request.body);
+    if(!params.success||!body.success)return reply.code(400).send({detail:'Informe a avaliação e uma observação com 10 a 2000 caracteres.'});
+    try{return await reviewAiRevisionTest(params.data.workspaceId,request.user!.id,params.data.runId,body.data);}catch(error){if(error instanceof AiDraftError)return reply.code(error.status).send({detail:error.message});throw error;}
+  });
   // GET /v1/workspaces/:workspaceId/ai-agent
   app.get(
     "/v1/workspaces/:workspaceId/ai-agent",
     {
-      preHandler: [app.authenticate, app.requireWorkspaceContext],
+      preHandler: [app.authenticate, app.requireWorkspaceContext, app.requirePermission("workspace:manage")],
     },
     async (request, reply) => {
       const parsedParams = workspaceParamsSchema.safeParse(request.params);
@@ -115,93 +80,9 @@ export const aiAgentRoutes: FastifyPluginAsync = async (app) => {
         });
       }
 
-      const { workspaceId } = parsedParams.data;
+      try{return await getEditableAiConfig(parsedParams.data.workspaceId);}
+      catch(error){if(error instanceof AiDraftError)return reply.code(error.status).send({detail:error.message});throw error;}
 
-      const config = await withTenantTransaction(workspaceId, async (client) => {
-        const res = await client.query(
-          `SELECT
-             name as workspace_name,
-             ai_receptionist_enabled,
-             ai_agent_name,
-             ai_system_prompt,
-             ai_personality,
-             ai_skills,
-             ai_business_rules,
-             ai_faq,
-             ai_strict_mode,
-             ai_temperature,
-             ai_provider,
-             ai_model,
-             ai_api_key
-           FROM public.workspaces
-           WHERE id = $1`,
-          [workspaceId]
-        );
-        return res.rows[0];
-      });
-
-      if (!config) {
-        return reply.status(404).send({
-          type: "https://sos-sales.mct.br/errors/not-found",
-          title: "Not Found",
-          status: 404,
-          detail: "Workspace not found",
-          instance: request.url,
-          correlationId: request.id,
-        });
-      }
-
-      const rawRules = (config.ai_business_rules || {}) as Record<string, any>;
-      const rawObjections = (rawRules.objections || {}) as Record<string, string | undefined>;
-      const normalizedRules = {
-        companyName: rawRules.companyName || config.workspace_name || "",
-        agentRole: rawRules.agentRole || "",
-        valueProposition: rawRules.valueProposition || "",
-        niche: rawRules.niche || "general",
-        openingHours: rawRules.openingHours || rawRules.opening_hours || "",
-        address: rawRules.address || "",
-        cancellationPolicy: rawRules.cancellationPolicy || rawRules.cancellation_policy || "",
-        paymentMethods: rawRules.paymentMethods || rawRules.payment_methods || "",
-        generalRules: rawRules.generalRules || rawRules.general_rules || "",
-        objections: {
-          priceDiscount: rawObjections.priceDiscount || "",
-          thinkAboutIt: rawObjections.thinkAboutIt || "",
-          guaranteeTrust: rawObjections.guaranteeTrust || "",
-          deliveryTimeline: rawObjections.deliveryTimeline || "",
-        },
-        ctaRule: rawRules.ctaRule !== false,
-        emojiDensity: rawRules.emojiDensity || "moderate",
-      };
-
-      return reply.status(200).send({
-        success: true,
-        config: {
-          enabled: config.ai_receptionist_enabled ?? true,
-          name: config.ai_agent_name || "Assistente Virtual",
-          systemPrompt:
-            config.ai_system_prompt ||
-            "Você é a assistente de vendas da empresa. Atenda os clientes com atenção e simpatia.",
-          personality: config.ai_personality || "cordial_comercial",
-          provider: (config.ai_provider as AiProvider) || "nvidia",
-          model:
-            config.ai_model ||
-            (config.ai_provider === "openrouter"
-              ? DEFAULT_MODELS.openrouter
-              : process.env.NVIDIA_TEMPLATE_MODEL || process.env.NVIDIA_MODEL || DEFAULT_MODELS.nvidia),
-          hasCustomApiKey: Boolean(config.ai_api_key),
-          skills: config.ai_skills || {
-            qualify_lead: true,
-            catalog_offers: true,
-            pix_charges: true,
-            appointments: true,
-            capi_tracking: true,
-          },
-          businessRules: normalizedRules,
-          faq: Array.isArray(config.ai_faq) ? config.ai_faq : [],
-          strictMode: config.ai_strict_mode ?? true,
-          temperature: Number(config.ai_temperature ?? 0.1),
-        },
-      });
     }
   );
 
@@ -209,7 +90,7 @@ export const aiAgentRoutes: FastifyPluginAsync = async (app) => {
   app.put(
     "/v1/workspaces/:workspaceId/ai-agent",
     {
-      preHandler: [app.authenticate, app.requireWorkspaceContext],
+      preHandler: [app.authenticate, app.requireWorkspaceContext, app.requirePermission("workspace:manage")],
     },
     async (request, reply) => {
       const parsedParams = workspaceParamsSchema.safeParse(request.params);
@@ -236,132 +117,27 @@ export const aiAgentRoutes: FastifyPluginAsync = async (app) => {
         });
       }
 
-      const { workspaceId } = parsedParams.data;
-      const data = parsedBody.data;
+      try{return await saveAiConfigDraft(parsedParams.data.workspaceId,request.user!.id,parsedBody.data);}
+      catch(error){if(error instanceof AiDraftError)return reply.code(error.status).send({detail:error.message});throw error;}
 
-      const updated = await withTenantTransaction(workspaceId, async (client) => {
-        const res = await client.query(
-          `UPDATE public.workspaces
-           SET
-             ai_receptionist_enabled = COALESCE($2, ai_receptionist_enabled),
-             ai_agent_name = COALESCE($3, ai_agent_name),
-             ai_system_prompt = COALESCE($4, ai_system_prompt),
-             ai_personality = COALESCE($5, ai_personality),
-             ai_skills = CASE WHEN $6::jsonb IS NOT NULL THEN $6::jsonb ELSE ai_skills END,
-             ai_business_rules = CASE WHEN $7::jsonb IS NOT NULL THEN $7::jsonb ELSE ai_business_rules END,
-             ai_faq = CASE WHEN $8::jsonb IS NOT NULL THEN $8::jsonb ELSE ai_faq END,
-             ai_strict_mode = COALESCE($9, ai_strict_mode),
-             ai_temperature = COALESCE($10, ai_temperature),
-             ai_provider = COALESCE($11, ai_provider),
-             ai_model = COALESCE($12, ai_model),
-             ai_api_key = CASE WHEN $13::text IS NOT NULL THEN $13::text ELSE ai_api_key END,
-             updated_at = clock_timestamp()
-           WHERE id = $1
-           RETURNING
-             ai_receptionist_enabled,
-             ai_agent_name,
-             ai_system_prompt,
-             ai_personality,
-             ai_skills,
-             ai_business_rules,
-             ai_faq,
-             ai_strict_mode,
-             ai_temperature,
-             ai_provider,
-             ai_model,
-             ai_api_key;`,
-          [
-            workspaceId,
-            data.enabled !== undefined ? data.enabled : null,
-            data.name?.trim() || null,
-            data.systemPrompt?.trim() || null,
-            data.personality || null,
-            data.skills ? JSON.stringify(data.skills) : null,
-            data.businessRules
-              ? JSON.stringify({
-                  ...data.businessRules,
-                  companyName: data.businessRules.companyName?.trim() || "",
-                  agentRole: data.businessRules.agentRole?.trim() || "",
-                  valueProposition: data.businessRules.valueProposition?.trim() || "",
-                  niche: data.businessRules.niche || "general",
-                  openingHours: data.businessRules.openingHours?.trim() || "",
-                  address: data.businessRules.address?.trim() || "",
-                  cancellationPolicy: data.businessRules.cancellationPolicy?.trim() || "",
-                  paymentMethods: data.businessRules.paymentMethods?.trim() || "",
-                  generalRules: data.businessRules.generalRules?.trim() || "",
-                  objections: data.businessRules.objections || {},
-                  ctaRule: data.businessRules.ctaRule !== false,
-                  emojiDensity: data.businessRules.emojiDensity || "moderate",
-                  // Backwards-compatibility
-                  opening_hours: data.businessRules.openingHours?.trim() || "",
-                  cancellation_policy: data.businessRules.cancellationPolicy?.trim() || "",
-                  payment_methods: data.businessRules.paymentMethods?.trim() || "",
-                  general_rules: data.businessRules.generalRules?.trim() || "",
-                })
-              : null,
-            data.faq ? JSON.stringify(data.faq) : null,
-            data.strictMode !== undefined ? data.strictMode : null,
-            data.temperature !== undefined ? data.temperature : null,
-            data.provider || null,
-            data.model || null,
-            data.apiKey !== undefined ? data.apiKey.trim() || null : null,
-          ]
-        );
-        return res.rows[0];
-      });
-
-      if (!updated) {
-        return reply.status(404).send({
-          type: "https://sos-sales.mct.br/errors/not-found",
-          title: "Not Found",
-          status: 404,
-          detail: "Workspace not found",
-          instance: request.url,
-          correlationId: request.id,
-        });
-      }
-
-      const rawUpdatedRules = (updated.ai_business_rules || {}) as Record<string, any>;
-      const rawUpdatedObjections = (rawUpdatedRules.objections || {}) as Record<string, string | undefined>;
-      const normalizedUpdatedRules = {
-        companyName: rawUpdatedRules.companyName || "",
-        agentRole: rawUpdatedRules.agentRole || "",
-        valueProposition: rawUpdatedRules.valueProposition || "",
-        niche: rawUpdatedRules.niche || "general",
-        openingHours: rawUpdatedRules.openingHours || rawUpdatedRules.opening_hours || "",
-        address: rawUpdatedRules.address || "",
-        cancellationPolicy: rawUpdatedRules.cancellationPolicy || rawUpdatedRules.cancellation_policy || "",
-        paymentMethods: rawUpdatedRules.paymentMethods || rawUpdatedRules.payment_methods || "",
-        generalRules: rawUpdatedRules.generalRules || rawUpdatedRules.general_rules || "",
-        objections: {
-          priceDiscount: rawUpdatedObjections.priceDiscount || "",
-          thinkAboutIt: rawUpdatedObjections.thinkAboutIt || "",
-          guaranteeTrust: rawUpdatedObjections.guaranteeTrust || "",
-          deliveryTimeline: rawUpdatedObjections.deliveryTimeline || "",
-        },
-        ctaRule: rawUpdatedRules.ctaRule !== false,
-        emojiDensity: rawUpdatedRules.emojiDensity || "moderate",
-      };
-
-      return reply.status(200).send({
-        success: true,
-        config: {
-          enabled: updated.ai_receptionist_enabled,
-          name: updated.ai_agent_name,
-          systemPrompt: updated.ai_system_prompt,
-          personality: updated.ai_personality,
-          provider: updated.ai_provider,
-          model: updated.ai_model,
-          hasCustomApiKey: Boolean(updated.ai_api_key),
-          skills: updated.ai_skills,
-          businessRules: normalizedUpdatedRules,
-          faq: updated.ai_faq,
-          strictMode: updated.ai_strict_mode,
-          temperature: Number(updated.ai_temperature),
-        },
-      });
     }
   );
+
+  app.post("/v1/workspaces/:workspaceId/ai-agent/suspend",{preHandler:[app.authenticate,app.requireWorkspaceContext,app.requirePermission("workspace:manage")]},async(request,reply)=>{
+    const params=workspaceParamsSchema.safeParse(request.params);
+    const body=z.object({reason:z.string().trim().min(10).max(500)}).strict().safeParse(request.body);
+    if(!params.success||!body.success)return reply.code(400).send({detail:"Informe o motivo da suspensão."});
+    try{return await suspendActiveAi(params.data.workspaceId,request.user!.id,body.data.reason);}
+    catch(error){if(error instanceof AiDraftError)return reply.code(error.status).send({detail:error.message});throw error;}
+  });
+
+  app.post("/v1/workspaces/:workspaceId/ai-agent/draft/from-guided",{preHandler:[app.authenticate,app.requireWorkspaceContext,app.requirePermission("workspace:manage")]},async(request,reply)=>{
+    const params=workspaceParamsSchema.safeParse(request.params);
+    const body=z.object({expectedRevision:z.number().int().min(0),expectedGuidedRevision:z.number().int().positive()}).strict().safeParse(request.body);
+    if(!params.success||!body.success)return reply.code(400).send({detail:"Revisão do plano ou do rascunho inválida."});
+    try{return await prepareGuidedAiDraft(params.data.workspaceId,request.user!.id,body.data.expectedRevision,body.data.expectedGuidedRevision);}
+    catch(error){if(error instanceof AiDraftError)return reply.code(error.status).send({detail:error.message});throw error;}
+  });
 
   // GET /v1/workspaces/:workspaceId/ai-agent/niche-playbooks
   app.get(
@@ -381,7 +157,7 @@ export const aiAgentRoutes: FastifyPluginAsync = async (app) => {
   app.post(
     "/v1/workspaces/:workspaceId/ai-agent/simulate",
     {
-      preHandler: [app.authenticate, app.requireWorkspaceContext],
+      preHandler: [app.authenticate, app.requireWorkspaceContext, app.requirePermission("workspace:manage")],
     },
     async (request, reply) => {
       const parsedParams = workspaceParamsSchema.safeParse(request.params);
@@ -409,163 +185,12 @@ export const aiAgentRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const { workspaceId } = parsedParams.data;
-      const { message, history, draftConfig } = parsedBody.data;
 
-      const { ws, products } = await withTenantTransaction(workspaceId, async (client) => {
-        const wsRes = await client.query(
-          `SELECT
-             ai_agent_name,
-             ai_system_prompt,
-             ai_personality,
-             ai_business_rules,
-             ai_faq,
-             ai_strict_mode,
-             ai_temperature,
-             ai_provider,
-             ai_model,
-             ai_api_key
-           FROM public.workspaces
-           WHERE id = $1`,
-          [workspaceId]
-        );
-
-        const prodRes = await client.query<{
-          id: string;
-          title: string;
-          description: string | null;
-          price_cents: number;
-          category: string | null;
-          badge: string | null;
-        }>(
-          `SELECT id, title, description, price_cents, category, badge
-           FROM public.products
-           WHERE workspace_id = $1 AND status = 'ACTIVE'
-           ORDER BY is_featured DESC, title ASC
-           LIMIT 50;`,
-          [workspaceId]
-        );
-
-        return { ws: wsRes.rows[0], products: prodRes.rows };
-      });
-
-      if (!ws) {
-        return reply.status(404).send({
-          type: "https://sos-sales.mct.br/errors/not-found",
-          title: "Not Found",
-          status: 404,
-          detail: "Workspace not found",
-          instance: request.url,
-          correlationId: request.id,
-        });
-      }
-
-      const provider: AiProvider = (draftConfig?.provider || ws.ai_provider as AiProvider) || "nvidia";
-      const apiKey =
-        draftConfig?.apiKey?.trim() ||
-        ws.ai_api_key?.trim() ||
-        (provider === "nvidia"
-          ? process.env.NVIDIA_API_KEY || process.env.NVAPI_KEY
-          : process.env.OPENROUTER_API_KEY);
-
-      if (!apiKey || !apiKey.trim()) {
-        return reply.status(422).send({
-          type: "https://sos-sales.mct.br/errors/unprocessable-entity",
-          title: "API Key Missing",
-          status: 422,
-          detail: `Chave de API para o provedor '${provider.toUpperCase()}' não está configurada nem no workspace nem no servidor.`,
-          instance: request.url,
-          correlationId: request.id,
-        });
-      }
-
-      const groundedProducts: GroundedProduct[] = products.map((p) => ({
-        id: p.id,
-        title: p.title,
-        description: p.description,
-        priceCents: p.price_cents,
-        category: p.category,
-        badge: p.badge,
-      }));
-
-      const rawBusinessRules = draftConfig?.businessRules || ws.ai_business_rules || {};
-      const mockLead = parsedBody.data.mockLead;
-      const leadContext: GroundedLeadContext | undefined = mockLead
-        ? {
-            contactName: mockLead.name || null,
-            lastPixStatus: mockLead.lastPixStatus || null,
-            lastPixAmountCents: mockLead.lastPixAmountCents || null,
-            isReturningCustomer: mockLead.isReturningCustomer,
-          }
-        : undefined;
-
-      const aiConfig: GroundedAiConfig = {
-        name: draftConfig?.name || ws.ai_agent_name || "Assistente Virtual",
-        personality: draftConfig?.personality || ws.ai_personality || "cordial_comercial",
-        systemPrompt: (draftConfig?.systemPrompt !== undefined ? draftConfig.systemPrompt : ws.ai_system_prompt) || "",
-        strictMode: draftConfig?.strictMode !== undefined ? draftConfig.strictMode : (ws.ai_strict_mode ?? true),
-        businessRules: rawBusinessRules,
-        faq: Array.isArray(draftConfig?.faq) ? draftConfig.faq : (Array.isArray(ws.ai_faq) ? ws.ai_faq : []),
-        leadContext,
-      };
-
-      const rulesRecord = (aiConfig.businessRules || {}) as Record<string, string | undefined>;
-      const activeRulesCount = [
-        rulesRecord.openingHours || rulesRecord.opening_hours,
-        rulesRecord.address,
-        rulesRecord.paymentMethods || rulesRecord.payment_methods,
-        rulesRecord.cancellationPolicy || rulesRecord.cancellation_policy,
-        rulesRecord.generalRules || rulesRecord.general_rules,
-      ].filter((v) => Boolean(v && v.trim())).length;
-
-      const activeFaqCount = (aiConfig.faq || []).filter((f) => Boolean(f.question?.trim() && f.answer?.trim())).length;
-
-      const systemPrompt = buildGroundedSystemPrompt(aiConfig, groundedProducts);
-      const messagesForModel: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
-        { role: "system", content: systemPrompt },
-      ];
-
-      if (history && history.length > 0) {
-        for (const item of history) {
-          messagesForModel.push({ role: item.role, content: item.content });
-        }
-      }
-
-      messagesForModel.push({ role: "user", content: message });
-
-      const llmClient = new SovereignLlmClient();
-      const model =
-        draftConfig?.model ||
-        ws.ai_model ||
-        (provider === "nvidia"
-          ? process.env.NVIDIA_TEMPLATE_MODEL || process.env.NVIDIA_MODEL || DEFAULT_MODELS.nvidia
-          : DEFAULT_MODELS.openrouter);
-
-      const startTime = Date.now();
-      const completion = await llmClient.complete(messagesForModel, {
-        provider,
-        apiKey,
-        model,
-        temperature: Number(draftConfig?.temperature ?? ws.ai_temperature ?? 0.1),
-      });
-      const latencyMs = Date.now() - startTime;
-
-      const parsed = parseAiResponse(completion.content);
-
-      return reply.status(200).send({
-        success: true,
-        replyText: parsed.cleanReplyText,
-        needsHandoff: parsed.needsHandoff,
-        handoffReason: parsed.handoffReason || null,
-        offerPixProductId: parsed.offerPixProductId || null,
-        matchedCatalogCount: groundedProducts.length,
-        groundedRulesCount: activeRulesCount,
-        groundedFaqCount: activeFaqCount,
-        isCustomPromptUsed: Boolean(aiConfig.systemPrompt && aiConfig.systemPrompt.trim()),
-        strictMode: aiConfig.strictMode,
-        provider: completion.provider,
-        model: completion.model,
-        latencyMs,
-      });
+      let ws:Record<string,any>;
+      try{ws=await getAiSimulationBase(workspaceId,parsedBody.data.draftRevision);}
+      catch(error){if(error instanceof AiDraftError)return reply.code(error.status).send({detail:error.message});throw error;}
+      try{return reply.status(200).send(await simulateAiText(workspaceId,ws,parsedBody.data));}
+      catch(error){if(error instanceof AiDraftError)return reply.code(error.status).send({detail:error.message});throw error;}
     }
   );
 };

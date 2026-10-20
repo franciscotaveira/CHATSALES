@@ -485,8 +485,8 @@ export class InboxProcessor {
 
               const journey = existingJourneyRes.rows[0];
               if (journey) {
-                // If lead sends message while in 'lead' stage, advance to 'qualified'
-                const shouldAdvance = direction === "inbound" && journey.stage === "lead";
+                // Receiving a message is not evidence that qualification criteria were met.
+                const shouldAdvance = false;
                 const nextStage = shouldAdvance ? "qualified" : journey.stage;
                 const shouldSetCtwa = inboundCtwaClid && !journey.ctwa_clid;
 
@@ -630,11 +630,14 @@ export class InboxProcessor {
                 const recentBroadcastRes = await client.query<{ id: string; campaign_id: string; replied_at: Date | null; clicked_at: Date | null }>(
                   `SELECT id, campaign_id, replied_at, clicked_at
                    FROM public.broadcast_recipients
-                   WHERE workspace_id = $1 AND (contact_id = $2 OR phone_e164 = $3)
-                     AND created_at >= clock_timestamp() - INTERVAL '48 hours'
-                   ORDER BY created_at DESC
-                   LIMIT 1;`,
-                  [item.workspace_id, contactId, event.senderPhoneE164]
+                   WHERE workspace_id = $1 AND contact_id = $2
+                     AND external_message_id = $5
+                     AND sent_at >= $4::timestamptz - INTERVAL '48 hours'
+                     AND sent_at <= $4::timestamptz
+                     AND campaign_id IN (SELECT id FROM public.broadcast_campaigns WHERE workspace_id=$1 AND channel_instance_id=$3)
+                   ORDER BY sent_at DESC, id DESC
+                   LIMIT 1 FOR UPDATE;`,
+                  [item.workspace_id, contactId, item.channel_instance_id, event.timestamp, event.metadata?.replyToProviderMessageId ?? null]
                 );
 
                 if (recentBroadcastRes.rows.length > 0) {
@@ -908,10 +911,11 @@ export class InboxProcessor {
                    SET delivered_at = COALESCE(delivered_at, clock_timestamp()),
                        status = CASE WHEN status = 'sent' THEN 'delivered' ELSE status END
                    WHERE workspace_id = $1
-                     AND (external_message_id = $2 OR (phone_e164 = $3 AND created_at >= clock_timestamp() - INTERVAL '7 days'))
+                     AND external_message_id = $2
+                     AND campaign_id IN (SELECT id FROM public.broadcast_campaigns WHERE workspace_id = $1 AND channel_instance_id = $3)
                      AND delivered_at IS NULL
                    RETURNING campaign_id;`,
-                  [item.workspace_id, event.externalMessageId, event.recipientPhoneE164]
+                  [item.workspace_id, event.externalMessageId, item.channel_instance_id]
                 );
                 for (const row of delRecipRes.rows) {
                   await client.query(
@@ -923,15 +927,20 @@ export class InboxProcessor {
                 }
               } else if (newStatus === "read") {
                 const readRecipRes = await client.query<{ campaign_id: string; was_delivered: boolean }>(
-                  `UPDATE public.broadcast_recipients
-                   SET read_at = COALESCE(read_at, clock_timestamp()),
-                       delivered_at = COALESCE(delivered_at, clock_timestamp()),
-                       status = CASE WHEN status IN ('sent', 'delivered') THEN 'read' ELSE status END
-                   WHERE workspace_id = $1
-                     AND (external_message_id = $2 OR (phone_e164 = $3 AND created_at >= clock_timestamp() - INTERVAL '7 days'))
-                     AND read_at IS NULL
-                   RETURNING campaign_id, (delivered_at IS NOT NULL) AS was_delivered;`,
-                  [item.workspace_id, event.externalMessageId, event.recipientPhoneE164]
+                  `WITH targets AS (
+                     SELECT id, delivered_at IS NOT NULL AS was_delivered
+                     FROM public.broadcast_recipients
+                     WHERE workspace_id = $1 AND external_message_id = $2
+                       AND campaign_id IN (SELECT id FROM public.broadcast_campaigns WHERE workspace_id = $1 AND channel_instance_id = $3)
+                       AND read_at IS NULL FOR UPDATE
+                   )
+                   UPDATE public.broadcast_recipients br
+                   SET read_at = clock_timestamp(),
+                       delivered_at = COALESCE(br.delivered_at, clock_timestamp()),
+                       status = CASE WHEN br.status IN ('sent', 'delivered') THEN 'read' ELSE br.status END
+                   FROM targets t WHERE br.id = t.id
+                   RETURNING br.campaign_id, t.was_delivered;`,
+                  [item.workspace_id, event.externalMessageId, item.channel_instance_id]
                 );
                 for (const row of readRecipRes.rows) {
                   await client.query(
@@ -949,10 +958,11 @@ export class InboxProcessor {
                    SET status = 'failed',
                        error_message = COALESCE($4, error_message)
                    WHERE workspace_id = $1
-                     AND (external_message_id = $2 OR (phone_e164 = $3 AND created_at >= clock_timestamp() - INTERVAL '7 days'))
+                     AND external_message_id = $2
+                     AND campaign_id IN (SELECT id FROM public.broadcast_campaigns WHERE workspace_id = $1 AND channel_instance_id = $3)
                      AND status = 'sent'
                    RETURNING campaign_id;`,
-                  [item.workspace_id, event.externalMessageId, event.recipientPhoneE164, event.errorMessage || event.errorCode || "Delivery failed"]
+                  [item.workspace_id, event.externalMessageId, item.channel_instance_id, event.errorMessage || event.errorCode || "Delivery failed"]
                 );
                 for (const row of failRecipRes.rows) {
                   await client.query(
@@ -1007,18 +1017,16 @@ export class InboxProcessor {
                 channelStatus = "pairing";
               }
 
+              let observationApplied=false;
               if (channelStatus) {
-                const isActive = channelStatus === "connected";
-                await client.query(
-                  `UPDATE public.channel_instances
-                   SET status = $1, is_active = $2, updated_at = clock_timestamp()
-                   WHERE id = $3 AND workspace_id = $4;`,
-                  [channelStatus, isActive, item.channel_instance_id, item.workspace_id]
-                );
+                observationApplied=(await client.query<{applied:boolean}>(
+                  `SELECT public.apply_channel_connection_observation($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6) AS applied`,
+                  [item.workspace_id,item.channel_instance_id,item.id,item.lease_token,workerId,channelStatus]
+                )).rows[0]?.applied===true;
               }
               logger.info(
-                { inboxId: item.id, eventType: event.eventType, channelStatus },
-                "Processed channel lifecycle event"
+                { inboxId: item.id, eventType: event.eventType, channelStatus, observationApplied },
+                "Processed channel lifecycle observation"
               );
             } else {
               throw new Error(`FAIL_CLOSED: Unrecognized event kind in normalized payload`);

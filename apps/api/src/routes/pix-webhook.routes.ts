@@ -4,8 +4,6 @@ import { z } from "zod";
 import {
   withTenantTransaction,
   confirmPixChargeBankWebhook,
-  createCommercialJourney,
-  recordCommercialOutcome,
 } from "@sos-sales/database";
 import { enqueuePixConfirmationMessage } from "../services/pix-notification";
 
@@ -84,7 +82,7 @@ function signatureMatches(secret: string, timestamp: string, rawBody: Buffer, pr
  * Anti-replay: timestamp window (±5 min) + one-time eventId. Idempotent settlement.
  */
 export const pixWebhookRoutes: FastifyPluginAsync<PixWebhookRoutesOptions> = async (app, options) => {
-  const replayStore = options.replayStore ?? new InMemoryReplayStore();
+  // Database receipts are transactional and durable across API instances/restarts.
   const now = options.now ?? Date.now;
 
   app.post("/v1/webhooks/pix/:workspaceId", async (request, reply) => {
@@ -122,14 +120,19 @@ export const pixWebhookRoutes: FastifyPluginAsync<PixWebhookRoutesOptions> = asy
     const event = parsedEvent.data;
     const { workspaceId } = parsedParams.data;
 
-    // Exact replay of a processed event is acknowledged without touching the charge again.
-    const isNew = replayStore.claim(`${workspaceId}:${event.eventId}`, SIGNATURE_WINDOW_MS * 2);
-    if (!isNew) {
-      return reply.status(200).send({ received: true, status: "duplicate" });
-    }
-
     try {
-      const { charge, alreadySettled } = await withTenantTransaction(workspaceId, async (client) => {
+      const payloadHash = crypto.createHash("sha256").update(JSON.stringify(event)).digest("hex");
+      const result = await withTenantTransaction(workspaceId, async (client) => {
+        const inserted = await client.query(
+          `INSERT INTO public.integration_event_receipts(workspace_id,provider,event_key,payload_hash)
+           VALUES ($1,'pix',$2,$3) ON CONFLICT DO NOTHING RETURNING event_key`,
+          [workspaceId,event.eventId,payloadHash]
+        );
+        if (!inserted.rows.length) {
+          const previous = await client.query<{payload_hash:string}>("SELECT payload_hash FROM public.integration_event_receipts WHERE workspace_id=$1 AND provider='pix' AND event_key=$2", [workspaceId,event.eventId]);
+          if (previous.rows[0]?.payload_hash !== payloadHash) throw new Error("COBRANCA_INVALID_STATE: Event identity conflict");
+          return { duplicate: true as const };
+        }
         const res = await confirmPixChargeBankWebhook(client, {
           workspaceId,
           chargeId: event.chargeId,
@@ -138,52 +141,19 @@ export const pixWebhookRoutes: FastifyPluginAsync<PixWebhookRoutesOptions> = asy
         });
 
         if (!res.alreadySettled) {
-          const ownerRes = await client.query<{ user_id: string }>(
-            `SELECT user_id FROM public.workspace_memberships WHERE workspace_id = $1 AND role = 'owner' LIMIT 1;`,
-            [workspaceId]
-          );
-          const actorUserId = ownerRes.rows[0]?.user_id || "00000000-0000-0000-0000-000000000000";
-
-          let journeyId: string | undefined;
-          const jRes = await client.query<{ id: string }>(
-            `SELECT id FROM public.commercial_journeys
-             WHERE workspace_id = $1 AND (thread_id = $2 OR contact_id = $3) AND status = 'open'
-             ORDER BY created_at DESC LIMIT 1 FOR UPDATE;`,
-            [workspaceId, res.charge.thread_id, res.charge.contact_id]
-          );
-          if (jRes.rows[0]) {
-            journeyId = jRes.rows[0].id;
-          } else {
-            const created = await createCommercialJourney(client, workspaceId, {
-              contactId: res.charge.contact_id,
-              threadId: res.charge.thread_id,
-              title: res.charge.title || "Venda Concluída (Webhook Pix)",
-              stage: "proposal",
-              attributionSource: "organic_whatsapp",
-              estimatedValueCents: res.charge.amount_cents,
-            });
-            journeyId = created.id;
-          }
-
-          await recordCommercialOutcome(client, workspaceId, {
-            journeyId,
-            status: "won",
-            valueCents: res.charge.amount_cents,
-            currency: res.charge.currency || "BRL",
-            reason: `Liquidação Pix automática via webhook bancário (${event.eventId})`,
-            registeredByUserId: actorUserId,
-          });
-
+          // Settlement is a financial fact, not an automatic commercial win.
+          // Do not invent a human actor or choose a journey by contact alone.
           // Enqueue celebratory payment confirmation message to WhatsApp thread
           await enqueuePixConfirmationMessage(client, workspaceId, res.charge);
         }
 
         return res;
       });
+      if ("duplicate" in result) return reply.code(200).send({ received: true, status: "duplicate" });
       return reply.status(200).send({
         received: true,
-        status: alreadySettled ? "already_settled" : "settled",
-        chargeId: charge.id,
+        status: result.alreadySettled ? "already_settled" : "settled",
+        chargeId: result.charge.id,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
