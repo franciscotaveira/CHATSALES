@@ -112,6 +112,8 @@ export const abacatePayWebhookRoutes: FastifyPluginAsync = async (app) => {
     const isPaidEvent =
       event === "billing.paid" ||
       event === "charge.paid" ||
+      event === "checkout.completed" ||
+      event === "transparent.completed" ||
       data.status?.toUpperCase() === "PAID";
 
     if (!isPaidEvent) {
@@ -199,6 +201,8 @@ export const abacatePayWebhookRoutes: FastifyPluginAsync = async (app) => {
     const isPaid =
       parsedPayload.data.event === "billing.paid" ||
       parsedPayload.data.event === "charge.paid" ||
+      parsedPayload.data.event === "checkout.completed" ||
+      parsedPayload.data.event === "transparent.completed" ||
       data.status?.toUpperCase() === "PAID";
 
     if (!isPaid) {
