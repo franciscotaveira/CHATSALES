@@ -1,0 +1,134 @@
+{
+  "name": "Integracao e Provisionamento Turnkey de Novo Cliente",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "onboarding-novo-cliente",
+        "responseMode": "onReceived",
+        "responseData": "allEntries"
+      },
+      "id": "node-1-91ugt",
+      "name": "Gatilho de Novo Cliente",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "wh-ewe358c"
+    },
+    {
+      "parameters": {},
+      "id": "node-2-zzvz7",
+      "name": "Provisionador Soberano de Drive e Banco",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        510,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://sos-sales-waha:3000/api/sendText"
+      },
+      "id": "node-3-pqk9l",
+      "name": "Despacho Boas-Vindas WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        770,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "node-4-z3swh",
+      "name": "Resposta de Sucesso HTTP 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1030,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Execução gerada a partir da etapa: TELA 5: Tratamento de Falhas & Contingência\nSELECT 1;"
+      },
+      "id": "node-5-7u7fl",
+      "name": "Handler de Excecoes de Provisionamento",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        1290,
+        520
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gatilho de Novo Cliente": {
+      "main": [
+        [
+          {
+            "node": "Provisionador Soberano de Drive e Banco",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Provisionador Soberano de Drive e Banco": {
+      "main": [
+        [
+          {
+            "node": "Despacho Boas-Vindas WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Despacho Boas-Vindas WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Resposta de Sucesso HTTP 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "tags": [
+    {
+      "name": "onboarding"
+    },
+    {
+      "name": "provisionamento"
+    },
+    {
+      "name": "drive"
+    },
+    {
+      "name": "whatsapp"
+    },
+    {
+      "name": "compliance"
+    },
+    {
+      "name": "n8n"
+    }
+  ]
+}
