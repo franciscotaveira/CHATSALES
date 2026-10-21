@@ -1,0 +1,34 @@
+[
+  {
+    "planId": "chatsales-anual-pix-1080",
+    "title": "Chat Sales - Plano Anual (Pix)",
+    "productId": "prod_r53cjHeqTQ5L0uMmFWjYPXAL",
+    "billingId": "bill_kAfpgk4PpKJcqY5KGbbEEGmS",
+    "url": "https://app.abacatepay.com/pay/bill_kAfpgk4PpKJcqY5KGbbEEGmS",
+    "amountCents": 108000
+  },
+  {
+    "planId": "chatsales-anual-cartao-1200",
+    "title": "Chat Sales - Plano Anual (Cartão)",
+    "productId": "prod_yz5FJJZjGPX5JauAFWXArGkD",
+    "billingId": "bill_Bahszz3UEuXzqqZhGg25HQeX",
+    "url": "https://app.abacatepay.com/pay/bill_Bahszz3UEuXzqqZhGg25HQeX",
+    "amountCents": 120000
+  },
+  {
+    "planId": "chatsales-semestral-pix-570",
+    "title": "Chat Sales - Plano Semestral (Pix)",
+    "productId": "prod_bLPfp2PrWNqcfqM52KLmqX0c",
+    "billingId": "bill_dM6P6Pnf1LHTLQbSGMyjYNzs",
+    "url": "https://app.abacatepay.com/pay/bill_dM6P6Pnf1LHTLQbSGMyjYNzs",
+    "amountCents": 57000
+  },
+  {
+    "planId": "chatsales-semestral-cartao-600",
+    "title": "Chat Sales - Plano Semestral (Cartão)",
+    "productId": "prod_2AAHNnmjQHaGmLAkncaJyhUY",
+    "billingId": "bill_GERMqWZAEKDM4Rm16sqJpd51",
+    "url": "https://app.abacatepay.com/pay/bill_GERMqWZAEKDM4Rm16sqJpd51",
+    "amountCents": 60000
+  }
+]

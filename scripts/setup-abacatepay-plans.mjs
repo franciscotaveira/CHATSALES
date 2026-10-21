@@ -19,94 +19,124 @@ if (!apiKey) {
   process.exit(1);
 }
 
-const BASE_URL = "https://api.abacatepay.com/v1";
+const BASE_URL = "https://api.abacatepay.com/v2";
 
 const PLANS = [
   {
-    id: "sos-vendas-anual-pix",
-    title: "SOS Vendas - Plano Anual (10% OFF no Pix)",
+    id: "chatsales-anual-pix-1080",
+    title: "Chat Sales - Plano Anual (Pix)",
     amountCents: 108000, // R$ 1.080,00
-    description: "Acesso total de 12 meses ao SOS Vendas: Cockpit comercial, automações, funis, IA comercial e cobrança Pix nativa.",
-    frequency: "ONE_TIME",
-    methods: ["PIX"],
-    metadata: {
-      planId: "anual_pix",
-      intervalMonths: "12",
-      nominalYearlyPrice: "1200",
-      discountApplied: "10%",
-      effectiveMonthlyPrice: "90.00"
-    }
+    description: "Licença anual Chat Sales com 10% de desconto via Pix (R$ 1.080,00)",
+    methods: ["PIX"]
   },
   {
-    id: "sos-vendas-semestral-pix",
-    title: "SOS Vendas - Plano Semestral (5% OFF no Pix)",
+    id: "chatsales-anual-cartao-1200",
+    title: "Chat Sales - Plano Anual (Cartão)",
+    amountCents: 120000, // R$ 1.200,00
+    description: "Licença anual Chat Sales em até 12x no cartão de crédito (R$ 1.200,00)",
+    methods: ["CARD", "PIX"],
+    card: { maxInstallments: 12 }
+  },
+  {
+    id: "chatsales-semestral-pix-570",
+    title: "Chat Sales - Plano Semestral (Pix)",
     amountCents: 57000, // R$ 570,00
-    description: "Acesso total de 6 meses ao SOS Vendas: Cockpit comercial, automações, funis, IA comercial e cobrança Pix nativa.",
-    frequency: "ONE_TIME",
-    methods: ["PIX"],
-    metadata: {
-      planId: "semestral_pix",
-      intervalMonths: "6",
-      nominalYearlyPrice: "1200",
-      nominalSemesterPrice: "600",
-      discountApplied: "5%",
-      effectiveMonthlyPrice: "95.00"
-    }
+    description: "Licença semestral Chat Sales com 5% de desconto via Pix (R$ 570,00)",
+    methods: ["PIX"]
+  },
+  {
+    id: "chatsales-semestral-cartao-600",
+    title: "Chat Sales - Plano Semestral (Cartão)",
+    amountCents: 60000, // R$ 600,00
+    description: "Licença semestral Chat Sales em até 6x no cartão de crédito (R$ 600,00)",
+    methods: ["CARD", "PIX"],
+    card: { maxInstallments: 6 }
   }
 ];
 
-async function createBilling(plan) {
-  console.log(`\n📦 Criando produto/cobrança: ${plan.title}...`);
+async function ensureProductAndCheckout(plan) {
+  console.log(`\n📦 Verificando/Criando produto: ${plan.title}...`);
   
-  const payload = {
-    frequency: plan.frequency,
-    methods: plan.methods,
-    products: [
-      {
-        externalId: plan.id,
-        name: plan.title,
-        quantity: 1,
-        price: plan.amountCents,
-        description: plan.description
-      }
-    ],
-    returnUrl: "https://chat.automatizaprocessos.tech",
-    completionUrl: "https://chat.automatizaprocessos.tech",
-    metadata: plan.metadata
-  };
+  // 1. Criar Produto na v2 se não existir
+  let productId = null;
+  const prodRes = await fetch(`${BASE_URL}/products/create`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey.trim()}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      externalId: plan.id,
+      name: plan.title,
+      price: plan.amountCents,
+      currency: "BRL",
+      description: plan.description
+    })
+  });
 
-  try {
-    const res = await fetch(`${BASE_URL}/billing/create`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey.trim()}`,
-        "Content-Type": "application/json",
-        "User-Agent": "MCT-SOSVendas/2.0"
-      },
-      body: JSON.stringify(payload)
+  if (prodRes.ok) {
+    const prodJson = await prodRes.json();
+    productId = prodJson.data?.id;
+    console.log(`✅ Produto criado com sucesso: ${productId}`);
+  } else {
+    // Se já existia, busca na listagem
+    const listRes = await fetch(`${BASE_URL}/products/list`, {
+      headers: { "Authorization": `Bearer ${apiKey.trim()}` }
     });
-
-    if (!res.ok) {
-      const errBody = await res.text();
-      throw new Error(`HTTP ${res.status}: ${errBody}`);
+    if (listRes.ok) {
+      const listJson = await listRes.json();
+      const existing = (listJson.data || []).find(p => p.externalId === plan.id);
+      if (existing) {
+        productId = existing.id;
+        console.log(`ℹ️ Produto já existente reaproveitado: ${productId}`);
+      }
     }
+  }
 
-    const json = await res.json();
-    const data = json.data || json;
-    
-    console.log(`✅ Sucesso! ID: ${data.id}`);
-    console.log(`🔗 Link de Pagamento (Checkout): ${data.url}`);
-    
-    return {
-      planId: plan.id,
-      billingId: data.id,
-      url: data.url,
-      amountCents: plan.amountCents
-    };
-  } catch (err) {
-    console.error(`❌ Falha ao criar plano ${plan.id}:`, err.message);
+  if (!productId) {
+    console.error(`❌ Não foi possível obter o ID do produto para ${plan.id}`);
     return null;
   }
+
+  // 2. Criar Checkout na v2
+  console.log(`🛒 Gerando link de checkout para ${plan.title}...`);
+  const checkoutPayload = {
+    items: [{ id: productId, quantity: 1 }],
+    methods: plan.methods,
+    externalId: `checkout-${plan.id}`,
+    returnUrl: "https://automatizaprocessos.tech",
+    completionUrl: "https://chat.automatizaprocessos.tech",
+    ...(plan.card ? { card: plan.card } : {})
+  };
+
+  const checkRes = await fetch(`${BASE_URL}/checkouts/create`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey.trim()}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(checkoutPayload)
+  });
+
+  if (!checkRes.ok) {
+    const errText = await checkRes.text();
+    console.error(`❌ Falha ao criar checkout: ${errText}`);
+    return null;
+  }
+
+  const checkJson = await checkRes.json();
+  const data = checkJson.data;
+  console.log(`✅ Checkout criado: ${data.id}`);
+  console.log(`🔗 Link de pagamento: ${data.url}`);
+
+  return {
+    planId: plan.id,
+    title: plan.title,
+    productId,
+    billingId: data.id,
+    url: data.url,
+    amountCents: plan.amountCents
+  };
 }
 
 async function main() {
@@ -115,7 +145,7 @@ async function main() {
 
   const results = [];
   for (const plan of PLANS) {
-    const res = await createBilling(plan);
+    const res = await ensureProductAndCheckout(plan);
     if (res) results.push(res);
   }
 
