@@ -40,9 +40,9 @@
   - Cabeçalhos de rastreabilidade: `HTTP-Referer` e `X-Title` obrigatórios.
 - **Chaves de API Isoladas:** Cada tenant pode utilizar a credencial central da empresa ou definir sua própria chave em `workspaces.ai_api_key`.
 
-### 2.2 Truth in Data & Anti-Alucinação Estrito
-- **Zero Mock / Zero Alucinação:** A IA nunca inventa preços, prazos ou políticas comerciais.
-- **Grounding Dinâmico em 4 Camadas:** Todo atendimento ancora diretamente nos dados de `public.products`, `ai_business_rules` e `ai_faq`.
+### 2.2 Grounding e limites do atendimento por IA
+- **Regra de projeto:** respostas devem usar dados e regras cadastrados e encaminhar o que não puderem confirmar. Isso reduz risco, mas não prova ausência de erro em todas as respostas.
+- **Grounding:** o fluxo fornece contexto de catálogo e regras comerciais disponíveis ao worker; cobertura varia por capacidade e registro. Não assumir que toda resposta está ancorada em quatro fontes sem conferir o caso.
 - **Protocolo de Ignorância & Transbordo Humano:** Dúvidas fora do escopo geram a tag `[TRANSBORDO_HUMANO: motivo]`. O sistema transiciona a thread para `waiting_human`, grava `handoff_reason` e gera alerta executivo no Cockpit para o atendente humano assumir com um clique.
 
 ### 2.3 Memória de Aquisição Meta CTWA (Click-to-WhatsApp Ads)
@@ -85,7 +85,7 @@
 - **Fechamento Instantâneo de Ofertas com Pix na IA (`<fechamento_comercial_pix>`):**
   - Prompt Grounding Dual-Engine instrui a IA a emitir a tag canônica `[OFFER_PIX: <productId>]` quando o lead aceitar uma oferta ou demonstrar intenção de compra ("quero", "manda o pix", "fechado").
   - O `AiReceptionistProcessor` intercepta a tag, emite o código Pix Copia e Cola EMV oficial BACEN via `createPixCharge` do `@sos-sales/database` utilizando a chave Pix cadastrada no workspace e anexa a instrução de pagamento em bloco de código monoespaçado formatado para WhatsApp.
-  - Zero risco de parada: se o workspace não tiver chave cadastrada, a IA envia a resposta conversacional normalmente sem interromper o atendimento.
+  - A ausência de credencial Pix impede criar a cobrança; respostas conversacionais podem continuar conforme o caminho. O resultado depende das precondições do worker e não é garantia de disponibilidade.
 
 ### 2.9 Resiliência Operacional WAHA & Cockpit Layout (Outubro/2026)
 - **Auto-Heal e Pré-validação de Sessão WAHA:**
@@ -138,10 +138,10 @@
   - Anual Cartão: 12× R$ 100,00 (R$ 1.200,00 total). Checkout: `https://app.abacatepay.com/pay/bill_Bahszz3UEuXzqqZhGg25HQeX`.
   - Semestral Pix: R$ 570,00 (5% OFF, R$ 95/mês). Checkout: `https://app.abacatepay.com/pay/bill_dM6P6Pnf1LHTLQbSGMyjYNzs`.
   - Semestral Cartão: 6× R$ 100,00 (R$ 600,00 total). Checkout: `https://app.abacatepay.com/pay/bill_GERMqWZAEKDM4Rm16sqJpd51`.
-- **Compatibilidade AbacatePay API v2:** Script `scripts/setup-abacatepay-plans.mjs` com endpoints `/v2/products/create` e `/v2/checkouts/create`, e auto-fallback inteligente em `abacatepay.service.ts` para `/v2/transparents/create` quando a chave é v2 (`abc_dev_wtSQfDwwBrpNKt6ktA1Gg0kc` - Recrutaria).
+- **Compatibilidade AbacatePay API v2:** O script `scripts/setup-abacatepay-plans.mjs` administra produtos e checkouts pelos endpoints v2 correspondentes. A criação de cobrança transparente usa `/v2/transparents/create` para chaves v2; não há fallback por `/v1`.
 
 ### 2.13 Resolução de @lid no WAHA & Unificação de Contatos
-- **Correção de JIDs @lid:** Motor WAHA multi-device entrega mensagens sob `@lid`. Implementado o resolver em `channels.routes.ts` via `/api/{session}/lids/{lid}` para recuperar o número E.164 real antes de criar o contato.
+- **Correção de JIDs @lid:** Motor WAHA multi-device pode entregar mensagens sob `@lid`. No fluxo de entrada do worker (`apps/worker/src/processors/inbox-processor.ts`), o resolver usa `/api/{session}/lids/{lid}` para obter o JID telefônico antes de persistir o contato; coberto por teste com sessão codificada e falha fechada quando a resposta não é um telefone.
 - **Fusão em Banco de Produção:** Contatos e mensagens duplicados em `@lid` unificados nas threads canônicas de Suzana Rios (`+554991810054`) e Francisco Taveira (`+554898583228`), eliminando duplicatas no Inbox.
 
 ### 2.14 Arquitetura Modular & Módulo Adicional sob Demanda: Emissão Fiscal (NFS-e)
@@ -149,10 +149,17 @@
 - **Emissão Automática de Nota Fiscal (NFS-e):** Formalizada como **Módulo Adicional sob Demanda**, contratado à parte de acordo com o município da empresa (devido à fragmentação de provedores municipais ABRASF/DSF/Betha/Ginfes, certificado digital A1 e custos por requisição de API).
 - **Transparência Contratual:** A MCT LTDA emite nota fiscal da assinatura SaaS do SOS Vendas para o cliente; a emissão fiscal de notas de venda para clientes finais é provida pelo módulo adicional. Módulos adicionais também cobrem Meta WABA Oficial e Conectores ERP (Bling, Tiny, Omie).
 
-### 2.15 Banco de Modelos Canônicos (70+ Templates WhatsApp em 13 Segmentos)
-- **Repositório Central de Modelos:** `packages/contracts/src/template-library.ts` (70+ templates divididos em Utilidade [85% mais barato] e Marketing para 13 segmentos comerciais).
+### 2.15 Banco de Modelos Canônicos (37 templates atualmente no contrato)
+- **Repositório Central de Modelos:** `packages/contracts/src/template-library.ts` (37 modelos em 13 segmentos; contagem estática verificada). A importação cria rascunho local, não aprovação Meta.
+- **Divergência P0:** o dossiê declara 70+ modelos. A biblioteca atual não cumpre essa quantidade; não afirmar 70+ até acrescentar e validar os modelos restantes com atualização controlada do manifesto.
 - **Cockpit Comercial & Landing Page:** Aba nativa no Cockpit (`TemplatesPage.tsx` / `TemplateLibrarySection.tsx`) com busca e importação em 1-clique, e vitrine visual interativa na Landing Page (`#modelos`) com previews em formato de balão WhatsApp.
 - **Produção na VPS:** Imagens Docker compiladas e rodando na Hostinger Cloud KVM 4 (`chat.automatizaprocessos.tech` e `automatizaprocessos.tech`).
+
+### 2.16 PLX Automações: Módulo M02B Checklist Recorrente & Modo Sombra Governança
+- **Módulo M02B em Operação:** Implementado o motor autônomo de checklist contábil periódico via PostgreSQL Data Tables (`plx_checklist_regras_v1` e `plx_checklist_execucoes_v1`), integrando diretamente com os 104 documentos organizados no Google Drive em `plx_v3_documentos`.
+- **Governança de Modo Sombra (P0):** Regras de cobrança operando com `send_enabled = false`, garantindo zero envio de mensagens no WhatsApp durante o período de homologação assistida da PLX Contabilidade (`120363430175893546@g.us`).
+- **Engine Soberano:** Utilitário Python `/opt/plx-documentos/app/scripts/plx_checklist_engine.py` com rotinas de seed, materialização de competência, reconciliação automatizada e relatórios executivos de auditoria.
+- **Automação Diária:** Cronjob configurado no host às 07:00 AM para reconciliação contínua da competência ativa.
 
 ---
 

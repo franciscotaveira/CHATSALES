@@ -2,7 +2,7 @@
 
 > MCT OS v2.0 | Francisco Rios | 69.553.990 FRANCISCO TAVEIRA RIOS (CNPJ: 69.553.990/0001-91) | MCT LTDA | Chapecó, SC  
 > Filosofia: Poder invisível, simplicidade visível. Truth in Data.  
-> Última atualização: 21 de outubro de 2026 (SOS Vendas: Transição de Marca, AbacatePay v2 R$ 1.200/ano, Resolução @lid WAHA, Arquitetura Modular NFS-e e Banco de Modelos 70+)
+> Última atualização: 21 de outubro de 2026 (SOS Vendas: Transição de Marca, AbacatePay v2, Resolução @lid WAHA, Arquitetura Modular NFS-e e auditoria da biblioteca de modelos)
 
 ---
 
@@ -410,19 +410,14 @@ A infraestrutura de automações externas da MCT LTDA está centralizada em um d
 - **Janela FEP 7-Day Window (168 Horas — Free Entry Point):**
   - Campanhas originadas por Click-to-WhatsApp Ads (`ctwa_meta`) recebem isenção integral de tarifas de conversação da Meta por 168 horas completas.
   - `commercial_journeys.fep_expires_at = clock_timestamp() + INTERVAL '7 days'`.
-  - Visualização em tempo real no cockpit (`ConversationHeader.tsx`) com badge informativo de dias restantes de CTWA Grátis.
+  - Visualização no cockpit (`ConversationHeader.tsx`) da data final registrada para a origem do anúncio. O prazo interno de sete dias não comprova isenção tarifária ou elegibilidade Meta.
 - **Deep Linking Soberano `wa.me` (`ChannelsSection.tsx`):**
   - Geração e cópia de URLs canônicas `https://wa.me/<e164>?text=<pre-filled-intent>` com sanitização de caracteres e acionamento nativo em mobile ou desktop sem exigir cadastro prévio do número na agenda do lead.
 
-### 12.2 Otimizador de Custos WABA ("Cavalo de Troia da Utilidade")
-- **Engenharia de Economia Tarifária (~85% a 90% de Desconto):**
-  - Tarifação Meta: Mensagens de Marketing custam ~R$ 0,38 por conversa, enquanto Utilidade custa ~R$ 0,04.
-  - Estratégia `UTILITY_TROJAN` injetada no gerador de IA (`templates.routes.ts`):
-    - Redige mensagens no formato de notificação de conta, confirmação ou atualização operacional ("Atualização de Proposta", "Crédito Pendente", "Encaixe Prioritário").
-    - Aprovação algorítmica garantida na categoria `UTILITY`.
-    - Ao ser entregue e respondida pelo cliente, abre a Janela de Atendimento Gratuito (Service Window de 24 horas), permitindo que a IA converse, qualifique e envie ofertas de vendas sem custos adicionais de marketing.
-- **Presets de Alta Conversão:**
-  - `CreateTemplateDialog.tsx` expõe seletor explícito de estratégia com badge de 85% de economia e 3 modelos mestres MCT pré-configurados.
+### 12.2 Classificação e autoria de templates WABA
+- `CreateTemplateDialog.tsx` separa finalidade transacional legítima de conteúdo de marketing e pede contexto real para conteúdo transacional.
+- O gerador (`templates.routes.ts`) orienta a escolher Marketing quando não houver finalidade operacional/transacional genuína. A categoria e a aprovação finais dependem da Meta; o sistema não garante aprovação.
+- Não usar percentuais fixos de economia, preços por categoria ou “janelas grátis” sem validação da tabela vigente, do país, do tipo de conta e do canal. O identificador legado `UTILITY_TROJAN` não deve ser interpretado como autorização para disfarçar marketing como utilidade.
 
 ### 12.3 Pré-visualização WYSIWYG Realista e Mapeamento Automático
 - **Interface Realista do WhatsApp (`BroadcastTemplateDialog.tsx`):**
@@ -547,15 +542,15 @@ A infraestrutura de automações externas da MCT LTDA está centralizada em um d
   - **Plano Semestral no Cartão de Crédito:** 6× de R$ 100,00 (R$ 600,00 total parcelado). Checkout: `https://app.abacatepay.com/pay/bill_GERMqWZAEKDM4Rm16sqJpd51`.
   - Manifesto canônico salvo em `landing/abacatepay-links.json`.
 - **Gateway AbacatePay v2 & Resiliência Transparente:**
-  - Provisionamento automatizado via script `scripts/setup-abacatepay-plans.mjs` autenticado com a chave v2 da conta Recrutaria (`abc_dev_wtSQfDwwBrpNKt6ktA1Gg0kc`).
-  - Atualização de `apps/api/src/services/abacatepay.service.ts`: detecção inteligente de chaves v2 (`abc_dev_...` ou `abc_prod_...`) com auto-fallback transparente de `/v1/transparents/create` para `/v2/transparents/create`, mitigando o erro nativo `"API key version mismatch"`.
+  - Provisionamento automatizado via `scripts/setup-abacatepay-plans.mjs`; a chave v2 deve ser fornecida por canal seguro no momento da execução e nunca armazenada neste documento.
+  - `apps/api/src/services/abacatepay.service.ts` cria cobrança transparente pelo endpoint v2 `/v2/transparents/create` para chaves v2. O caminho v1 não é tentado como fallback.
   - Workspace SOS Vendas configurado no banco com chave ativa e webhook sincronizado.
 
 ### 13.9 Resolução Dinâmica de JIDs @lid no WAHA e Fusão de Contatos Duplicados
 - **Causa Raiz Identificada:** No motor WAHA (WhatsApp HTTP API) operando com engine `NOWEB` / multi-device moderno, o WhatsApp entrega as mensagens recentes sob o JID interno `@lid` (ex: `271635491872968@lid`) em vez do formato telefônico internacional `@s.whatsapp.net` (`+554991810054`). Isso gerava contatos duplicados e snippets órfãos no inbox.
-- **Implementação do Resolver Dinâmico (`apps/api/src/routes/channels.routes.ts`):**
-  - Adicionada pré-consulta na rota de importação de conversas chamando o endpoint `/api/{session}/lids/{lid}` do WAHA antes da persistência no PostgreSQL 16.
-  - Conversão determinística para o número real de telefone em formato internacional E.164 (`+55...`), garantindo que mensagens pertençam à mesma thread e contato oficial do cliente.
+- **Implementação do Resolver Dinâmico (`apps/worker/src/processors/inbox-processor.ts`):**
+  - O fluxo de entrada do worker resolve JIDs `@lid` pelo endpoint de sessão `/api/{session}/lids/{lid}` do WAHA antes de criar ou localizar o contato.
+  - A resolução exige um JID telefônico válido e falha fechada se o provedor não retornar telefone; testes verificam endpoint, encoding da sessão e ausência de consulta para JIDs telefônicos comuns.
 - **Higienização e Consolidação no Banco de Produção:**
   - Mesclagem executada via SQL seguro nas threads oficiais de Suzana Rios (`+554991810054` - 12 mensagens unificadas) e Francisco Taveira (`+554898583228` - 11 mensagens unificadas).
   - Remoção atômica de contatos espúrios e reindexação de threads no Inbox.
@@ -573,10 +568,10 @@ A infraestrutura de automações externas da MCT LTDA está centralizada em um d
   - Banner de Transparência Fiscal: Deixa claro que a MCT LTDA emite nota fiscal de serviço SaaS pela assinatura do SOS Vendas para a empresa cliente, enquanto a emissão fiscal de notas de venda para clientes finais é coberta pelo módulo adicional sob demanda.
   - FAQ com respostas completas sobre o funcionamento dos módulos e nota fiscal da assinatura.
 
-### 13.11 Banco de Modelos Canônicos (70+ Templates em 13 Segmentos Brasileiros)
+### 13.11 Banco de Modelos Canônicos (37 templates atualmente no contrato)
 - **Biblioteca Canônica Centralizada (`packages/contracts/src/template-library.ts`):**
-  - 70+ templates pré-formatados com variáveis inteligentes (`{{1}}`, `{{2}}`), enquadrados nas diretrizes estritas da Meta (tarifa de Utilidade 85% mais econômica e Marketing de alta conversão).
-  - 13 segmentos comerciais cobertos: E-commerce, Lojas Físicas, Saúde & Clínicas, Odontologia, Beleza & Estética, Imobiliárias, Cursos & Educação, Automotivo, Restaurantes & Delivery, Academias, Viagens & Turismo, Serviços B2B.
+  - Contagem verificada: 37 itens em 13 segmentos. Os modelos podem ser importados como rascunhos locais; a importação não envia nem garante aprovação na Meta.
+  - O dossiê P0 declara uma biblioteca de 70+ modelos. Essa meta não é atendida pelo contrato atual; ampliar o catálogo requer conteúdo adicional revisado e atualização controlada do manifesto protegido.
 - **Interface do Operador no Cockpit (`apps/web/src/pages/templates/TemplateLibrarySection.tsx` & `TemplatesPage.tsx`):**
   - Aba nativa **"Biblioteca de Modelos (Prontos)"** com busca textual em tempo real, filtros por nicho/categoria e botão de importação em 1-clique para a conta da empresa.
 - **Exibição na Landing Page (`landing/index.html` & `landing/styles.css`):**
@@ -584,3 +579,23 @@ A infraestrutura de automações externas da MCT LTDA está centralizada em um d
   - Grid de previews visuais de templates canônicos com balões de conversa WhatsApp (Recuperação de Venda com Pix, Confirmação de Consulta e Reativação B2B) e CTA direto para acesso no Cockpit.
 - **Build e Deploy Contínuo na VPS:**
   - Código do monorepo atualizado e compilado com sucesso na VPS (`200.141.17.99` / `2a02:4780:6e:c5ee::1`), com containers `chat-sales-web`, `chat-sales-api` e `chat-sales-worker` operando com status *healthy*.
+
+### 13.12 Módulo M02B PLX Contábil (Checklist Recorrente, Reconciliação com Drive e Modo Sombra)
+- **Racional e Objetivo Operacional:**
+  - O Módulo M02B automatiza o acompanhamento mensal de obrigações contábeis e fiscais enviadas pelos clientes do escritório via WhatsApp, eliminando a cobrança manual e identificando faltantes antes do encerramento da competência.
+- **Tabelas de Dados Nativas no PostgreSQL n8n (`plx_n8n`):**
+  - `plx_checklist_regras_v1` (`chkRulesV1Taveira` / `data_table_user_chkrulesv1taveira`): Cadastro de regras por empresa, grupo, departamento, tipo documental, dia de vencimento (`due_day`) e flag `send_enabled`.
+  - `plx_checklist_execucoes_v1` (`chkRunsV1Taveira` / `data_table_user_chkrunsv1taveira`): Registro de checklist materializado por competência (ex: `2026-10`), status de conferência (`PENDING`, `RECEIVED`, `OVERDUE`), contagem de documentos encontrados e data limite (`expected_by`).
+  - `plx_v3_documentos` (`data_table_user_3xiyVdhcSZl6qzP8`): Acervo de 104 documentos reais organizados com `drive_file_id`, `reference_date` e hashes criptográficos SHA-256.
+- **Engine Soberano de Checklist (`/opt/plx-documentos/app/scripts/plx_checklist_engine.py`):**
+  - Implementado em Python nativo no host, conectando de forma resiliente ao PostgreSQL do container `plx-n8n-db`.
+  - Subcomandos operacionais: `seed` (regras canônicas), `materialize` (geração de obrigações), `reconcile` (cruzamento com arquivos do Drive), `report` (geração de parecer de auditoria) e `shadow-run` (ciclo completo).
+- **Governança de Modo Sombra (P0 — Zero Mensagens Externas):**
+  - Regras inicializadas com `send_enabled = false`.
+  - A reconciliação opera em modo leitura e auditoria contábil, gravando relatórios em `/opt/plx-documentos/app/evidence/checklist-report-{competencia}.md` para conferência dos analistas sem disparar mensagens de cobrança nos grupos do WhatsApp do cliente piloto (`120363430175893546@g.us`).
+- **Resultados Auditados da Execução Piloto (Outubro e Setembro de 2026):**
+  - Competência `2026-10`: 4/6 obrigações cumpridas (66.7% conformidade: 11 NF-e, 2 NFS-e, 8 Boletos e 15 Comprovantes vinculados ao Drive). 2/6 obrigações faltantes detectadas com acurácia estrita (FGTS vencido em 07/10 e Extrato Bancário vencido em 05/10).
+  - Competência `2026-09`: 4/6 obrigações cumpridas (25 NF-e, 10 NFS-e, 11 Boletos e 9 Comprovantes vinculados ao Drive; FGTS e Extrato faltantes).
+- **Agendamento Automático em Produção:**
+  - Crontab do host configurado para execução diária do checklist às 07:00 AM (`0 7 * * * python3 /opt/plx-documentos/app/scripts/plx_checklist_engine.py shadow-run >> /var/log/plx-checklist.log 2>&1`).
+
