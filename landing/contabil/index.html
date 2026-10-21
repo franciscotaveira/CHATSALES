@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCT DocOps Contábil — Fim da Caça a Notas e Extratos no Fechamento Fiscal</title>
+  <meta name="description" content="Elimine o estresse do dia 1 ao dia 10. Seus clientes enviam extratos e notas pelo WhatsApp; o sistema confere se falta algo e entrega tudo organizado sem sua equipe cobrar ninguém manualmente.">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070B14;
+      --bg-surface: #0E1626;
+      --bg-card: rgba(15, 23, 42, 0.75);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(56, 189, 248, 0.3);
+      --primary: #38BDF8;
+      --primary-light: #7DD3FC;
+      --accent: #10B981;
+      --accent-glow: rgba(16, 185, 129, 0.2);
+      --warning: #F59E0B;
+      --danger: #F43F5E;
+      --text: #F8FAFC;
+      --text-muted: #94A3B8;
+      --font-main: 'Inter', -apple-system, sans-serif;
+      --font-heading: 'Plus Jakarta Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-main);
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* HEADER */
+    header {
+      padding: 18px 0;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(7, 11, 20, 0.88);
+      backdrop-filter: blur(14px);
+      z-index: 100;
+    }
+    .header-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #fff;
+      font-family: var(--font-heading);
+      font-weight: 800;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+    }
+    .brand-tag {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--primary-light);
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border-accent);
+      font-family: var(--font-mono);
+      font-weight: 600;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #38BDF8, #0284C7);
+      color: #03132B;
+      box-shadow: 0 0 24px rgba(56, 189, 248, 0.35);
+      font-weight: 700;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 35px rgba(56, 189, 248, 0.55);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* HERO */
+    .hero {
+      padding: 85px 0 65px;
+      position: relative;
+    }
+    .hero-glow {
+      position: absolute;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, rgba(7, 11, 20, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid var(--border-accent);
+      border-radius: 100px;
+      color: var(--primary-light);
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 24px;
+      letter-spacing: 0.03em;
+    }
+    .pill .dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--accent);
+    }
+    h1 {
+      font-family: var(--font-heading);
+      font-size: 3.2rem;
+      line-height: 1.15;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+    }
+    h1 span {
+      background: linear-gradient(135deg, #38BDF8 0%, #10B981 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-lead {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      max-width: 760px;
+      margin: 0 auto 36px;
+      line-height: 1.6;
+    }
+    .hero-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 48px;
+    }
+
+    /* BADGES */
+    .proof-bar {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 24px 0;
+      background: rgba(255, 255, 255, 0.015);
+      margin-top: 20px;
+    }
+    .proof-grid {
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      gap: 20px;
+      text-align: center;
+    }
+    .proof-item strong {
+      display: block;
+      font-size: 1.5rem;
+      font-family: var(--font-heading);
+      color: var(--primary-light);
+    }
+    .proof-item span {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* SECTIONS */
+    .section {
+      padding: 80px 0;
+    }
+    .section-title {
+      font-family: var(--font-heading);
+      font-size: 2.2rem;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+    .section-sub {
+      text-align: center;
+      color: var(--text-muted);
+      max-width: 680px;
+      margin: 0 auto 50px;
+      font-size: 1.1rem;
+    }
+
+    /* CARDS GRID */
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+    .card:hover {
+      border-color: rgba(56, 189, 248, 0.3);
+      transform: translateY(-4px);
+    }
+    .card-icon {
+      font-size: 2rem;
+      margin-bottom: 16px;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(56, 189, 248, 0.1);
+      border-radius: 12px;
+      border: 1px solid var(--border-accent);
+    }
+    .card h3 {
+      font-family: var(--font-heading);
+      font-size: 1.3rem;
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+    .card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    /* DEMO TABLE PREVIEW */
+    .demo-window {
+      background: #0B1120;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      margin-top: 30px;
+    }
+    .demo-bar {
+      background: #111A2E;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .demo-dots {
+      display: flex;
+      gap: 8px;
+    }
+    .demo-dots span {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #334155;
+    }
+    .demo-dots span:nth-child(1) { background: #EF4444; }
+    .demo-dots span:nth-child(2) { background: #F59E0B; }
+    .demo-dots span:nth-child(3) { background: #10B981; }
+    .demo-title {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: #94A3B8;
+    }
+    .demo-body {
+      padding: 24px;
+    }
+    .table-responsive {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+    th {
+      color: #64748B;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+    }
+    td {
+      padding: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: #E2E8F0;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .badge-green { background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-yellow { background: rgba(245, 158, 11, 0.15); color: #FCD34D; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-red { background: rgba(244, 63, 94, 0.15); color: #FDA4AF; border: 1px solid rgba(244, 63, 94, 0.3); }
+
+    /* STEP FLOW */
+    .step-card {
+      display: flex;
+      gap: 24px;
+      padding: 24px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      margin-bottom: 16px;
+      align-items: flex-start;
+    }
+    .step-num {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--primary-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.2rem;
+      font-family: var(--font-heading);
+      flex-shrink: 0;
+      border: 1px solid var(--border-accent);
+    }
+    .step-text h4 {
+      font-family: var(--font-heading);
+      font-size: 1.15rem;
+      margin-bottom: 6px;
+      color: #fff;
+    }
+    .step-text p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    /* CTA BOX */
+    .cta-box {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(16, 185, 129, 0.05));
+      border: 1px solid var(--border-accent);
+      border-radius: 24px;
+      padding: 60px 40px;
+      text-align: center;
+      margin: 40px 0 80px;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-box h2 {
+      font-family: var(--font-heading);
+      font-size: 2.3rem;
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+    .cta-box p {
+      color: var(--text-muted);
+      max-width: 620px;
+      margin: 0 auto 32px;
+      font-size: 1.1rem;
+    }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 768px) {
+      h1 { font-size: 2.2rem; }
+      .hero-buttons { flex-direction: column; }
+      .proof-grid { flex-direction: column; gap: 16px; }
+      .step-card { flex-direction: column; gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="wrap header-inner">
+      <a href="../" class="brand">
+        MCT Automatiza
+        <span class="brand-tag">DocOps Contábil</span>
+      </a>
+      <div>
+        <a href="https://wa.me/554988447562?text=Olá,%20gostaria%20de%20conhecer%20o%20MCT%20DocOps%20para%20meu%20escritório%20contábil" class="btn btn-primary" target="_blank" rel="noreferrer">
+          Falar com Especialista
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO SECTION -->
+  <section class="hero">
+    <div class="hero-glow"></div>
+    <div class="wrap hero-content">
+      <div class="pill">
+        <span class="dot"></span>
+        BLINDAGEM FISCAL & COLETA INTELIGENTE PARA ESCRITÓRIOS CONTÁBEIS
+      </div>
+      <h1>O fim do estresse do <span>Fechamento Fiscal</span> no seu escritório.</h1>
+      <p class="hero-lead">
+        Seus clientes enviam extratos, notas e comprovantes direto pelo WhatsApp. Nosso sistema confere a documentação na hora, cobra pendências educadamente e entrega tudo organizado por mês antes do prazo da DCTF e do Simples.
+      </p>
+      <div class="hero-buttons">
+        <a href="https://wa.me/554988447562?text=Quero%20proteger%20meu%20escritório%20contábil%20contra%20atrasos%20de%20documentos" class="btn btn-primary" target="_blank" rel="noreferrer">
+          Quero Blindar Meu Escritório Agora
+        </a>
+        <a href="#custo-esquecimento" class="btn btn-secondary">
+          Ver o Custo do Esquecimento
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROOF METRICS BAR -->
+  <section class="proof-bar">
+    <div class="wrap proof-grid">
+      <div class="proof-item">
+        <strong>Zero Cobrança Manual</strong>
+        <span>Avisos amigáveis aos clientes com pendências</span>
+      </div>
+      <div class="proof-item">
+        <strong>100% no WhatsApp</strong>
+        <span>O cliente não precisa instalar nem decorar login</span>
+      </div>
+      <div class="proof-item">
+        <strong>Zero Multas de Atraso</strong>
+        <span>Documentação conferida dias antes do vencimento</span>
+      </div>
+      <div class="proof-item">
+        <strong>Entrega Pronta</strong>
+        <span>Arquivos organizados por cliente e competência</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- O PROBLEMA (A DOR REAL DO ESCRITÓRIO) -->
+  <section class="section" id="custo-esquecimento">
+    <div class="wrap">
+      <h2 class="section-title">O custo real de clientes que esquecem documentos</h2>
+      <p class="section-sub">Você já calculou quanto tempo sua equipe perde caçando notas e extratos, e o prejuízo de entregar declarações fora do prazo?</p>
+      
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-icon">💸</div>
+          <h3>Multas Pesadas por Atraso</h3>
+          <p>O atraso no envio de declarações obrigatórias (DCTF, EFD-Reinf, PGDAS, Sped) gera autuações a partir de R$ 500 por empresa. No fim do ano, o rombo no caixa é enorme.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🚫</div>
+          <h3>Bloqueio de CND e Simples</h3>
+          <p>Basta uma guia não declarada a tempo para a Certidão Negativa (CND) travar financiamentos do seu cliente ou gerar desenquadramento fiscal — e a culpa sempre cai na contabilidade.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">⏳</div>
+          <h3>Equipe Sobrecarregada</h3>
+          <p>Analistas fiscais qualificados perdem 60% do dia implorando por extratos bancários no WhatsApp pessoal em vez de fazer consultoria ou atrair novos clientes.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DEMONSTRAÇÃO VISUAL / MONITORAMENTO -->
+  <section class="section" style="background: rgba(255, 255, 255, 0.01); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="wrap">
+      <h2 class="section-title">Painel de Conformidade de Clientes em Tempo Real</h2>
+      <p class="section-sub">Veja como a diretoria do seu escritório enxerga o fechamento fiscal do mês com clareza absoluta:</p>
+
+      <div class="demo-window">
+        <div class="demo-bar">
+          <div class="demo-dots">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="demo-title">MCT DocOps • Acompanhamento de Fechamento Fiscal — Competência Atual</div>
+          <div style="font-size: 0.75rem; color: #34D399; font-family: var(--font-mono);">● MONITORAMENTO ATIVO • FECHAMENTO EM DIA</div>
+        </div>
+        <div class="demo-body">
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>EMPRESA / CLIENTE</th>
+                  <th>REGIME TRIBUTÁRIO</th>
+                  <th>DOCUMENTOS AUDITADOS</th>
+                  <th>STATUS DO FECHAMENTO</th>
+                  <th>SITUAÇÃO</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Transportadora Sul Log Ltda</strong></td>
+                  <td>Lucro Presumido</td>
+                  <td>Extrato Bancário + NF-e + Folha</td>
+                  <td>100% Entregue e Conferido</td>
+                  <td><span class="badge badge-green">🟢 PRONTO PARA ESCRITURAR</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Clínica Médica São Lucas</strong></td>
+                  <td>Simples Nacional</td>
+                  <td>NF-e de Serviços + Comprovantes</td>
+                  <td>Falta Extrato Bancário</td>
+                  <td><span class="badge badge-yellow">🟡 COBRANÇA AUTOMÁTICA ENVIADA</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Distribuidora Oeste Alimentos</strong></td>
+                  <td>Lucro Real</td>
+                  <td>Sped Fiscal + Guia FGTS</td>
+                  <td>Vencimento em 48h</td>
+                  <td><span class="badge badge-red">🔴 PENDÊNCIA CRÍTICA NOTIFICADA</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMO FUNCIONA NA PRÁTICA -->
+  <section class="section">
+    <div class="wrap">
+      <h2 class="section-title">Como funciona na rotina do seu escritório?</h2>
+      <p class="section-sub">Zero complicação. Seus clientes e sua equipe continuam no WhatsApp que já conhecem.</p>
+
+      <div style="max-width: 760px; margin: 0 auto;">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-text">
+            <h4>Envio sem Senhas nem Portais</h4>
+            <p>O cliente envia o PDF do extrato bancário ou a foto da nota fiscal diretamente no WhatsApp oficial do seu escritório.</p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-text">
+            <h4>Validação Imediata</h4>
+            <p>O sistema confere na hora se o documento está legível, se o CNPJ confere e se pertence ao mês correto. Se estiver ilegível, avisa na hora.</p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-text">
+            <h4>Avisos Educados de Faltantes</h4>
+            <p>Quem estiver devendo documento recebe um lembrete automático e cordial no WhatsApp com a lista exata do que falta entregar.</p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <div class="step-text">
+            <h4>Tudo Separado por Cliente e Mês</h4>
+            <p>No dia do fechamento, seus contadores encontram os documentos organizados por pastas, prontos para escriturar no seu sistema contábil.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA BOX -->
+  <section class="wrap">
+    <div class="cta-box">
+      <h2>Pronto para zerar o atraso de documentos no seu escritório?</h2>
+      <p>Implantação rápida e sem atrito. Blindamos seus fechamentos fiscais e ativamos a central inteligente no WhatsApp do seu escritório.</p>
+      <a href="https://wa.me/554988447562?text=Olá,%20quero%20blindar%20o%20fechamento%20fiscal%20do%20meu%20escritório%20contábil" class="btn btn-primary" target="_blank" rel="noreferrer" style="font-size: 1.1rem; padding: 14px 28px;">
+        Falar com Especialista no WhatsApp
+      </a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="wrap">
+      <p><strong>MCT Automações de Processos</strong> • Poder invisível, simplicidade visível • Chapecó, SC</p>
+      <p style="margin-top: 8px; font-size: 0.8rem; color: #64748B;">Blindagem operacional e gestão inteligente para Contabilidade, Obras e PMEs</p>
+    </div>
+  </footer>
+
+</body>
+</html>
