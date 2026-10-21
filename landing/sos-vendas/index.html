@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SOS Vendas — CRM comercial para WhatsApp com apoio de IA e Pix</title>
+  <meta name="description" content="Organize conversas comerciais, equipe e follow-ups no WhatsApp, com IA supervisionada e modelos de mensagens para adaptar ao seu negócio.">
+  <meta name="theme-color" content="#071B1A">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SOS Vendas">
+  <meta property="og:title" content="SOS Vendas — CRM comercial para WhatsApp com apoio de IA e Pix">
+  <meta property="og:description" content="Pare de perder vendas por falta de acompanhamento. Dê contexto, responsável, próximo passo e receba no Pix em cada conversa de WhatsApp.">
+  <meta property="og:image" content="../assets/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+  <header class="site-header" id="topo">
+    <div class="wrap nav-container">
+      <a href="/" class="brand-link" aria-label="MCT Hub — início" style="display: flex; align-items: center; gap: 10px;">
+        <img src="../assets/logo.svg" alt="SOS Vendas" class="brand-logo-img">
+      </a>
+      <nav class="desktop-nav" aria-label="Navegação principal">
+        <a href="/" style="color: #10B981; font-weight: 700;">← Hub MCT</a>
+        <a href="/contabil/" style="color: #38BDF8; font-weight: 600;">📊 Contábil</a>
+        <a href="/obras/" style="color: #F59E0B; font-weight: 600;">👷 Obras</a>
+        <a href="#problema">O que resolve</a>
+        <a href="#como-funciona">Como funciona</a>
+        <a href="#comecar">Planos</a>
+        <a href="#faq">Dúvidas</a>
+      </nav>
+      <div class="nav-actions">
+        <a href="https://chat.automatizaprocessos.tech" class="login-link" target="_blank" rel="noreferrer">Entrar no Cockpit</a>
+        <a href="#comecar" class="button button-primary button-sm" data-track="nav_primary">Começar Agora</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="conteudo">
+    <!-- HERO SECTION -->
+    <section class="hero">
+      <div class="hero-orb hero-orb-one" aria-hidden="true"></div>
+      <div class="hero-orb hero-orb-two" aria-hidden="true"></div>
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <div class="eyebrow-chip">
+            <span class="status-dot" aria-hidden="true"></span>
+            VENDAS ORGANIZADAS NO WHATSAPP COM COBRANÇA VIA PIX
+          </div>
+          <h1>Pare de perder vendas no WhatsApp por falta de <span>acompanhamento.</span></h1>
+          <p class="hero-lead">
+            O <strong>SOS Vendas</strong> reúne conversas, oportunidades, apoio de IA e cobrança via Pix em um só lugar, para sua equipe acompanhar cada negociação até o próximo passo.
+          </p>
+          <div class="hero-actions">
+            <a href="#comecar" class="button button-primary button-lg" data-track="hero_primary">
+              Quero Organizar Minhas Vendas
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <a href="#demonstracao" class="button button-ghost button-lg" data-track="hero_demo">
+              Ver Como Funciona <span class="button-time">2 min</span>
+            </a>
+          </div>
+          <p class="hero-microcopy">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+            Implantação acompanhada • Planos cobrados em reais • Pix Copia e Cola
+          </p>
+        </div>
+
+        <!-- HERO INTERACTIVE PRODUCT PREVIEW -->
+        <div class="hero-product" aria-label="Visão ilustrativa do cockpit SOS Vendas">
+          <div class="product-window">
+            <div class="product-bar">
+              <div class="window-controls" aria-hidden="true"><span></span><span></span><span></span></div>
+              <div class="product-title">SOS Vendas — Cockpit Comercial</div>
+              <div class="live-state"><span></span> WhatsApp Conectado</div>
+            </div>
+            <div class="product-layout">
+              <aside class="conversation-list" aria-label="Fila de prioridades">
+                <div class="panel-label">OPORTUNIDADES ATIVAS <strong>3</strong></div>
+                <button class="conversation active" type="button">
+                  <span class="avatar avatar-green">M</span>
+                  <span class="conversation-info">
+                    <strong>Mariana Costa</strong>
+                    <small>Pediu chave Pix do pedido</small>
+                  </span>
+                  <span class="conversation-time">12 min</span>
+                </button>
+                <button class="conversation" type="button">
+                  <span class="avatar avatar-blue">R</span>
+                  <span class="conversation-info">
+                    <strong>Rafael Lima</strong>
+                    <small>Interesse: Orçamento Tratamento</small>
+                  </span>
+                  <span class="conversation-time">28 min</span>
+                </button>
+                <button class="conversation" type="button">
+                  <span class="avatar avatar-amber">A</span>
+                  <span class="conversation-info">
+                    <strong>Ana Martins</strong>
+                    <small>Follow-up de proposta agendado</small>
+                  </span>
+                  <span class="conversation-time">Hoje</span>
+                </button>
+              </aside>
+              <div class="conversation-main">
+                <div class="conversation-header">
+                  <div>
+                    <strong>Mariana Costa</strong>
+                    <small>Item: Plano Odonto Premium • R$ 380,00</small>
+                  </div>
+                  <span class="owner-chip">Responsável: Amanda</span>
+                </div>
+                <div class="chat-preview">
+                  <div class="message inbound">Perfeito! Pode me passar o Pix Copia e Cola para eu já fazer o pagamento agora?</div>
+                  <div class="context-card">
+                    <div class="context-topline">
+                      <span>IA COMERCIAL NATIVA</span>
+                      <strong>Cobrança Pix Pronta</strong>
+                    </div>
+                    <h3>Gerar e Enviar Pix Instantâneo</h3>
+                    <p>Cobrança Pix pronta para revisão e envio na conversa. A confirmação do pagamento aparece no painel.</p>
+                    <div class="context-actions">
+                      <button type="button">Editar Valor</button>
+                      <button type="button" class="approve">Enviar Pix no Chat</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="composer-preview">
+                  <span>Escreva uma resposta ou use um modelo pronto…</span>
+                  <button type="button" aria-label="Enviar mensagem"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="floating-proof proof-priority">
+            <span class="proof-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5l3 2"/><circle cx="12" cy="12" r="9"/></svg></span>
+            <span><small>Pagamento com confirmação</small><strong>Pix Copia e Cola no Chat</strong></span>
+          </div>
+          <div class="floating-proof proof-next">
+            <span class="proof-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>
+            <span><small>Biblioteca de Mensagens</small><strong>Modelos para sua operação</strong></span>
+          </div>
+          <p class="illustration-note">Exemplo ilustrativo da experiência de atendimento no SOS Vendas.</p>
+        </div>
+      </div>
+
+      <!-- TRUST STRIP -->
+      <div class="wrap trust-strip" aria-label="Diferenciais Soberanos do SOS Vendas">
+        <div><strong>01</strong><span><b>Pix integrado</b> com confirmação do provedor</span></div>
+        <div><strong>02</strong><span><b>Modelos prontos</b> para adaptar ao seu negócio</span></div>
+        <div><strong>03</strong><span><b>Mensagens por categoria</b> conforme classificação do canal</span></div>
+        <div><strong>04</strong><span><b>IA supervisionada</b> com regras de atendimento</span></div>
+      </div>
+    </section>
+
+    <!-- SEÇÃO HUB DE SOLUÇÕES ESPECÍFICAS MCT -->
+    <section class="section" id="solucoes-mct" style="background: rgba(14, 22, 38, 0.65); border-top: 1px solid rgba(255,255,255,0.08); border-bottom: 1px solid rgba(255,255,255,0.08); padding: 75px 0;">
+      <div class="wrap">
+        <div style="text-align: center; max-width: 820px; margin: 0 auto 50px;">
+          <div style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 100px; color: #7DD3FC; font-size: 0.85rem; font-weight: 700; margin-bottom: 16px;">
+            ECOSSISTEMA MCT • TECNOLOGIA APLICADA AO SEU NEGÓCIO
+          </div>
+          <h2 style="font-family: var(--font-heading); font-size: 2.35rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 16px;">
+            Elimine o custo de documentos esquecidos, multas e vendas perdidas.
+          </h2>
+          <p style="color: var(--text-muted); font-size: 1.15rem; line-height: 1.6;">
+            Soluções sob medida para resolver a dor exata da sua empresa. Sem sistemas complicados: tudo funciona direto no WhatsApp que sua equipe e seus clientes já usam todos os dias.
+          </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
+          
+          <!-- CARD 1: CONTABILIDADE -->
+          <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 16px; padding: 32px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                <span style="font-size: 2rem;">📊</span>
+                <span style="background: rgba(56, 189, 248, 0.15); color: #38BDF8; font-size: 0.75rem; padding: 4px 10px; border-radius: 6px; font-weight: 700;">CONTABILIDADE & BPO</span>
+              </div>
+              <h3 style="font-family: var(--font-heading); font-size: 1.35rem; margin-bottom: 12px; color: #fff;">Fim do Pesadelo do Fechamento Fiscal</h3>
+              <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 20px;">
+                Seus clientes enviam extratos bancários e notas fiscais pelo WhatsApp. Nosso sistema confere tudo na hora, cobra educadamente quem está devendo e entrega os arquivos separados por cliente e mês antes do prazo da DCTF e do Simples.
+              </p>
+              <div style="background: rgba(244, 63, 94, 0.1); border-left: 3px solid #F43F5E; padding: 10px 14px; border-radius: 4px; margin-bottom: 24px;">
+                <strong style="color: #FDA4AF; font-size: 0.85rem; display: block;">O que você evita:</strong>
+                <span style="color: #CBD5E1; font-size: 0.85rem;">Multas pesadas por atraso de declarações, bloqueio de CND do cliente e dezenas de horas caçando extratos no WhatsApp.</span>
+              </div>
+            </div>
+            <a href="/contabil/" class="button button-primary" style="width: 100%; text-align: center; justify-content: center; background: linear-gradient(135deg, #38BDF8, #0284C7); color: #03132B; font-weight: 700;">
+              Ver Solução para Contabilidade →
+            </a>
+          </div>
+
+          <!-- CARD 2: OBRAS & CONSTRUTORAS -->
+          <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 16px; padding: 32px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                <span style="font-size: 2rem;">👷</span>
+                <span style="background: rgba(245, 158, 11, 0.15); color: #F59E0B; font-size: 0.75rem; padding: 4px 10px; border-radius: 6px; font-weight: 700;">CONSTRUTORAS & INDÚSTRIA</span>
+              </div>
+              <h3 style="font-family: var(--font-heading); font-size: 1.35rem; margin-bottom: 12px; color: #fff;">Semáforo de Portaria & Blindagem de Obras</h3>
+              <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 20px;">
+                O encarregado tira foto do ASO ou NR pelo WhatsApp. O sistema audita os exames e envia alertas automáticos 30 dias antes de qualquer documento vencer. Semáforo em tempo real antes de sair para o canteiro.
+              </p>
+              <div style="background: rgba(244, 63, 94, 0.1); border-left: 3px solid #F43F5E; padding: 10px 14px; border-radius: 4px; margin-bottom: 24px;">
+                <strong style="color: #FDA4AF; font-size: 0.85rem; display: block;">O que você evita:</strong>
+                <span style="color: #CBD5E1; font-size: 0.85rem;">Caminhão com equipe inteira barrada na guarita (R$ 3.000 a R$ 5.000/dia perdidos) e autuações do Ministério do Trabalho.</span>
+              </div>
+            </div>
+            <a href="/obras/" class="button button-primary" style="width: 100%; text-align: center; justify-content: center; background: linear-gradient(135deg, #F59E0B, #D97706); color: #000; font-weight: 700;">
+              Ver Solução para Construtoras →
+            </a>
+          </div>
+
+          <!-- CARD 3: COMÉRCIO, VAREJO & PMEs -->
+          <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 16px; padding: 32px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                <span style="font-size: 2rem;">⚡</span>
+                <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; font-size: 0.75rem; padding: 4px 10px; border-radius: 6px; font-weight: 700;">COMÉRCIO, VAREJO & PMEs</span>
+              </div>
+              <h3 style="font-family: var(--font-heading); font-size: 1.35rem; margin-bottom: 12px; color: #fff;">Atendimento organizado e cobrança via Pix</h3>
+              <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 20px;">
+                Organize o atendimento no WhatsApp com informações do seu catálogo e permita que a equipe envie a cobrança Pix quando o cliente decidir comprar.
+              </p>
+              <div style="background: rgba(244, 63, 94, 0.1); border-left: 3px solid #F43F5E; padding: 10px 14px; border-radius: 4px; margin-bottom: 24px;">
+                <strong style="color: #FDA4AF; font-size: 0.85rem; display: block;">O que você evita:</strong>
+                <span style="color: #CBD5E1; font-size: 0.85rem;">Perder vendas para a concorrência por demora de resposta e esquecimento de follow-up pós-orçamento.</span>
+              </div>
+            </div>
+            <a href="#problema" class="button button-primary" style="width: 100%; text-align: center; justify-content: center; background: linear-gradient(135deg, #10B981, #059669); color: #fff; font-weight: 700;">
+              Ver Solução SOS Vendas PMEs →
+            </a>
+          </div>
+
+        </div>
+
+        <!-- OUTROS NICHOS ATENDIDOS (CLÍNICAS, ESTÉTICA, SALÕES, LIVE COMMERCE) -->
+        <div style="margin-top: 36px; padding: 24px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+          <div>
+            <strong style="display: block; color: #fff; font-size: 1.05rem; margin-bottom: 4px;">Também atendemos Clínicas, Salões de Beleza e Live Commerce</strong>
+            <span style="color: var(--text-muted); font-size: 0.9rem;">Redução drástica de no-show (faltas) com confirmação inteligente e gestão de pedidos em transmissões ao vivo.</span>
+          </div>
+          <a href="https://wa.me/554988447562?text=Olá,%20tenho%20outro%20tipo%20de%20negócio%20e%20gostaria%20de%20uma%20solução%20sob%20medida" target="_blank" rel="noreferrer" class="button button-ghost" style="padding: 10px 20px; font-size: 0.9rem;">
+            Falar com Especialista para meu Negócio →
+          </a>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- PROBLEM SECTION -->
+    <section class="problem-section" id="problema">
+      <div class="wrap">
+        <div class="section-intro split-intro">
+          <div>
+            <p class="section-kicker">O vazamento silencioso</p>
+            <h2>O WhatsApp recebe o cliente. Mas quem mantém a venda em movimento?</h2>
+          </div>
+          <p>O maior gargalo das empresas brasileiras não é falta de leads. É a falta de processo comercial estruturado para responder rápido, cobrar com Pix e fazer o follow-up no prazo.</p>
+        </div>
+        <div class="problem-grid">
+          <article class="problem-card">
+            <div class="card-number">01</div>
+            <div class="problem-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 10h8M8 14h5"/><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"/></svg></div>
+            <h3>O cliente pediu Pix e a conversa esfriou.</h3>
+            <p>Se o atendente demora para gerar o código ou manda um link de checkout lento, a compra é abandonada na hora.</p>
+            <span class="problem-result">O SOS Vendas gera o Pix Copia e Cola dentro do chat.</span>
+          </article>
+          <article class="problem-card featured-problem">
+            <div class="card-number">02</div>
+            <div class="problem-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7"/><circle cx="18" cy="17" r="3"/></svg></div>
+            <h3>O atendimento perdeu o contexto e o histórico.</h3>
+            <p>Preços combinados, preferências e regras ficam espalhados no celular pessoal de funcionários e se perdem.</p>
+            <span class="problem-result">Dossiê comercial completo e unificado por contato.</span>
+          </article>
+          <article class="problem-card">
+            <div class="card-number">03</div>
+            <div class="problem-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4M16 2v4M3 10h18"/><rect x="3" y="4" width="18" height="17" rx="2"/><path d="m8 15 2 2 5-5"/></svg></div>
+            <h3>Follow-ups esquecidos e leads abandonados.</h3>
+            <p>Sem responsável claro e prazo de retorno, oportunidades podem esfriar e se perder.</p>
+            <span class="problem-result">Cada conversa tem atendente responsável e alerta de prazo.</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- DIAGNOSIS SECTION -->
+    <section class="diagnosis-section" aria-labelledby="diagnostico-titulo">
+      <div class="wrap diagnosis-shell">
+        <div class="diagnosis-copy">
+          <p class="section-kicker light">Autodiagnóstico rápido</p>
+          <h2 id="diagnostico-titulo">Onde sua operação perde dinheiro hoje no WhatsApp?</h2>
+          <p>Marque os pontos que acontecem na sua empresa para identificar onde o SOS Vendas pode apoiar a operação:</p>
+          <div class="diagnosis-result" aria-live="polite">
+            <strong id="diagnosis-count">Nenhum ponto marcado</strong>
+            <span id="diagnosis-message">Escolha uma ou mais situações para montar seu diagnóstico.</span>
+          </div>
+        </div>
+        <div class="diagnosis-checklist" id="diagnosis-checklist">
+          <label class="diagnosis-option"><input type="checkbox" value="Leads aguardam horas por resposta inicial"><span class="custom-check" aria-hidden="true"></span><span>Leads aguardam horas por resposta inicial</span></label>
+          <label class="diagnosis-option"><input type="checkbox" value="Demora para gerar cobrança Pix e o cliente desiste"><span class="custom-check" aria-hidden="true"></span><span>Demora para gerar cobrança Pix e o cliente desiste</span></label>
+          <label class="diagnosis-option"><input type="checkbox" value="Follow-ups dependem da memória dos vendedores"><span class="custom-check" aria-hidden="true"></span><span>Follow-ups dependem da memória dos vendedores</span></label>
+          <label class="diagnosis-option"><input type="checkbox" value="Não sabemos o valor total de vendas paradas no WhatsApp"><span class="custom-check" aria-hidden="true"></span><span>Não sabemos o valor total de vendas paradas no WhatsApp</span></label>
+          <label class="diagnosis-option"><input type="checkbox" value="Campanhas pelo WhatsApp que dão pouco retorno"><span class="custom-check" aria-hidden="true"></span><span>Campanhas pelo WhatsApp que dão pouco retorno</span></label>
+          <a id="diagnosis-cta" class="button button-light button-lg disabled" href="#comecar" data-track="diagnosis_cta">
+            Organizar Minha Operação Agora
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROCESS SECTION -->
+    <section class="process-section" id="como-funciona">
+      <div class="wrap">
+        <div class="section-intro centered">
+          <p class="section-kicker">Metodologia de Vendas Soberana</p>
+          <h2>Um fluxo comercial do primeiro contato ao acompanhamento da venda.</h2>
+          <p>O SOS Vendas ajuda sua equipe a conduzir conversas com contexto, responsáveis e próximos passos definidos.</p>
+        </div>
+        <div class="process-flow">
+          <article class="process-step">
+            <span class="step-index">01</span>
+            <div class="step-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"/></svg></div>
+            <h3>Entrada & Qualificação</h3>
+            <p>Seja por anúncio, indicação ou base, o contato é identificado com histórico e origem.</p>
+          </article>
+          <div class="flow-arrow" aria-hidden="true">→</div>
+          <article class="process-step">
+            <span class="step-index">02</span>
+            <div class="step-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 9h8M8 13h5"/></svg></div>
+            <h3>IA Factual & Catálogo</h3>
+            <p>A IA apoia a equipe com dados reais do seu catálogo, sem inventar preços nem prazos.</p>
+          </article>
+          <div class="flow-arrow" aria-hidden="true">→</div>
+          <article class="process-step">
+            <span class="step-index">03</span>
+            <div class="step-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></div>
+            <h3>Fechamento no Pix</h3>
+            <p>Envie uma cobrança Pix na conversa e acompanhe a confirmação do pagamento no painel.</p>
+          </article>
+          <div class="flow-arrow" aria-hidden="true">→</div>
+          <article class="process-step">
+            <span class="step-index">04</span>
+            <div class="step-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-8M22 19H2"/></svg></div>
+            <h3>Pipeline & Follow-up</h3>
+            <p>Oportunidade movimentada no funil, calculando receita e prevenindo perda de clientes.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- DEMO INTERACTIVE SECTION -->
+    <section class="demo-section" id="demonstracao">
+      <div class="wrap demo-grid">
+        <div class="demo-copy">
+          <p class="section-kicker">Demonstração Interativa</p>
+          <h2>Veja uma venda sendo conduzida até o recebimento.</h2>
+          <p>Navegue por um exemplo de atendimento e veja como a equipe pode organizar cada etapa da conversa:</p>
+          <div class="demo-tabs" role="tablist" aria-label="Etapas da demonstração">
+            <button id="tab-entrada" class="demo-tab active" role="tab" aria-selected="true" aria-controls="panel-entrada" data-demo="entrada">
+              <span>01</span>
+              <span><strong>Entrada do Lead</strong><small>Origem e canal identificado</small></span>
+            </button>
+            <button id="tab-prioridade" class="demo-tab" role="tab" aria-selected="false" aria-controls="panel-prioridade" data-demo="prioridade">
+              <span>02</span>
+              <span><strong>IA Factual</strong><small>Sugestão com base no catálogo</small></span>
+            </button>
+            <button id="tab-proxima" class="demo-tab" role="tab" aria-selected="false" aria-controls="panel-proxima" data-demo="proxima">
+              <span>03</span>
+              <span><strong>Cobrança Pix</strong><small>Copia e Cola no balão de chat</small></span>
+            </button>
+            <button id="tab-desfecho" class="demo-tab" role="tab" aria-selected="false" aria-controls="panel-desfecho" data-demo="desfecho">
+              <span>04</span>
+              <span><strong>Venda Ganha</strong><small>Receita acumulada no funil</small></span>
+            </button>
+          </div>
+        </div>
+        <div class="demo-stage">
+          <div id="panel-entrada" class="demo-panel active" role="tabpanel" aria-labelledby="tab-entrada" tabindex="0">
+            <div class="demo-screen">
+              <div class="demo-screen-head"><span>Exemplo demonstrativo</span><span class="demo-status">Dados fictícios</span></div>
+              <div class="demo-bubble">Olá! Vi o anúncio de vocês no Instagram e gostaria de saber se vocês têm horário para quinta-feira e qual o valor.</div>
+              <div class="demo-data">
+                <div><small>ORIGEM</small><strong>Anúncio para WhatsApp</strong></div>
+                <div><small>INTERESSE</small><strong>Avaliação Completa</strong></div>
+                <div><small>COBRANÇA</small><strong>Consulte as regras do canal</strong></div>
+              </div>
+            </div>
+          </div>
+          <div id="panel-prioridade" class="demo-panel" role="tabpanel" aria-labelledby="tab-prioridade" tabindex="0" hidden>
+            <div class="demo-screen">
+              <div class="demo-screen-head"><span>Sugestão de Resposta IA</span><span class="demo-status amber">Exemplo com catálogo</span></div>
+              <div class="priority-row"><span class="priority-rank">1</span><span><strong>Produto Identificado</strong><small>Avaliação Especializada • R$ 150,00</small></span><b>Confirmado</b></div>
+              <div class="priority-row"><span class="priority-rank muted">2</span><span><strong>Solicitação de agendamento</strong><small>Horário depende da agenda conectada ou confirmação da equipe</small></span><b>A confirmar</b></div>
+              <div class="priority-row"><span class="priority-rank muted">3</span><span><strong>Controle Humano</strong><small>Atendente revisa antes de enviar</small></span><b>Revisão ativa</b></div>
+            </div>
+          </div>
+          <div id="panel-proxima" class="demo-panel" role="tabpanel" aria-labelledby="tab-proxima" tabindex="0" hidden>
+            <div class="demo-screen">
+              <div class="demo-screen-head"><span>Exemplo de cobrança Pix</span><span class="demo-status">Requer gateway conectado</span></div>
+              <div class="next-action-card">
+                <small>PIX COPIA E COLA GERADO</small>
+                <h3>00020126580014br.gov.bcb.pix0136...5204000053039865405150.00</h3>
+                <div class="action-meta">
+                  <span><small>VALOR</small><strong>R$ 150,00</strong></span>
+                  <span><small>BAIXA</small><strong>Após confirmação do provedor</strong></span>
+                </div>
+                <button type="button">Copiar e Enviar no Chat</button>
+              </div>
+            </div>
+          </div>
+          <div id="panel-desfecho" class="demo-panel" role="tabpanel" aria-labelledby="tab-desfecho" tabindex="0" hidden>
+            <div class="demo-screen">
+              <div class="demo-screen-head"><span>Exemplo de resultado comercial</span><span class="demo-status">Dados demonstrativos</span></div>
+              <div class="outcome-card">
+                <div class="outcome-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></div>
+                <h3>Pagamento Pix Confirmado</h3>
+                <p>Em uma operação configurada, a equipe pode atualizar a oportunidade após a confirmação financeira e registrar o resultado. Webhooks e próximos passos dependem de integração conectada.</p>
+                <div class="outcome-summary">
+                  <span><small>RECEITA</small><strong>R$ 150,00</strong></span>
+                  <span><small>TEMPO</small><strong>Exemplo</strong></span>
+                  <span><small>STATUS</small><strong>Conciliado</strong></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CAPABILITIES SECTION (OS 8 MOTORES) -->
+    <section class="capabilities-section" id="recursos">
+      <div class="wrap">
+        <div class="section-intro centered compact">
+          <p class="section-kicker">Poder Invisível. Simplicidade Visível.</p>
+          <h2>Recursos para organizar as vendas no WhatsApp</h2>
+        </div>
+        <div class="capabilities-grid">
+          <article class="capability-card">
+            <div class="capability-visual context-visual" aria-hidden="true">
+              <div><small>PIX INTEGRADO</small><strong>Cobrança na conversa</strong></div>
+              <div><small>CONCILIAÇÃO</small><strong>Baixa em tempo real</strong></div>
+              <div><small>ATRIBUTO</small><strong>Sem redirecionar para link externo</strong></div>
+            </div>
+            <div class="capability-copy">
+              <span class="capability-index">01</span>
+              <h3>Cobrança Pix integrada</h3>
+              <p>Com a cobrança configurada, prepare o Pix Copia e Cola e o QR Code para o cliente. O sistema só registra pagamento após confirmação do provedor.</p>
+            </div>
+          </article>
+
+          <article class="capability-card">
+            <div class="capability-visual attention-visual" aria-hidden="true">
+              <span class="attention-line active"><i></i><b>WhatsApp conectado</b><em>Conforme configuração</em></span>
+              <span class="attention-line"><i></i><b>Mensagens organizadas</b><em>Em um só lugar</em></span>
+              <span class="attention-line"><i></i><b>Regras do canal</b><em>Respeitadas no envio</em></span>
+            </div>
+            <div class="capability-copy">
+              <span class="capability-index">02</span>
+              <h3>Conexão com canais WhatsApp</h3>
+              <p>Centralize as conversas da equipe e envie mensagens conforme as permissões e regras aplicáveis ao seu canal.</p>
+            </div>
+          </article>
+
+          <article class="capability-card">
+            <div class="capability-visual action-visual" aria-hidden="true">
+              <small>IA COMERCIAL</small><strong>Respostas com base nas informações da empresa</strong>
+              <div><span>Catálogo</span><span>Regras aprovadas</span></div>
+              <i></i>
+            </div>
+            <div class="capability-copy">
+              <span class="capability-index">03</span>
+              <h3>IA orientada por informações cadastradas</h3>
+              <p>Respostas baseadas estritamente no seu catálogo de produtos e documentos. Se a IA não souber, ela passa para o atendente humano com transparência.</p>
+            </div>
+          </article>
+
+          <article class="capability-card">
+            <div class="capability-visual context-visual" aria-hidden="true">
+              <div><small>MENSAGENS</small><strong>Confirmações e atualizações</strong></div>
+              <div><small>ENVIO</small><strong>Conforme regras do canal</strong></div>
+              <div><small>MENSAGENS</small><strong>Preparadas para revisão</strong></div>
+            </div>
+            <div class="capability-copy">
+              <span class="capability-index">04</span>
+              <h3>Mensagens de acompanhamento</h3>
+              <p>Prepare confirmações e atualizações para envio como mensagens de utilidade, conforme as regras e tarifas vigentes do canal conectado.</p>
+            </div>
+          </article>
+
+          <article class="capability-card">
+            <div class="capability-visual attention-visual" aria-hidden="true">
+              <span class="attention-line active"><i></i><b>Anúncio para WhatsApp</b><em>Origem do contato</em></span>
+              <span class="attention-line"><i></i><b>Contato organizado</b><em>Histórico disponível</em></span>
+              <span class="attention-line"><i></i><b>Regras de envio</b><em>Seguidas pela equipe</em></span>
+            </div>
+            <div class="capability-copy">
+              <span class="capability-index">05</span>
+              <h3>Acompanhe contatos vindos de anúncios</h3>
+              <p>Quando disponível, identifique a origem do contato e acompanhe a conversa junto das demais oportunidades.</p>
+            </div>
+          </article>
+
+          <article class="capability-card">
+            <div class="capability-visual action-visual" aria-hidden="true">
+              <small>PIPELINE KANBAN</small><strong>Visão Comercial ao Vivo</strong>
+              <div><span>Amanda: 8 negociações</span><span>R$ 14.850 em jogo</span></div>
+              <i></i>
+            </div>
+            <div class="capability-copy">
+              <span class="capability-index">06</span>
+              <h3>Funil de Vendas com Valor Real</h3>
+              <p>Visualize suas oportunidades em colunas Kanban com cálculo automático de receita prevista e realizada. Chega de gerenciar clientes em planilhas.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- BANCO DE MODELOS CANÔNICOS SECTION -->
+    <section class="fit-section" id="modelos">
+      <div class="wrap">
+        <div class="fit-grid">
+          <div class="fit-copy">
+            <p class="section-kicker">Biblioteca de mensagens para WhatsApp</p>
+            <h2>Modelos de mensagem para adaptar ao seu negócio</h2>
+            <p>Use as mensagens como ponto de partida. Revise o conteúdo e as variáveis para o seu negócio; o envio depende do canal conectado e das aprovações aplicáveis.</p>
+            <div class="segment-tags" aria-label="Segmentos de modelos disponíveis">
+              <span>🛒 E-commerce</span>
+              <span>🏬 Lojas Físicas</span>
+              <span>🏥 Saúde & Clínicas</span>
+              <span>🦷 Odontologia</span>
+              <span>💇 Beleza & Estética</span>
+              <span>🏠 Imobiliárias</span>
+              <span>🎓 Cursos & Educação</span>
+              <span>🚗 Automotivo</span>
+              <span>🍔 Restaurantes & Delivery</span>
+              <span>🏋️ Academias</span>
+              <span>✈️ Viagens & Turismo</span>
+              <span>💼 Serviços em Geral</span>
+            </div>
+          </div>
+          <div class="fit-checks">
+            <h3>Uma base prática para sua equipe:</h3>
+            <ul class="check-list">
+              <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg><span><strong>Importação em 1-Clique:</strong> copie qualquer modelo para sua conta instantaneamente pelo Cockpit.</span></li>
+              <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg><span><strong>Prontos para adaptar:</strong> revise conteúdo e variáveis antes de enviar para aprovação do canal.</span></li>
+              <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg><span><strong>Variáveis Inteligentes:</strong> nome do cliente, produto, data e chave Pix embutidos automaticamente.</span></li>
+              <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg><span><strong>Dicas de adaptação:</strong> revise texto, variáveis e categoria antes de enviar o modelo para análise.</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- PREVIEWS REAIS DO BANCO DE MODELOS -->
+        <div class="template-previews-grid">
+          <article class="template-preview-card">
+            <div class="template-card-header">
+              <span class="template-badge utility">Utilidade · rascunho</span>
+              <span class="template-segment-label">🛒 Varejo & E-commerce</span>
+            </div>
+            <h4>Recuperação de Venda com Pix</h4>
+            <div class="template-bubble">
+              "Olá, <mark>{{1}}</mark>! Você ainda tem interesse no <mark>{{2}}</mark>? Se precisar, posso ajudar com as informações para concluir seu pedido: <mark>{{3}}</mark>."
+            </div>
+            <div class="template-card-footer">
+              <span>Aprovação do canal necessária</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </article>
+
+          <article class="template-preview-card">
+            <div class="template-card-header">
+              <span class="template-badge utility">Utilidade · rascunho</span>
+              <span class="template-segment-label">🏥 Saúde & Clínicas</span>
+            </div>
+            <h4>Confirmação Ativa de Consulta</h4>
+            <div class="template-bubble">
+              "Olá, <mark>{{1}}</mark>! Lembramos do seu horário amanhã às <mark>{{2}}</mark> na <mark>{{3}}</mark>. Por favor, responda 1 para confirmar ou 2 para reagendar seu atendimento."
+            </div>
+            <div class="template-card-footer">
+              <span>Revisar e enviar para análise</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </article>
+
+          <article class="template-preview-card">
+            <div class="template-card-header">
+              <span class="template-badge marketing">Marketing · rascunho</span>
+              <span class="template-segment-label">💼 Serviços & B2B</span>
+            </div>
+            <h4>Reativação com Chave Pix Direta</h4>
+            <div class="template-bubble">
+              "Olá, <mark>{{1}}</mark>! Liberamos uma condição especial para renovação do seu plano <mark>{{2}}</mark> até hoje com pagamento Pix facilitado. Deseja conferir os detalhes?"
+            </div>
+            <div class="template-card-footer">
+              <span>Fechamento no WhatsApp</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </article>
+        </div>
+
+        <div class="template-bank-cta">
+              <p>Encontre mensagens de referência para adaptar à linguagem e às regras da sua empresa.</p>
+          <a href="https://chat.automatizaprocessos.tech" target="_blank" rel="noreferrer" class="button button-primary button-sm">
+            Ver Banco Completo no Cockpit <span>→</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- IMPLEMENTATION SECTION -->
+    <section class="implementation-section" id="implantacao">
+      <div class="wrap">
+        <div class="section-intro centered">
+          <p class="section-kicker">Implementação sem Fricção</p>
+          <h2>Você não recebe só um sistema. Recebe uma operação pronta.</h2>
+          <p>Nossa equipe guia a configuração inicial para organizar o atendimento da sua empresa e configurar o WhatsApp.</p>
+        </div>
+        <ol class="implementation-steps">
+          <li>
+            <span>01</span>
+            <div>
+              <strong>Diagnóstico e Canal</strong>
+              <p>Ajudamos a conectar o WhatsApp de acordo com a opção compatível com sua conta.</p>
+            </div>
+          </li>
+          <li>
+            <span>02</span>
+            <div>
+              <strong>Catálogo & Gateway Pix</strong>
+              <p>Organizamos seu catálogo e configuramos as opções de cobrança disponíveis para sua operação.</p>
+            </div>
+          </li>
+          <li>
+            <span>03</span>
+            <div>
+              <strong>Modelos & Equipe</strong>
+              <p>Liberamos os templates do seu nicho e configuramos os acessos dos seus vendedores.</p>
+            </div>
+          </li>
+          <li>
+            <span>04</span>
+            <div>
+              <strong>Operação Lucrativa</strong>
+              <p>Acompanhamos as primeiras conversas para apoiar a equipe na configuração da rotina de atendimento.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- PRICING SECTION -->
+    <section class="offer-section" id="comecar">
+      <div class="wrap offer-shell">
+        <div class="offer-copy">
+          <p class="section-kicker light">Planos Transparentes em Reais (BRL)</p>
+          <h2>Planos em reais, com pagamento via Pix.</h2>
+          <p>Escolha seu plano e conclua o pagamento com segurança. Após a confirmação, nossa equipe envia as instruções para começar.</p>
+          <div class="offer-note">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
+            <span><strong>Prazo de garantia de 7 dias:</strong> consulte os termos para conhecer as condições.</span>
+          </div>
+        </div>
+        <div class="offer-card">
+          <div class="offer-card-head">
+            <span>SOS VENDAS</span>
+            <strong>Escolha seu Plano</strong>
+            <p>Acesso total ao cockpit comercial, funis, IA e cobrança Pix.</p>
+          </div>
+          <div class="payment-options">
+            <a href="https://app.abacatepay.com/pay/bill_qQ3rcNxF2122FDsHCRu3aB10" target="_blank" rel="noopener noreferrer" class="payment-option featured" data-track="checkout_pix_anual" data-plan="anual-pix">
+              <span class="option-radio"></span>
+              <span class="option-copy">
+                <small>PLANO ANUAL NO PIX · 10% OFF · MAIOR ECONOMIA</small>
+                <strong>R$ 1.080 à vista</strong>
+                <em>Equivale a apenas R$ 90,00/mês · Economia de R$ 120</em>
+              </span>
+              <span class="option-arrow">→</span>
+            </a>
+            <a href="mailto:contato@mct.com.br?subject=SOS%20Vendas%20-%20Pagamento%20por%20cart%C3%A3o%20anual" class="payment-option" data-track="contact_card_anual" data-plan="anual-card">
+              <span class="option-radio"></span>
+              <span class="option-copy">
+                <small>PRECISA PAGAR NO CARTÃO?</small>
+                <strong>Fale com nossa equipe</strong>
+                <em>Estamos validando a disponibilidade do cartão no checkout.</em>
+              </span>
+              <span class="option-arrow">→</span>
+            </a>
+            <a href="https://app.abacatepay.com/pay/bill_WzJrapmdkjPkz4yaswwcYqWC" target="_blank" rel="noopener noreferrer" class="payment-option" data-track="checkout_pix_semestral" data-plan="semestral-pix">
+              <span class="option-radio"></span>
+              <span class="option-copy">
+                <small>PLANO SEMESTRAL NO PIX · 5% OFF</small>
+                <strong>R$ 570 à vista</strong>
+                <em>Equivale a R$ 95,00/mês por 6 meses · Economia de R$ 30</em>
+              </span>
+              <span class="option-arrow">→</span>
+            </a>
+            <a href="mailto:contato@mct.com.br?subject=SOS%20Vendas%20-%20Pagamento%20por%20cart%C3%A3o%20semestral" class="payment-option" data-track="contact_card_semestral" data-plan="semestral-card">
+              <span class="option-radio"></span>
+              <span class="option-copy">
+                <small>PRECISA PAGAR NO CARTÃO?</small>
+                <strong>Fale com nossa equipe</strong>
+                <em>Estamos validando a disponibilidade do cartão no checkout.</em>
+              </span>
+              <span class="option-arrow">→</span>
+            </a>
+          </div>
+          <p class="secure-note">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            O pagamento é confirmado pelo provedor. Após a confirmação, nossa equipe conclui o cadastro e envia as instruções de acesso.
+          </p>
+
+          <div class="offer-scope-box">
+            <div class="scope-row">
+              <span class="scope-badge included">
+                <svg width="12" height="12" viewBox="0 0 24 24"><path d="m9 12 2 2 4-4"/></svg>
+                Incluso na Assinatura
+              </span>
+              <p>Painel comercial, WhatsApp integrado, funil de vendas, IA com supervisão da equipe, catálogo de produtos, cobrança via Pix e atendimento por múltiplos usuários.</p>
+            </div>
+            <div class="scope-row">
+              <span class="scope-badge addon">
+                <svg width="12" height="12" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Módulos Adicionais sob Demanda
+              </span>
+              <p><strong>Emissão automática de nota fiscal de serviço (NFS-e)</strong> é um módulo adicional sob demanda. <a href="#modulos">Conheça os módulos adicionais ↓</a></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODULES & EXPANSIONS SECTION -->
+    <section class="modules-section" id="modulos">
+      <div class="wrap">
+        <div class="section-intro centered">
+          <p class="section-kicker">Arquitetura Modular & Transparência</p>
+          <h2>Módulos Adicionais sob Demanda</h2>
+          <p>O SOS Vendas foi projetado para manter a assinatura acessível a qualquer empresa, sem embutir no valor anual custos de integrações fiscais que variam de acordo com o município ou porte. Recursos avançados e fiscais são ativados sob demanda quando sua empresa precisar.</p>
+        </div>
+
+        <div class="modules-grid">
+          <!-- CARD 1: NOTA FISCAL (NFS-e) -->
+          <article class="module-card featured-module">
+            <div class="module-card-top">
+              <span class="module-tag addon">Módulo Adicional sob Demanda</span>
+              <span class="module-status">Contratação à parte</span>
+            </div>
+            <div class="module-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+            </div>
+            <h3>Emissão Automática de Nota Fiscal (NFS-e)</h3>
+            <p class="module-desc">Automatize a emissão e o envio da nota fiscal de serviço ao cliente, conforme a integração disponível para o seu município.</p>
+            
+            <div class="module-explanation">
+              <strong>Por que é um módulo adicional à parte?</strong>
+              <p>As regras e integrações fiscais variam conforme o município e o volume de emissão. Por isso, a emissão automática de NFS-e é contratada como módulo adicional, após verificarmos a compatibilidade com a sua operação.</p>
+            </div>
+
+            <ul class="module-features">
+              <li><svg viewBox="0 0 24 24"><path d="m9 12 2 2 4-4"/></svg> Análise de compatibilidade com seu município</li>
+              <li><svg viewBox="0 0 24 24"><path d="m9 12 2 2 4-4"/></svg> Envio ao cliente quando a integração estiver disponível</li>
+              <li><svg viewBox="0 0 24 24"><path d="m9 12 2 2 4-4"/></svg> Contratação conforme a necessidade da sua operação</li>
+            </ul>
+
+            <div class="module-action">
+              <a href="mailto:contato@mct.com.br?subject=Interesse%20no%20Modulo%20Fiscal%20NFSe%20SOS%20Vendas" class="button button-outline-brand button-sm">Consultar para minha Cidade</a>
+            </div>
+          </article>
+
+          <!-- CARD 2: CANAL OFICIAL DO WHATSAPP -->
+          <article class="module-card">
+            <div class="module-card-top">
+              <span class="module-tag addon">Módulo Adicional sob Demanda</span>
+              <span class="module-status">Para alta escala</span>
+            </div>
+            <div class="module-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+              </svg>
+            </div>
+            <h3>Canal oficial do WhatsApp para campanhas</h3>
+            <p class="module-desc">Uma opção para empresas que precisam realizar campanhas pelo canal oficial, respeitando consentimento, elegibilidade e regras vigentes.</p>
+            
+            <div class="module-explanation">
+              <strong>Quando contratar?</strong>
+              <p>A disponibilidade depende da configuração da conta, da aprovação das mensagens e das regras vigentes do WhatsApp. A contratação é avaliada conforme o canal e o uso pretendido.</p>
+            </div>
+
+            <ul class="module-features">
+              <li><svg viewBox="0 0 24 24"><path d="m9 12 2 2 4-4"/></svg> Conexão pelo canal oficial, quando habilitada</li>
+              <li><svg viewBox="0 0 24 24"><path d="m9 12 2 2 4-4"/></svg> Organização e acompanhamento de campanhas</li>
+              <li><svg viewBox="0 0 24 24"><path d="m9 12 2 2 4-4"/></svg> Métricas conforme os dados fornecidos pelo canal</li>
+            </ul>
+
+            <div class="module-action">
+              <a href="mailto:contato@mct.com.br?subject=Interesse%20no%20canal%20oficial%20do%20WhatsApp" class="button button-outline-brand button-sm">Consultar disponibilidade</a>
+            </div>
+          </article>
+
+          <!-- CARD 3: CONECTORES ERP & INTEGRAÇÕES -->
+          <article class="module-card">
+            <div class="module-card-top">
+              <span class="module-tag addon">Módulo Adicional sob Demanda</span>
+              <span class="module-status">Personalizado</span>
+            </div>
+            <div class="module-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+                <line x1="6" y1="6" x2="6.01" y2="6"/>
+                <line x1="6" y1="18" x2="6.01" y2="18"/>
+              </svg>
+            </div>
+            <h3>Conectores ERP & Integrações Sob Medida</h3>
+            <p class="module-desc">Sincronização bidirecional de pedidos, clientes e estoque com o ERP ou sistema de retaguarda da sua empresa.</p>
+            
+            <div class="module-explanation">
+              <strong>Quando contratar?</strong>
+              <p>Se sua operação precisa trocar informações com um sistema de gestão, avaliamos a compatibilidade e o escopo antes de propor a integração.</p>
+            </div>
+
+            <ul class="module-features">
+              <li><svg viewBox="0 0 24 24"><path d="m9 12 2 2 4-4"/></svg> Sincronização de catálogo e estoque</li>
+              <li><svg viewBox="0 0 24 24"><path d="m9 12 2 2 4-4"/></svg> Avaliação de conexão com seu sistema</li>
+              <li><svg viewBox="0 0 24 24"><path d="m9 12 2 2 4-4"/></svg> Mapeamento das informações necessárias</li>
+            </ul>
+
+            <div class="module-action">
+              <a href="mailto:contato@mct.com.br?subject=Integracao%20ERP%20SOS%20Vendas" class="button button-outline-brand button-sm">Falar sobre Integração</a>
+            </div>
+          </article>
+
+          <!-- CARD 4: DOCOPS OBRAS & COMPLIANCE DE PORTARIA -->
+          <article class="module-card featured-module" style="border-color: rgba(245, 158, 11, 0.4); background: linear-gradient(180deg, rgba(245, 158, 11, 0.05) 0%, rgba(15, 23, 42, 0.6) 100%);">
+            <div class="module-card-top">
+              <span class="module-tag" style="background: rgba(245, 158, 11, 0.15); color: #F59E0B; border: 1px solid rgba(245, 158, 11, 0.3);">Solução Especializada para Construtoras</span>
+              <span class="module-status" style="color: #34D399;">Disponível sob avaliação</span>
+            </div>
+            <div class="module-icon" style="background: rgba(245, 158, 11, 0.1); color: #F59E0B;">
+              <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 20h20"/>
+                <path d="m6 20 6-16 6 16"/>
+                <path d="M4 14h16"/>
+              </svg>
+            </div>
+            <h3>MCT DocOps Obras & Compliance de Portaria</h3>
+            <p class="module-desc">Organize documentos e acompanhe vencimentos da equipe para apoiar o acesso a obras e indústrias.</p>
+            
+            <div class="module-explanation">
+              <strong>Como resolve a dor da construtora?</strong>
+              <p>A equipe envia documentos para organização e acompanhamento de vencimentos. A implantação é definida conforme os processos, documentos e requisitos da sua operação.</p>
+            </div>
+
+            <ul class="module-features">
+              <li><svg viewBox="0 0 24 24"><path d="m9 12 2 2 4-4"/></svg> Auditoria nominal de ASO, NR-35, NR-33 e NRs</li>
+              <li><svg viewBox="0 0 24 24"><path d="m9 12 2 2 4-4"/></svg> Organização de documentos e acompanhamento de prazos</li>
+              <li><svg viewBox="0 0 24 24"><path d="m9 12 2 2 4-4"/></svg> Adequação dos fluxos conforme os requisitos da empresa</li>
+            </ul>
+
+            <div class="module-action">
+              <a href="/obras/" class="button button-primary button-sm" style="background: linear-gradient(135deg, #F59E0B, #D97706); color: #000; font-weight: 700;">Conhecer Solução para Obras</a>
+            </div>
+          </article>
+        </div>
+
+        <!-- FISCAL CALLOUT BANNER -->
+        <div class="fiscal-callout">
+          <div class="fiscal-callout-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          </div>
+          <div class="fiscal-callout-content">
+            <strong>Diferença Importante: Nota Fiscal da Assinatura vs. Nota Fiscal das suas Vendas</strong>
+            <p>A <strong>MCT LTDA</strong> emite normalmente a Nota Fiscal de Prestação de Serviços (SaaS) referente à sua assinatura anual ou semestral do SOS Vendas para o seu CNPJ ou CPF. Já a <strong>Emissão Automática de Notas Fiscais para os seus clientes finais</strong> (as pessoas ou empresas que compram os seus produtos/serviços pelo seu WhatsApp) é o serviço técnico coberto pelo módulo adicional sob demanda acima, caso você decida automatizar esse processo diretamente com a prefeitura da sua cidade.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ SECTION -->
+    <section class="faq-section" id="faq">
+      <div class="wrap faq-grid">
+        <div class="faq-heading">
+          <p class="section-kicker">Tire Suas Dúvidas</p>
+          <h2>Perguntas Frequentes sobre o SOS Vendas</h2>
+          <p>Tudo o que você precisa saber sobre o sistema, o WhatsApp e os pagamentos via Pix.</p>
+          <a href="mailto:contato@mct.com.br?subject=Duvida%20sobre%20SOS%20Vendas" class="text-link">Falar com nossa equipe comercial <span>→</span></a>
+        </div>
+        <div class="faq-list">
+          <article class="faq-item">
+            <h3><button type="button" class="faq-trigger" aria-expanded="false" aria-controls="faq-nf" id="faq-button-nf"><span>A emissão de Nota Fiscal (NFS-e) para meus clientes está inclusa no valor anual?</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></h3>
+            <div id="faq-nf" class="faq-content" role="region" aria-labelledby="faq-button-nf" hidden>
+              <p><strong>Não.</strong> A emissão automática de NFS-e para as vendas da sua empresa é um <strong>módulo adicional sob demanda</strong>. Regras e integrações variam conforme o município; confirmamos a compatibilidade e as condições antes da contratação.</p>
+            </div>
+          </article>
+
+          <article class="faq-item">
+            <h3><button type="button" class="faq-trigger" aria-expanded="false" aria-controls="faq-nf-assinatura" id="faq-button-nf-assinatura"><span>A MCT LTDA emite nota fiscal da assinatura do SOS Vendas para a minha empresa?</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></h3>
+            <div id="faq-nf-assinatura" class="faq-content" role="region" aria-labelledby="faq-button-nf-assinatura" hidden>
+              <p>Sim. A nota fiscal referente à assinatura é emitida pela MCT LTDA para o CNPJ ou CPF informado na compra, conforme os dados cadastrados.</p>
+            </div>
+          </article>
+
+          <article class="faq-item">
+            <h3><button type="button" class="faq-trigger" aria-expanded="false" aria-controls="faq-modulos" id="faq-button-modulos"><span>Como funcionam e como contrato os módulos adicionais sob demanda?</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></h3>
+            <div id="faq-modulos" class="faq-content" role="region" aria-labelledby="faq-button-modulos" hidden>
+              <p>A <strong>Emissão de NFS-e</strong>, o canal oficial do WhatsApp para campanhas e integrações com sistemas de gestão podem ser contratados à parte, após análise de compatibilidade e escopo. Fale com nossa equipe pelo e-mail <a href="mailto:contato@mct.com.br">contato@mct.com.br</a>.</p>
+            </div>
+          </article>
+
+          <article class="faq-item">
+            <h3><button type="button" class="faq-trigger" aria-expanded="false" aria-controls="faq-1" id="faq-button-1"><span>O que diferencia o SOS Vendas de outros CRMs?</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></h3>
+            <div id="faq-1" class="faq-content" role="region" aria-labelledby="faq-button-1" hidden>
+              <p>O SOS Vendas organiza conversas, contatos, oportunidades e cobranças em um fluxo comercial. A IA usa informações e regras cadastradas, com revisão humana e encaminhamento quando falta confirmação. A biblioteca oferece mensagens de referência para adaptar; o envio depende das regras e aprovações do canal conectado.</p>
+            </div>
+          </article>
+
+          <article class="faq-item">
+            <h3><button type="button" class="faq-trigger" aria-expanded="false" aria-controls="faq-2" id="faq-button-2"><span>Posso continuar usando o WhatsApp no meu celular?</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></h3>
+            <div id="faq-2" class="faq-content" role="region" aria-labelledby="faq-button-2" hidden>
+              <p>A possibilidade de continuar usando o aplicativo no celular depende do tipo de conexão e da configuração da sua conta. Nossa equipe confirma essa compatibilidade durante a implantação.</p>
+            </div>
+          </article>
+
+          <article class="faq-item">
+            <h3><button type="button" class="faq-trigger" aria-expanded="false" aria-controls="faq-3" id="faq-button-3"><span>Como funciona o Pix pelo WhatsApp?</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></h3>
+            <div id="faq-3" class="faq-content" role="region" aria-labelledby="faq-button-3" hidden>
+              <p>Quando a cobrança via Pix estiver configurada para a sua operação, a equipe pode gerar e enviar a cobrança pela conversa. O pagamento só é marcado como confirmado após validação do provedor de pagamento.</p>
+            </div>
+          </article>
+
+          <article class="faq-item">
+            <h3><button type="button" class="faq-trigger" aria-expanded="false" aria-controls="faq-4" id="faq-button-4"><span>A IA responde meus clientes sozinha?</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></h3>
+            <div id="faq-4" class="faq-content" role="region" aria-labelledby="faq-button-4" hidden>
+              <p>Você escolhe como a IA participa: pode sugerir respostas para a equipe revisar ou responder automaticamente dentro das regras configuradas. A disponibilidade depende da configuração da sua operação.</p>
+            </div>
+          </article>
+
+          <article class="faq-item">
+            <h3><button type="button" class="faq-trigger" aria-expanded="false" aria-controls="faq-5" id="faq-button-5"><span>Como funciona o atendimento de contatos vindos de anúncios?</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></h3>
+            <div id="faq-5" class="faq-content" role="region" aria-labelledby="faq-button-5" hidden>
+              <p>Quando essa informação estiver disponível, o sistema pode mostrar de qual anúncio veio o contato. As regras e condições de envio seguem as políticas do canal conectado.</p>
+            </div>
+          </article>
+
+          <article class="faq-item">
+            <h3><button type="button" class="faq-trigger" aria-expanded="false" aria-controls="faq-6" id="faq-button-6"><span>Como recebo o acesso após assinar?</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></h3>
+            <div id="faq-6" class="faq-content" role="region" aria-labelledby="faq-button-6" hidden>
+              <p>Após a confirmação do pagamento, nossa equipe conclui o cadastro da empresa e envia as instruções de acesso ao e-mail informado na compra. Se precisar de ajuda, escreva para <a href="mailto:suporte@automatizaprocessos.tech">suporte@automatizaprocessos.tech</a>.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <section class="final-cta">
+      <div class="final-glow" aria-hidden="true"></div>
+      <div class="wrap final-cta-inner">
+        <p class="section-kicker light">Transforme seu WhatsApp em uma Máquina de Vendas</p>
+        <h2>Sua equipe já conversa com clientes todos os dias.<br>Organize cada oportunidade e acompanhe o próximo passo.</h2>
+        <p>Comece com processo comercial organizado, apoio de IA e cobrança via Pix para sua equipe atender melhor.</p>
+        <div class="final-actions">
+          <a href="#comecar" class="button button-light button-lg" data-track="final_primary">Ver Planos e Começar</a>
+          <a href="mailto:contato@mct.com.br?subject=Quero%20conhecer%20o%20SOS%20Vendas" class="button button-dark-ghost button-lg" data-track="final_contact">Falar com Consultor</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="wrap footer-grid">
+      <div class="footer-brand">
+        <img src="../assets/logo.svg" alt="SOS Vendas" class="brand-logo-img">
+        <p>Sistema operacional comercial para empresas que vendem pelo WhatsApp e recebem no Pix.</p>
+        <span>Poder invisível. Simplicidade visível.</span>
+      </div>
+      <div class="footer-column">
+        <strong>Produto</strong>
+        <a href="#problema">O que resolve</a>
+        <a href="#como-funciona">Como funciona</a>
+        <a href="#recursos">Recursos</a>
+        <a href="#modelos">Modelos WhatsApp</a>
+        <a href="#comecar">Planos & Preços</a>
+        <a href="#modulos">Módulos & Expansões</a>
+      </div>
+      <div class="footer-column">
+        <strong>Institucional</strong>
+        <a href="https://chat.automatizaprocessos.tech/privacy" target="_blank" rel="noreferrer">Termos & Privacidade LGPD</a>
+        <a href="#faq">Perguntas Frequentes</a>
+        <a href="mailto:contato@mct.com.br">Suporte & Parcerias</a>
+        <a href="https://chat.automatizaprocessos.tech" target="_blank" rel="noreferrer">Cockpit do Operador</a>
+      </div>
+    </div>
+    <div class="wrap footer-bottom">
+      <span>© 2026 SOS Vendas • MCT Automações de Processos • CNPJ: 69.553.990/0001-91</span>
+      <span>Chapecó, SC • Brasil</span>
+    </div>
+  </footer>
+
+  <a href="#comecar" class="mobile-sticky-cta" data-track="mobile_sticky">
+    Quero Vender Mais no WhatsApp <span>→</span>
+  </a>
+
+  <script src="../app.js"></script>
+</body>
+</html>
