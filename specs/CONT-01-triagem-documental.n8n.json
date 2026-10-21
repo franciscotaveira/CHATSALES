@@ -1,0 +1,131 @@
+{
+  "name": "Triagem e Arquivamento de Comprovantes Fiscais",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "intake-documentos-plx",
+        "responseMode": "onReceived",
+        "responseData": "allEntries"
+      },
+      "id": "node-1-47lta",
+      "name": "Inbound WhatsApp WAHA",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "wh-yys6kq0"
+    },
+    {
+      "parameters": {},
+      "id": "node-2-02m3e",
+      "name": "Extrator de Inteligencia NVIDIA",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1,
+      "position": [
+        510,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "node-3-1gr6i",
+      "name": "Organizador de Pastas Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 1,
+      "position": [
+        770,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chat.automatizaprocessos.tech/api/v1/webhook"
+      },
+      "id": "node-4-e674n",
+      "name": "Despacho Recibo WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1030,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Execução gerada a partir da etapa: TELA 5: Tratamento de Exceções & Auditoria\nSELECT 1;"
+      },
+      "id": "node-5-uou5p",
+      "name": "Handler de Excecoes e Auditoria",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        1290,
+        520
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Inbound WhatsApp WAHA": {
+      "main": [
+        [
+          {
+            "node": "Extrator de Inteligencia NVIDIA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrator de Inteligencia NVIDIA": {
+      "main": [
+        [
+          {
+            "node": "Organizador de Pastas Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Organizador de Pastas Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Despacho Recibo WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "tags": [
+    {
+      "name": "contabilidade"
+    },
+    {
+      "name": "fiscal"
+    },
+    {
+      "name": "whatsapp"
+    },
+    {
+      "name": "ocr"
+    },
+    {
+      "name": "drive"
+    }
+  ]
+}

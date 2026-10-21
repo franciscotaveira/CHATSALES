@@ -152,8 +152,10 @@ const n8nWorkflow = {
 };
 
 // 5. Gravar Arquivo de Saída
+const isDeploy = process.argv.includes('--deploy') || process.argv.includes('-d');
+const nonFlagArgs = process.argv.slice(2).filter(arg => !arg.startsWith('-'));
 const defaultOutput = inputFile.replace(/\.spec\.md$|\.md$/, '.n8n.json');
-const outputFile = process.argv[3] ? path.resolve(process.cwd(), process.argv[3]) : defaultOutput;
+const outputFile = nonFlagArgs[1] ? path.resolve(process.cwd(), nonFlagArgs[1]) : defaultOutput;
 
 fs.writeFileSync(outputFile, JSON.stringify(n8nWorkflow, null, 2), 'utf8');
 
@@ -161,5 +163,31 @@ console.log(`\n🎉 Workflow compilado com sucesso a partir da documentação de
 console.log(`📄 Origem: ${inputFile}`);
 console.log(`⚙️  Nome:   ${workflowName}`);
 console.log(`🧩 Nós:    ${nodes.length} nós gerados`);
-console.log(`💾 Salvo:  ${outputFile}\n`);
-console.log(`Pronto para importar diretamente no seu painel: https://automacao.automatizaprocessos.tech`);
+console.log(`💾 Salvo:  ${outputFile}`);
+
+// 6. Deploy Instantâneo na VPS Hostinger KVM 4
+if (isDeploy) {
+  console.log(`\n🚀 Iniciando deploy instantâneo na VPS (automacao.automatizaprocessos.tech)...`);
+  const { execSync } = await import('child_process');
+  
+  const wfId = metadata.id ? `s2w-${metadata.id.toLowerCase().replace(/[^a-z0-9-]/g, '-')}` : `s2w-${Math.random().toString(36).substring(2, 9)}`;
+  const jsonPayload = JSON.stringify(n8nWorkflow);
+  
+  const tempRemotePath = `/tmp/${wfId}.json`;
+  
+  try {
+    // 1. Enviar payload via scp
+    execSync(`scp -i ~/.ssh/id_rsa_mct_deploy "${outputFile}" "root@[2a02:4780:6e:c5ee::1]:${tempRemotePath}"`, { stdio: 'pipe' });
+
+    // 2. Injetar atômico no PostgreSQL da ilha PLX via deployer do host
+    execSync(`ssh -6 -i ~/.ssh/id_rsa_mct_deploy root@2a02:4780:6e:c5ee::1 "/usr/local/bin/plx-workflow-deployer '${wfId}' '${tempRemotePath}' && rm -f '${tempRemotePath}'"`, { stdio: 'pipe' });
+
+    console.log(`✅ [DEPLOY SUCESSO] Workflow ID: ${wfId}`);
+    console.log(`🔗 Disponível no painel: https://automacao.automatizaprocessos.tech/workflow/${wfId}`);
+  } catch (err) {
+    console.error(`❌ Erro no deploy para VPS:`, err.message || err);
+  }
+} else {
+  console.log(`💡 Para enviar direto para a VPS, execute com a flag --deploy:`);
+  console.log(`   node scripts/compile-spec-to-n8n.mjs "${inputFile}" --deploy\n`);
+}

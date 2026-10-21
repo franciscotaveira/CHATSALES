@@ -1,0 +1,171 @@
+{
+  "name": "Triagem e Dossie de Liberacao de Obras e SST (Compliance Industrial)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "intake-documentos-engenharia",
+        "responseMode": "onReceived",
+        "responseData": "allEntries"
+      },
+      "id": "node-1-0j9kq",
+      "name": "Inbound WhatsApp Engenharia",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "wh-1if9l1p"
+    },
+    {
+      "parameters": {},
+      "id": "node-2-386cu",
+      "name": "Extrator SST Vision OCR",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1,
+      "position": [
+        510,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "node-3-yhujt",
+      "name": "Organizador de Pastas Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 1,
+      "position": [
+        770,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "query": "-- Execução gerada a partir da etapa: TELA 4: Registro no Checklist Engine da VPS\nSELECT 1;"
+      },
+      "id": "node-4-j3v7r",
+      "name": "Registro no Banco de Conformidade",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        1030,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chat.automatizaprocessos.tech/api/v1/webhook"
+      },
+      "id": "node-5-amayg",
+      "name": "Despacho WhatsApp Recibo & Status Portaria",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1290,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Execução gerada a partir da etapa: TELA 6: Tratamento de Exceções & Quarentena\nSELECT 1;"
+      },
+      "id": "node-6-39h9w",
+      "name": "Handler de Quarentena e Erros",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        1550,
+        520
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Inbound WhatsApp Engenharia": {
+      "main": [
+        [
+          {
+            "node": "Extrator SST Vision OCR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrator SST Vision OCR": {
+      "main": [
+        [
+          {
+            "node": "Organizador de Pastas Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Organizador de Pastas Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Registro no Banco de Conformidade",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registro no Banco de Conformidade": {
+      "main": [
+        [
+          {
+            "node": "Despacho WhatsApp Recibo & Status Portaria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "tags": [
+    {
+      "name": "engenharia"
+    },
+    {
+      "name": "construtora"
+    },
+    {
+      "name": "sst"
+    },
+    {
+      "name": "seguranca_do_trabalho"
+    },
+    {
+      "name": "compliance"
+    },
+    {
+      "name": "aurora"
+    },
+    {
+      "name": "brf"
+    },
+    {
+      "name": "tirol"
+    },
+    {
+      "name": "drive"
+    },
+    {
+      "name": "whatsapp"
+    }
+  ]
+}
