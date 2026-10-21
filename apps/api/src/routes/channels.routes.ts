@@ -1693,15 +1693,38 @@ export const channelsRoutes: FastifyPluginAsync = async (app) => {
       } catch {
         return providerError("Não foi possível consultar o histórico. Nenhuma conexão foi alterada.");
       }
-      const customerChats = (rawChats as Array<{ id?: unknown; name?: unknown; pushName?: unknown; conversationTimestamp?: unknown }>).
-        filter(chat => chat && historyPhone(chat.id)).slice(0, 100);
+      const rawChatList = (rawChats as Array<{ id?: unknown; name?: unknown; pushName?: unknown; conversationTimestamp?: unknown }>);
+      const customerChats: Array<{ id: string; phoneE164: string; name?: unknown; pushName?: unknown; conversationTimestamp?: unknown }> = [];
+
+      for (const chat of rawChatList) {
+        if (!chat || typeof chat.id !== "string") continue;
+        const directPhone = historyPhone(chat.id);
+        if (directPhone) {
+          customerChats.push({ ...chat, id: chat.id, phoneE164: directPhone });
+        } else if (chat.id.endsWith("@lid")) {
+          try {
+            const lidResp = await getProvider(`/api/${effectiveSession}/lids/${encodeURIComponent(chat.id)}`);
+            if (lidResp.ok) {
+              const lidData = (await lidResp.json()) as { pn?: string };
+              const resolved = historyPhone(lidData.pn);
+              if (resolved) {
+                customerChats.push({ ...chat, id: chat.id, phoneE164: resolved });
+              }
+            }
+          } catch {
+            // falha na resolução do LID ignorada com segurança
+          }
+        }
+        if (customerChats.length >= 100) break;
+      }
+
       let syncedChatsCount = 0, syncedMessagesCount = 0, failedChatsCount = 0, skippedMessagesCount = 0;
       let checkedChatsCount = 0;
       // A recent batch only: importing history never creates opportunities, emits inbox events or changes channel configuration.
       for (const chat of customerChats.slice(0, 35)) {
         if (Date.now() >= deadline) break;
         checkedChatsCount++;
-        const phoneE164 = historyPhone(chat.id)!;
+        const phoneE164 = chat.phoneE164;
         try {
           const response = await getProvider(`/api/${effectiveSession}/chats/${encodeURIComponent(String(chat.id))}/messages?limit=15&offset=0&downloadMedia=true`);
           if (!response.ok) { failedChatsCount++; continue; }
