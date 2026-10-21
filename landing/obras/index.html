@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCT DocOps Obras — Compliance de Portaria e SST para Construtoras</title>
+  <meta name="description" content="Evite que sua equipe seja barrada na portaria da Aurora Coop, BRF ou indústrias. Gestão automática de ASOs, NRs e certidões via WhatsApp e Google Drive.">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090D14;
+      --bg-surface: #0F172A;
+      --bg-card: rgba(17, 24, 39, 0.7);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(245, 158, 11, 0.3);
+      --amber: #F59E0B;
+      --amber-light: #FCD34D;
+      --emerald: #10B981;
+      --emerald-glow: rgba(16, 185, 129, 0.2);
+      --rose: #F43F5E;
+      --text: #F8FAFC;
+      --text-muted: #94A3B8;
+      --font-main: 'Inter', -apple-system, sans-serif;
+      --font-heading: 'Plus Jakarta Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-main);
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* HEADER */
+    header {
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(9, 13, 20, 0.85);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+    .header-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #fff;
+      font-family: var(--font-heading);
+      font-weight: 800;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+    }
+    .brand-tag {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--amber-light);
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border-accent);
+      font-family: var(--font-mono);
+      font-weight: 600;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #F59E0B, #D97706);
+      color: #000;
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 30px rgba(245, 158, 11, 0.5);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* HERO */
+    .hero {
+      padding: 80px 0 60px;
+      position: relative;
+    }
+    .hero-glow {
+      position: absolute;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 999px;
+      font-size: 0.8rem;
+      color: #34D399;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+    .pill .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10B981;
+      box-shadow: 0 0 10px #10B981;
+    }
+    h1 {
+      font-family: var(--font-heading);
+      font-size: 3.2rem;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 24px;
+    }
+    h1 span {
+      background: linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-lead {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      margin-bottom: 36px;
+      max-width: 720px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .hero-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+
+    /* BADGES INDÚSTRIAS */
+    .industries-bar {
+      margin-top: 50px;
+      padding: 24px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      text-align: center;
+    }
+    .industries-title {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+    .industries-list {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 32px;
+      flex-wrap: wrap;
+      font-family: var(--font-heading);
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: #CBD5E1;
+    }
+    .industries-list span {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* O PROBLEMA (DOR REAL) */
+    .section {
+      padding: 80px 0;
+    }
+    .section-title {
+      text-align: center;
+      font-family: var(--font-heading);
+      font-size: 2.2rem;
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+    .section-sub {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      max-width: 600px;
+      margin: 0 auto 50px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      backdrop-filter: blur(10px);
+      transition: all 0.2s ease;
+    }
+    .card:hover {
+      border-color: rgba(245, 158, 11, 0.4);
+      transform: translateY(-4px);
+    }
+    .card-icon {
+      font-size: 2rem;
+      margin-bottom: 16px;
+    }
+    .card h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #fff;
+    }
+    .card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    /* SIMULADOR DE PORTARIA */
+    .cockpit-preview {
+      background: #0B0F19;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-top: 40px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    }
+    .cockpit-bar {
+      background: #111827;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .cockpit-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .cockpit-dots span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #374151;
+    }
+    .cockpit-title {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .cockpit-body {
+      padding: 24px;
+    }
+    .table-responsive {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    th {
+      text-align: left;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+    }
+    .badge-green {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34D399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .badge-yellow {
+      background: rgba(245, 158, 11, 0.15);
+      color: #FCD34D;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .badge-red {
+      background: rgba(244, 63, 94, 0.15);
+      color: #FB7185;
+      border: 1px solid rgba(244, 63, 94, 0.3);
+    }
+
+    /* COMO FUNCIONA (FLUXO) */
+    .step-card {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      margin-bottom: 30px;
+    }
+    .step-number {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid var(--border-accent);
+      color: var(--amber-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-heading);
+      font-weight: 800;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+    .step-text h4 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .step-text p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    /* CTA FINAL */
+    .cta-box {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+      border: 1px solid var(--border-accent);
+      border-radius: 24px;
+      padding: 60px 40px;
+      text-align: center;
+      margin: 60px 0;
+    }
+    .cta-box h2 {
+      font-family: var(--font-heading);
+      font-size: 2.4rem;
+      font-weight: 900;
+      margin-bottom: 16px;
+    }
+    .cta-box p {
+      color: var(--text-muted);
+      font-size: 1.15rem;
+      max-width: 600px;
+      margin: 0 auto 32px;
+    }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 768px) {
+      h1 { font-size: 2.2rem; }
+      .hero-buttons { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="wrap header-inner">
+      <a href="../" class="brand">
+        MCT Automatiza
+        <span class="brand-tag">DocOps Obras</span>
+      </a>
+      <div>
+        <a href="https://wa.me/554988447562?text=Olá,%20gostaria%20de%20conhecer%20o%20MCT%20DocOps%20para%20minha%20construtora" class="btn btn-primary" target="_blank" rel="noreferrer">
+          Falar com Especialista
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO SECTION -->
+  <section class="hero">
+    <div class="hero-glow"></div>
+    <div class="wrap hero-content">
+      <div class="pill">
+        <span class="dot"></span>
+        COMPLIANCE DE PORTARIA & SST PARA CONSTRUTORAS • CHAPECÓ E REGIÃO
+      </div>
+      <h1>Nunca mais tenha sua equipe <span>barrada na portaria</span> da Aurora, BRF ou Tirol.</h1>
+      <p class="hero-lead">
+        O mestre de obras só envia fotos de ASOs, NRs e certidões no WhatsApp. Nossa inteligência organiza o Google Drive da sua construtora e avisa antes de qualquer exame vencer. Zero equipe parada na guarita.
+      </p>
+      <div class="hero-buttons">
+        <a href="https://wa.me/554988447562?text=Quero%20ativar%20o%20compliance%20de%20obras%20para%20minha%20construtora" class="btn btn-primary" target="_blank" rel="noreferrer">
+          Quero Liberar Minhas Obras Agora
+        </a>
+        <a href="https://drive.google.com/drive/folders/1RUUVlX94D4FbpeO7OSVkvobhWIS9aSp-" class="btn btn-secondary" target="_blank" rel="noreferrer">
+          Ver Dossiê Real no Google Drive
+        </a>
+      </div>
+
+      <!-- BADGES INDÚSTRIAS CONTRATANTES -->
+      <div class="industries-bar">
+        <div class="industries-title">Homologado para as exigências de SST e SGI das maiores indústrias:</div>
+        <div class="industries-list">
+          <span>🏭 Aurora Coop</span>
+          <span>🏭 BRF Marau & Região</span>
+          <span>🥛 Laticínios Tirol</span>
+          <span>🥩 JBS / Seara</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- O PROBLEMA (A DOR CRÍTICA) -->
+  <section class="section">
+    <div class="wrap">
+      <h2 class="section-title">O custo invisível de não ter o controle documental</h2>
+      <p class="section-sub">Você já calculou quanto custa um caminhão carregado com 8 colaboradores barrados na guarita às 07:30 da manhã?</p>
+      
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-icon">⛔</div>
+          <h3>Paralisação na Portaria</h3>
+          <p>Basta 1 operário com a reciclagem da NR-35 vencida há 2 dias para a segurança da indústria barrar a equipe inteira na guarita.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">💸</div>
+          <h3>Multa Diária por Cronograma</h3>
+          <p>O atraso no início da reforma ou montagem industrial gera notificações contratuais e multas diárias que comem toda a margem da obra.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">📱</div>
+          <h3>Caos de Fotos no WhatsApp</h3>
+          <p>Atestados, comprovantes e fichas de EPI perdidos em conversas de celular, planilhas desatualizadas e ninguém sabe o que vence hoje.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- O COCKPIT / DEMO INTERATIVA DE PORTARIA -->
+  <section class="section" style="background: rgba(255, 255, 255, 0.01); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="wrap">
+      <h2 class="section-title">Semáforo de Portaria em Tempo Real</h2>
+      <p class="section-sub">Veja como a nossa tecnologia avalia nominalmente cada colaborador antes da equipe sair para o canteiro:</p>
+
+      <div class="cockpit-preview">
+        <div class="cockpit-bar">
+          <div class="cockpit-dots">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="cockpit-title">MCT DocOps • Auditoria Nominal de Portaria — Obra Aurora Coop Chapecó</div>
+          <div style="font-size: 0.75rem; color: #34D399; font-family: var(--font-mono);">● VPS HOSTINGER KVM 4 ATIVA</div>
+        </div>
+        <div class="cockpit-body">
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>COLABORADOR</th>
+                  <th>FUNÇÃO</th>
+                  <th>DOCUMENTO AUDITADO</th>
+                  <th>VALIDADE</th>
+                  <th>STATUS PORTARIA</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>João da Silva</strong></td>
+                  <td>Mestre de Obras</td>
+                  <td>ASO + NR-35 Altura</td>
+                  <td>15/10/2027 (Restam 358 dias)</td>
+                  <td><span class="badge badge-green">🟢 TOTALMENTE LIBERADO</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Carlos Eduardo Santos</strong></td>
+                  <td>Montador Industrial</td>
+                  <td>ASO Periódico</td>
+                  <td>05/11/2026 (Restam 15 dias)</td>
+                  <td><span class="badge badge-yellow">🟡 ATENÇÃO: RENOVAR EM 15 DIAS</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Marcos Antônio Pereira</strong></td>
+                  <td>Eletricista</td>
+                  <td>ASO Ocupacional</td>
+                  <td>18/10/2026 (Venceu há 3 dias)</td>
+                  <td><span class="badge badge-red">🔴 BARRADO NA PORTARIA</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMO FUNCIONA (PASSO A PASSO) -->
+  <section class="section">
+    <div class="wrap">
+      <h2 class="section-title">Como funciona na prática?</h2>
+      <p class="section-sub">Sua construtora não precisa instalar nenhum sistema novo. Tudo acontece dentro do WhatsApp que sua equipe já usa.</p>
+
+      <div style="max-width: 760px; margin: 0 auto;">
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <div class="step-text">
+            <h4>Envio pelo WhatsApp</h4>
+            <p>O mestre de obras ou o administrativo tira foto do ASO ou da NR e manda no grupo do WhatsApp da obra.</p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <div class="step-text">
+            <h4>Leitura & OCR em 2 Segundos</h4>
+            <p>Nossa inteligência artificial na VPS lê o documento, identifica o CPF, a função e a data de validade exata do exame.</p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <div class="step-text">
+            <h4>Arquivamento no Google Drive da Empresa</h4>
+            <p>O arquivo é renomeado no padrão oficial e guardado na subpasta do colaborador dentro do Google Drive compartilhado.</p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">4</div>
+          <div class="step-text">
+            <h4>Alerta Proativo de Validade</h4>
+            <p>A VPS avisa no WhatsApp com 30, 15 e 5 dias de antecedência antes de qualquer exame ou certidão vencer.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA BOX -->
+  <section class="wrap">
+    <div class="cta-box">
+      <h2>Pronto para zerar o estresse na portaria das obras?</h2>
+      <p>Implantação turnkey em 10 minutos. Criamos as pastas do seu Google Drive e ativamos o robô no seu WhatsApp hoje mesmo.</p>
+      <a href="https://wa.me/554988447562?text=Olá,%20quero%20agendar%20uma%20demonstração%20do%20MCT%20DocOps%20Obras" class="btn btn-primary" target="_blank" rel="noreferrer" style="font-size: 1.1rem; padding: 14px 28px;">
+        Agendar Demonstração no WhatsApp
+      </a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="wrap">
+      <p><strong>MCT LTDA</strong> • Poder invisível, simplicidade visível • Chapecó, SC</p>
+      <p style="margin-top: 8px; font-size: 0.8rem; color: #64748B;">Operado sob infraestrutura soberana na VPS Hostinger Cloud KVM 4 • Google Drive API • WhatsApp WAHA</p>
+    </div>
+  </footer>
+
+</body>
+</html>
