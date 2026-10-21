@@ -131,7 +131,28 @@
     4. Dispara enriquecimento cadastral via BrasilAPI (caso haja CPF/CNPJ).
     5. Emite mensagem de confirmação de pagamento para o cliente via fila `outbound_commands` no WhatsApp.
 - **Cockpit Comercial & Gestão de Credenciais:**
-  - Seção dedicada em `Configurações > Cobrança & Pix` ([PixSection.tsx](file:///Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/apps/web/src/pages/settings/PixSection.tsx)) permitindo ativação/desativação, inserção de API Key, Webhook Secret e cópia com 1 clique da URL pública de webhook.
+### 2.12 Transição de Marca SOS Vendas & Precificação Canônica AbacatePay v2 (Outubro/2026)
+- **Marca Oficial Soberana:** Reposicionamento comercial e institucional para **SOS Vendas** (marca de produto e operação), sob razão social `69.553.990 FRANCISCO TAVEIRA RIOS (CNPJ: 69.553.990/0001-91)` / `MCT LTDA` (Chapecó/SC).
+- **Precificação Anual Base de R$ 1.200,00:**
+  - Anual Pix: R$ 1.080,00 (10% OFF, R$ 90/mês). Checkout: `https://app.abacatepay.com/pay/bill_kAfpgk4PpKJcqY5KGbbEEGmS`.
+  - Anual Cartão: 12× R$ 100,00 (R$ 1.200,00 total). Checkout: `https://app.abacatepay.com/pay/bill_Bahszz3UEuXzqqZhGg25HQeX`.
+  - Semestral Pix: R$ 570,00 (5% OFF, R$ 95/mês). Checkout: `https://app.abacatepay.com/pay/bill_dM6P6Pnf1LHTLQbSGMyjYNzs`.
+  - Semestral Cartão: 6× R$ 100,00 (R$ 600,00 total). Checkout: `https://app.abacatepay.com/pay/bill_GERMqWZAEKDM4Rm16sqJpd51`.
+- **Compatibilidade AbacatePay API v2:** Script `scripts/setup-abacatepay-plans.mjs` com endpoints `/v2/products/create` e `/v2/checkouts/create`, e auto-fallback inteligente em `abacatepay.service.ts` para `/v2/transparents/create` quando a chave é v2 (`abc_dev_wtSQfDwwBrpNKt6ktA1Gg0kc` - Recrutaria).
+
+### 2.13 Resolução de @lid no WAHA & Unificação de Contatos
+- **Correção de JIDs @lid:** Motor WAHA multi-device entrega mensagens sob `@lid`. Implementado o resolver em `channels.routes.ts` via `/api/{session}/lids/{lid}` para recuperar o número E.164 real antes de criar o contato.
+- **Fusão em Banco de Produção:** Contatos e mensagens duplicados em `@lid` unificados nas threads canônicas de Suzana Rios (`+554991810054`) e Francisco Taveira (`+554898583228`), eliminando duplicatas no Inbox.
+
+### 2.14 Arquitetura Modular & Módulo Adicional sob Demanda: Emissão Fiscal (NFS-e)
+- **Diretriz de Escopo Base vs Módulos (P0):** A anuidade cobre o Núcleo Comercial (Cockpit, Funis, IA Copiloto/Autônoma, Catálogo de Produtos e Pix Nativo).
+- **Emissão Automática de Nota Fiscal (NFS-e):** Formalizada como **Módulo Adicional sob Demanda**, contratado à parte de acordo com o município da empresa (devido à fragmentação de provedores municipais ABRASF/DSF/Betha/Ginfes, certificado digital A1 e custos por requisição de API).
+- **Transparência Contratual:** A MCT LTDA emite nota fiscal da assinatura SaaS do SOS Vendas para o cliente; a emissão fiscal de notas de venda para clientes finais é provida pelo módulo adicional. Módulos adicionais também cobrem Meta WABA Oficial e Conectores ERP (Bling, Tiny, Omie).
+
+### 2.15 Banco de Modelos Canônicos (70+ Templates WhatsApp em 13 Segmentos)
+- **Repositório Central de Modelos:** `packages/contracts/src/template-library.ts` (70+ templates divididos em Utilidade [85% mais barato] e Marketing para 13 segmentos comerciais).
+- **Cockpit Comercial & Landing Page:** Aba nativa no Cockpit (`TemplatesPage.tsx` / `TemplateLibrarySection.tsx`) com busca e importação em 1-clique, e vitrine visual interativa na Landing Page (`#modelos`) com previews em formato de balão WhatsApp.
+- **Produção na VPS:** Imagens Docker compiladas e rodando na Hostinger Cloud KVM 4 (`chat.automatizaprocessos.tech` e `automatizaprocessos.tech`).
 
 ---
 

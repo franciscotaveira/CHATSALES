@@ -2,7 +2,7 @@
 
 > MCT OS v2.0 | Francisco Rios | 69.553.990 FRANCISCO TAVEIRA RIOS (CNPJ: 69.553.990/0001-91) | MCT LTDA | Chapecó, SC  
 > Filosofia: Poder invisível, simplicidade visível. Truth in Data.  
-> Última atualização: 20 de outubro de 2026 (Migração Hostinger KVM 4, Domínio automatizaprocessos.tech, Topologia de Ilhas e Governança Anti-Tampering VPS)
+> Última atualização: 21 de outubro de 2026 (SOS Vendas: Transição de Marca, AbacatePay v2 R$ 1.200/ano, Resolução @lid WAHA, Arquitetura Modular NFS-e e Banco de Modelos 70+)
 
 ---
 
@@ -536,4 +536,51 @@ A infraestrutura de automações externas da MCT LTDA está centralizada em um d
   - **1-Click Island Migration Protocol (`export-island`):** Ferramenta utilitária no host (`export-island <chat-sales|plx|luma>`) que gera snapshot atômico (dump Postgres + `.env` + compose + auto-installer `setup-new-vps.sh`) para migração instantânea para VPS própria quando qualquer ilha atingir maturidade e breakeven financeiro.
   - Crontab de produção com backup diário automático (03:00 AM) com criptografia AES-256 e sentinela watchdog a cada 5 minutos.
 
+### 13.8 Transição de Marca, Reposicionamento & Precificação Soberana (SOS Vendas)
+- **Reposicionamento de Marca & Governança Institucional:**
+  - Transição completa da nomenclatura pública e de interfaces de CHAT-SALES para **SOS Vendas** (marca de software comercial e operacional), mantendo razão social oficial `69.553.990 FRANCISCO TAVEIRA RIOS (CNPJ: 69.553.990/0001-91)` / `MCT LTDA`, sediada em Chapecó/SC.
+  - Atualização dos metadados públicos, manifestos web (`apps/web/public/manifest.json`), landing page, logos SVG e copy institucional.
+- **Tabela de Planos Base R$ 1.200,00/ano via AbacatePay:**
+  - **Plano Anual no Pix (10% OFF):** R$ 1.080,00 à vista (equivale a R$ 90,00/mês). Checkout: `https://app.abacatepay.com/pay/bill_kAfpgk4PpKJcqY5KGbbEEGmS`.
+  - **Plano Anual no Cartão de Crédito:** 12× de R$ 100,00 (R$ 1.200,00 total parcelado). Checkout: `https://app.abacatepay.com/pay/bill_Bahszz3UEuXzqqZhGg25HQeX`.
+  - **Plano Semestral no Pix (5% OFF):** R$ 570,00 à vista (equivale a R$ 95,00/mês por 6 meses). Checkout: `https://app.abacatepay.com/pay/bill_dM6P6Pnf1LHTLQbSGMyjYNzs`.
+  - **Plano Semestral no Cartão de Crédito:** 6× de R$ 100,00 (R$ 600,00 total parcelado). Checkout: `https://app.abacatepay.com/pay/bill_GERMqWZAEKDM4Rm16sqJpd51`.
+  - Manifesto canônico salvo em `landing/abacatepay-links.json`.
+- **Gateway AbacatePay v2 & Resiliência Transparente:**
+  - Provisionamento automatizado via script `scripts/setup-abacatepay-plans.mjs` autenticado com a chave v2 da conta Recrutaria (`abc_dev_wtSQfDwwBrpNKt6ktA1Gg0kc`).
+  - Atualização de `apps/api/src/services/abacatepay.service.ts`: detecção inteligente de chaves v2 (`abc_dev_...` ou `abc_prod_...`) com auto-fallback transparente de `/v1/transparents/create` para `/v2/transparents/create`, mitigando o erro nativo `"API key version mismatch"`.
+  - Workspace SOS Vendas configurado no banco com chave ativa e webhook sincronizado.
 
+### 13.9 Resolução Dinâmica de JIDs @lid no WAHA e Fusão de Contatos Duplicados
+- **Causa Raiz Identificada:** No motor WAHA (WhatsApp HTTP API) operando com engine `NOWEB` / multi-device moderno, o WhatsApp entrega as mensagens recentes sob o JID interno `@lid` (ex: `271635491872968@lid`) em vez do formato telefônico internacional `@s.whatsapp.net` (`+554991810054`). Isso gerava contatos duplicados e snippets órfãos no inbox.
+- **Implementação do Resolver Dinâmico (`apps/api/src/routes/channels.routes.ts`):**
+  - Adicionada pré-consulta na rota de importação de conversas chamando o endpoint `/api/{session}/lids/{lid}` do WAHA antes da persistência no PostgreSQL 16.
+  - Conversão determinística para o número real de telefone em formato internacional E.164 (`+55...`), garantindo que mensagens pertençam à mesma thread e contato oficial do cliente.
+- **Higienização e Consolidação no Banco de Produção:**
+  - Mesclagem executada via SQL seguro nas threads oficiais de Suzana Rios (`+554991810054` - 12 mensagens unificadas) e Francisco Taveira (`+554898583228` - 11 mensagens unificadas).
+  - Remoção atômica de contatos espúrios e reindexação de threads no Inbox.
+
+### 13.10 Arquitetura Modular & Emissão de Nota Fiscal (NFS-e) como Módulo Adicional sob Demanda
+- **Diretriz Arquitetural Inviolável (P0):**
+  - O valor base da anuidade do SOS Vendas (R$ 1.200/ano ou R$ 1.080 no Pix) contempla exclusivamente o **Núcleo Comercial Soberano**: Cockpit Web, Integração WhatsApp (QR/WAHA), Funil Kanban, IA Copiloto e Autônoma Supervisionada, Catálogo de Produtos e Cobrança Pix Nativa com baixa automática.
+  - **Emissão Automática de Nota Fiscal (NFS-e):** É formalmente um **Módulo Adicional sob Demanda**, contratado à parte de acordo com a volumetria municipal da empresa.
+- **Racional Técnico e Tributário:**
+  - O Brasil possui mais de 5.500 municípios sem padrão unificado de NFS-e (provedores ABRASF, DSF, Betha, Ginfes, WebISS, etc.), exigindo certificado digital e-CNPJ (A1) e gerando consumo de APIs e servidores tributários por lote emitido.
+  - Embutir a emissão no plano anual encareceria o sistema para micro e pequenas empresas que emitem poucas notas ou que usam o emissor gratuito municipal.
+- **Transparência Contratual na Landing Page & FAQ:**
+  - Seção `#comecar` (Planos): Adicionado aviso de escopo no card de preços destacando itens inclusos vs módulos adicionais.
+  - Seção `#modulos` (Módulos Adicionais sob Demanda): Cards detalhando Emissão Fiscal (NFS-e), Meta WABA Oficial (Disparo em Escala & Campeã A/B) e Conectores ERP Sob Medida (Bling, Tiny, Omie).
+  - Banner de Transparência Fiscal: Deixa claro que a MCT LTDA emite nota fiscal de serviço SaaS pela assinatura do SOS Vendas para a empresa cliente, enquanto a emissão fiscal de notas de venda para clientes finais é coberta pelo módulo adicional sob demanda.
+  - FAQ com respostas completas sobre o funcionamento dos módulos e nota fiscal da assinatura.
+
+### 13.11 Banco de Modelos Canônicos (70+ Templates em 13 Segmentos Brasileiros)
+- **Biblioteca Canônica Centralizada (`packages/contracts/src/template-library.ts`):**
+  - 70+ templates pré-formatados com variáveis inteligentes (`{{1}}`, `{{2}}`), enquadrados nas diretrizes estritas da Meta (tarifa de Utilidade 85% mais econômica e Marketing de alta conversão).
+  - 13 segmentos comerciais cobertos: E-commerce, Lojas Físicas, Saúde & Clínicas, Odontologia, Beleza & Estética, Imobiliárias, Cursos & Educação, Automotivo, Restaurantes & Delivery, Academias, Viagens & Turismo, Serviços B2B.
+- **Interface do Operador no Cockpit (`apps/web/src/pages/templates/TemplateLibrarySection.tsx` & `TemplatesPage.tsx`):**
+  - Aba nativa **"Biblioteca de Modelos (Prontos)"** com busca textual em tempo real, filtros por nicho/categoria e botão de importação em 1-clique para a conta da empresa.
+- **Exibição na Landing Page (`landing/index.html` & `landing/styles.css`):**
+  - Seção `#modelos` e menu principal atualizados para **"Banco de Modelos"**.
+  - Grid de previews visuais de templates canônicos com balões de conversa WhatsApp (Recuperação de Venda com Pix, Confirmação de Consulta e Reativação B2B) e CTA direto para acesso no Cockpit.
+- **Build e Deploy Contínuo na VPS:**
+  - Código do monorepo atualizado e compilado com sucesso na VPS (`200.141.17.99` / `2a02:4780:6e:c5ee::1`), com containers `chat-sales-web`, `chat-sales-api` e `chat-sales-worker` operando com status *healthy*.
