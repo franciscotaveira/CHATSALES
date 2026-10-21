@@ -167,6 +167,51 @@ export async function createAbacatePayBilling(
 
   if (!response.ok) {
     const errorText = await response.text();
+    // Resiliência Soberana: Se a chave for da v2 do AbacatePay (API key version mismatch), chaveia automaticamente para a API v2
+    if (errorText.includes("version mismatch")) {
+      logger.info("Chave AbacatePay v2 detectada. Redirecionando para API v2 (/transparents/create)...");
+      const v2Response = await fetchClient("https://api.abacatepay.com/v2/transparents/create", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${req.apiKey}`,
+          "Content-Type": "application/json",
+          "User-Agent": "MCT-SOSVendas-V3/AbacatePay",
+        },
+        body: JSON.stringify({
+          method: "PIX",
+          data: {
+            amount: req.amountCents,
+            description: req.title.slice(0, 140),
+            externalId: req.metadata?.chargeId || req.metadata?.proposalId || undefined,
+            customer:
+              req.customer?.name && req.customer?.cellphone && req.customer?.email && req.customer?.taxId
+                ? {
+                    name: req.customer.name.slice(0, 100),
+                    cellphone: req.customer.cellphone.slice(0, 20),
+                    email: req.customer.email.slice(0, 100),
+                    taxId: req.customer.taxId.replace(/\D/g, ""),
+                  }
+                : undefined,
+          },
+        }),
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (v2Response.ok) {
+        const v2Json = (await v2Response.json()) as Record<string, any>;
+        const v2Data = v2Json.data ?? v2Json;
+        return {
+          id: String(v2Data.id || ""),
+          url: String(v2Data.receiptUrl || v2Data.url || ""),
+          amountCents: Number(v2Data.amount || req.amountCents),
+          status: String(v2Data.status || "PENDING"),
+          pixCode: v2Data.brCode || null,
+          pixQrCode: v2Data.brCodeBase64 || null,
+          rawResponse: v2Json,
+        };
+      }
+    }
+
     logger.error({ status: response.status, errorText }, "AbacatePay API billing creation failed");
     throw new Error(`ABACATEPAY_ERROR_${response.status}: Falha ao gerar cobrança no AbacatePay`);
   }
