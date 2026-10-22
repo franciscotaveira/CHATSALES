@@ -1,0 +1,2242 @@
+
+ RUN  v5.0.1 /Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES
+
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "4395a909-6088-408f-a3b3-bc1305f976f1"
+    [35mreq[39m: {
+      "id": "4395a909-6088-408f-a3b3-bc1305f976f1",
+      "method": "GET",
+      "url": "/v1/workspaces/8f809fea-7d49-4e9c-a2c6-8c01d8ea612b/broadcasts/preflight",
+      "query": {},
+      "parameters": {
+        "workspaceId": "8f809fea-7d49-4e9c-a2c6-8c01d8ea612b"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "4395a909-6088-408f-a3b3-bc1305f976f1"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 47.92000000000007
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "ff96272a-ed07-41bc-af89-f7f3f4340aff"
+    [35mreq[39m: {
+      "id": "ff96272a-ed07-41bc-af89-f7f3f4340aff",
+      "method": "POST",
+      "url": "/v1/workspaces/8f809fea-7d49-4e9c-a2c6-8c01d8ea612b/broadcasts/prepare",
+      "query": {},
+      "parameters": {
+        "workspaceId": "8f809fea-7d49-4e9c-a2c6-8c01d8ea612b"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "ff96272a-ed07-41bc-af89-f7f3f4340aff"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 25.117666999999983
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "ca91f024-7c2e-4ad5-83a6-d5d6c5206ec7"
+    [35mreq[39m: {
+      "id": "ca91f024-7c2e-4ad5-83a6-d5d6c5206ec7",
+      "method": "GET",
+      "url": "/v1/workspaces/eeb470e3-e9c8-4939-82ff-92efadd6121e/broadcasts/preflight",
+      "query": {},
+      "parameters": {
+        "workspaceId": "eeb470e3-e9c8-4939-82ff-92efadd6121e"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "ca91f024-7c2e-4ad5-83a6-d5d6c5206ec7"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 8.495542000000114
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "eb211cda-5f57-4c65-a488-2ee5ada80f73"
+    [35mreq[39m: {
+      "id": "eb211cda-5f57-4c65-a488-2ee5ada80f73",
+      "method": "POST",
+      "url": "/v1/workspaces/eeb470e3-e9c8-4939-82ff-92efadd6121e/broadcasts/prepare",
+      "query": {},
+      "parameters": {
+        "workspaceId": "eeb470e3-e9c8-4939-82ff-92efadd6121e"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "eb211cda-5f57-4c65-a488-2ee5ada80f73"
+    [35mres[39m: {
+      "statusCode": 422
+    }
+    [35mresponseTime[39m: 11.076249999999845
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "4e654b20-9fad-4aeb-b916-f3af65c1406b"
+    [35mreq[39m: {
+      "id": "4e654b20-9fad-4aeb-b916-f3af65c1406b",
+      "method": "POST",
+      "url": "/v1/workspaces/eeb470e3-e9c8-4939-82ff-92efadd6121e/broadcasts/prepare",
+      "query": {},
+      "parameters": {
+        "workspaceId": "eeb470e3-e9c8-4939-82ff-92efadd6121e"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "4e654b20-9fad-4aeb-b916-f3af65c1406b"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 7.211166000000048
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "72bb0799-c467-4383-a591-831837126bde"
+    [35mreq[39m: {
+      "id": "72bb0799-c467-4383-a591-831837126bde",
+      "method": "POST",
+      "url": "/v1/workspaces/eeb470e3-e9c8-4939-82ff-92efadd6121e/broadcasts/test",
+      "query": {},
+      "parameters": {
+        "workspaceId": "eeb470e3-e9c8-4939-82ff-92efadd6121e"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "72bb0799-c467-4383-a591-831837126bde"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 64.7922910000002
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "65ef5be3-7033-4edf-a0f8-5d16934b0a32"
+    [35mreq[39m: {
+      "id": "65ef5be3-7033-4edf-a0f8-5d16934b0a32",
+      "method": "POST",
+      "url": "/v1/workspaces/eeb470e3-e9c8-4939-82ff-92efadd6121e/broadcasts",
+      "query": {},
+      "parameters": {
+        "workspaceId": "eeb470e3-e9c8-4939-82ff-92efadd6121e"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "65ef5be3-7033-4edf-a0f8-5d16934b0a32"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 57.75354100000004
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "67d75952-9dde-4366-98fe-5efd33532ff4"
+    [35mreq[39m: {
+      "id": "67d75952-9dde-4366-98fe-5efd33532ff4",
+      "method": "POST",
+      "url": "/v1/workspaces/9b09b8d0-6e9f-44ed-b1ad-94864705d0d3/broadcasts/prepare",
+      "query": {},
+      "parameters": {
+        "workspaceId": "9b09b8d0-6e9f-44ed-b1ad-94864705d0d3"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "67d75952-9dde-4366-98fe-5efd33532ff4"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 13.419125000000122
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "05f65bff-eaba-48f5-9705-883944654df1"
+    [35mreq[39m: {
+      "id": "05f65bff-eaba-48f5-9705-883944654df1",
+      "method": "POST",
+      "url": "/v1/workspaces/9b09b8d0-6e9f-44ed-b1ad-94864705d0d3/broadcasts/test",
+      "query": {},
+      "parameters": {
+        "workspaceId": "9b09b8d0-6e9f-44ed-b1ad-94864705d0d3"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "05f65bff-eaba-48f5-9705-883944654df1"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 51.82854199999997
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "20fb92cc-c1e9-4554-9ec0-8c3eeaa4c5a5"
+    [35mreq[39m: {
+      "id": "20fb92cc-c1e9-4554-9ec0-8c3eeaa4c5a5",
+      "method": "POST",
+      "url": "/v1/workspaces/9b09b8d0-6e9f-44ed-b1ad-94864705d0d3/broadcasts",
+      "query": {},
+      "parameters": {
+        "workspaceId": "9b09b8d0-6e9f-44ed-b1ad-94864705d0d3"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "20fb92cc-c1e9-4554-9ec0-8c3eeaa4c5a5"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 42.78370899999982
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "7f3d541f-564c-41bc-843b-955cb2d65f4e"
+    [35mreq[39m: {
+      "id": "7f3d541f-564c-41bc-843b-955cb2d65f4e",
+      "method": "POST",
+      "url": "/v1/workspaces/0c34489c-3538-4a14-b5e3-e518d8ece7ce/broadcasts",
+      "query": {},
+      "parameters": {
+        "workspaceId": "0c34489c-3538-4a14-b5e3-e518d8ece7ce"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "7f3d541f-564c-41bc-843b-955cb2d65f4e"
+    [35mres[39m: {
+      "statusCode": 422
+    }
+    [35mresponseTime[39m: 3.509375000000091
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "43d29102-10e2-4d03-84ae-5f62596fa4cf"
+    [35mreq[39m: {
+      "id": "43d29102-10e2-4d03-84ae-5f62596fa4cf",
+      "method": "POST",
+      "url": "/v1/workspaces/08e60bf8-7842-475f-bf2d-8a1dfb3516d6/broadcasts/prepare",
+      "query": {},
+      "parameters": {
+        "workspaceId": "08e60bf8-7842-475f-bf2d-8a1dfb3516d6"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "43d29102-10e2-4d03-84ae-5f62596fa4cf"
+    [35mres[39m: {
+      "statusCode": 422
+    }
+    [35mresponseTime[39m: 4.1612920000002305
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "8d96bbd9-f3a0-4bcd-96f9-a737823cf9f1"
+    [35mreq[39m: {
+      "id": "8d96bbd9-f3a0-4bcd-96f9-a737823cf9f1",
+      "method": "POST",
+      "url": "/v1/workspaces/08e60bf8-7842-475f-bf2d-8a1dfb3516d6/broadcasts/prepare",
+      "query": {},
+      "parameters": {
+        "workspaceId": "08e60bf8-7842-475f-bf2d-8a1dfb3516d6"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "8d96bbd9-f3a0-4bcd-96f9-a737823cf9f1"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 5.238417000000027
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "f80a77cd-3ad9-4091-9f07-6772856e3a55"
+    [35mreq[39m: {
+      "id": "f80a77cd-3ad9-4091-9f07-6772856e3a55",
+      "method": "POST",
+      "url": "/v1/workspaces/37e86cdc-47b0-4e31-93cf-858621636f88/broadcasts/prepare",
+      "query": {},
+      "parameters": {
+        "workspaceId": "37e86cdc-47b0-4e31-93cf-858621636f88"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "f80a77cd-3ad9-4091-9f07-6772856e3a55"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 6.6873749999999745
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "be3a71ab-66c7-4689-8b0a-9010252aae90"
+    [35mreq[39m: {
+      "id": "be3a71ab-66c7-4689-8b0a-9010252aae90",
+      "method": "POST",
+      "url": "/v1/workspaces/37e86cdc-47b0-4e31-93cf-858621636f88/broadcasts/test",
+      "query": {},
+      "parameters": {
+        "workspaceId": "37e86cdc-47b0-4e31-93cf-858621636f88"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "be3a71ab-66c7-4689-8b0a-9010252aae90"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 28.83291599999984
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "d0e47cfd-8970-49b0-a8b7-6a933e9e5a18"
+    [35mreq[39m: {
+      "id": "d0e47cfd-8970-49b0-a8b7-6a933e9e5a18",
+      "method": "POST",
+      "url": "/v1/workspaces/37e86cdc-47b0-4e31-93cf-858621636f88/broadcasts",
+      "query": {},
+      "parameters": {
+        "workspaceId": "37e86cdc-47b0-4e31-93cf-858621636f88"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "d0e47cfd-8970-49b0-a8b7-6a933e9e5a18"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 40.34937499999978
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "b34c5f9d-afbe-4d91-b39c-df4611f5a83f"
+    [35mreq[39m: {
+      "id": "b34c5f9d-afbe-4d91-b39c-df4611f5a83f",
+      "method": "POST",
+      "url": "/v1/workspaces/37e86cdc-47b0-4e31-93cf-858621636f88/broadcasts",
+      "query": {},
+      "parameters": {
+        "workspaceId": "37e86cdc-47b0-4e31-93cf-858621636f88"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "b34c5f9d-afbe-4d91-b39c-df4611f5a83f"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 21.202124999999796
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "73bd4da1-64b5-4f19-8018-9e2dd62629fa"
+    [35mreq[39m: {
+      "id": "73bd4da1-64b5-4f19-8018-9e2dd62629fa",
+      "method": "POST",
+      "url": "/v1/workspaces/37e86cdc-47b0-4e31-93cf-858621636f88/broadcasts",
+      "query": {},
+      "parameters": {
+        "workspaceId": "37e86cdc-47b0-4e31-93cf-858621636f88"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "73bd4da1-64b5-4f19-8018-9e2dd62629fa"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 45.359084000000166
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "11234d8e-19d6-4730-a9fb-bdd066db7bdf"
+    [35mreq[39m: {
+      "id": "11234d8e-19d6-4730-a9fb-bdd066db7bdf",
+      "method": "POST",
+      "url": "/v1/workspaces/801dbfa1-23fc-4521-81ba-1725da63325a/broadcasts/prepare",
+      "query": {},
+      "parameters": {
+        "workspaceId": "801dbfa1-23fc-4521-81ba-1725da63325a"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "11234d8e-19d6-4730-a9fb-bdd066db7bdf"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 6.235124999999698
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "b85eebb1-a971-401c-93ce-edde23ad37d4"
+    [35mreq[39m: {
+      "id": "b85eebb1-a971-401c-93ce-edde23ad37d4",
+      "method": "POST",
+      "url": "/v1/workspaces/801dbfa1-23fc-4521-81ba-1725da63325a/broadcasts/test",
+      "query": {},
+      "parameters": {
+        "workspaceId": "801dbfa1-23fc-4521-81ba-1725da63325a"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "b85eebb1-a971-401c-93ce-edde23ad37d4"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 30.5321670000003
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "31a9a08e-b9ff-4562-afa2-5ec955484254"
+    [35mreq[39m: {
+      "id": "31a9a08e-b9ff-4562-afa2-5ec955484254",
+      "method": "POST",
+      "url": "/v1/workspaces/801dbfa1-23fc-4521-81ba-1725da63325a/broadcasts",
+      "query": {},
+      "parameters": {
+        "workspaceId": "801dbfa1-23fc-4521-81ba-1725da63325a"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "31a9a08e-b9ff-4562-afa2-5ec955484254"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 16.945208999999977
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "aeea64f7-9259-4df1-969d-0acff67b7c12"
+    [35mreq[39m: {
+      "id": "aeea64f7-9259-4df1-969d-0acff67b7c12",
+      "method": "POST",
+      "url": "/v1/workspaces/1b8e7b4b-aa30-4715-97fc-47a19a153091/broadcasts/prepare",
+      "query": {},
+      "parameters": {
+        "workspaceId": "1b8e7b4b-aa30-4715-97fc-47a19a153091"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "aeea64f7-9259-4df1-969d-0acff67b7c12"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 8.879500000000007
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "2642bc4c-a04b-4574-af54-d3ffc5cd27a9"
+    [35mreq[39m: {
+      "id": "2642bc4c-a04b-4574-af54-d3ffc5cd27a9",
+      "method": "POST",
+      "url": "/v1/workspaces/1b8e7b4b-aa30-4715-97fc-47a19a153091/broadcasts",
+      "query": {},
+      "parameters": {
+        "workspaceId": "1b8e7b4b-aa30-4715-97fc-47a19a153091"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "2642bc4c-a04b-4574-af54-d3ffc5cd27a9"
+    [35mres[39m: {
+      "statusCode": 409
+    }
+    [35mresponseTime[39m: 6.314582999999857
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "4bf0ead4-1875-48cb-97c9-11f82135da13"
+    [35mreq[39m: {
+      "id": "4bf0ead4-1875-48cb-97c9-11f82135da13",
+      "method": "POST",
+      "url": "/v1/workspaces/1b8e7b4b-aa30-4715-97fc-47a19a153091/broadcasts/prepare",
+      "query": {},
+      "parameters": {
+        "workspaceId": "1b8e7b4b-aa30-4715-97fc-47a19a153091"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "4bf0ead4-1875-48cb-97c9-11f82135da13"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 8.214500000000044
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "a7770ae1-126f-48ca-a745-91caed1703d5"
+    [35mreq[39m: {
+      "id": "a7770ae1-126f-48ca-a745-91caed1703d5",
+      "method": "POST",
+      "url": "/v1/workspaces/1b8e7b4b-aa30-4715-97fc-47a19a153091/broadcasts",
+      "query": {},
+      "parameters": {
+        "workspaceId": "1b8e7b4b-aa30-4715-97fc-47a19a153091"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "a7770ae1-126f-48ca-a745-91caed1703d5"
+    [35mres[39m: {
+      "statusCode": 409
+    }
+    [35mresponseTime[39m: 6.261375000000044
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "f1382361-3d07-4e38-8ea3-e21615bd0996"
+    [35mreq[39m: {
+      "id": "f1382361-3d07-4e38-8ea3-e21615bd0996",
+      "method": "POST",
+      "url": "/v1/workspaces/1b8e7b4b-aa30-4715-97fc-47a19a153091/broadcasts",
+      "query": {},
+      "parameters": {
+        "workspaceId": "1b8e7b4b-aa30-4715-97fc-47a19a153091"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "f1382361-3d07-4e38-8ea3-e21615bd0996"
+    [35mres[39m: {
+      "statusCode": 409
+    }
+    [35mresponseTime[39m: 7.245542000000114
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "e8d91762-18c5-4de3-ae56-3ae9e000ccc5"
+    [35mreq[39m: {
+      "id": "e8d91762-18c5-4de3-ae56-3ae9e000ccc5",
+      "method": "POST",
+      "url": "/v1/workspaces/77cb707c-52a0-46ee-a839-ae7e39e80e76/broadcasts/prepare",
+      "query": {},
+      "parameters": {
+        "workspaceId": "77cb707c-52a0-46ee-a839-ae7e39e80e76"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "e8d91762-18c5-4de3-ae56-3ae9e000ccc5"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 9.037665999999717
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "148d20ae-c4cc-46d8-a595-e97adca3fe8a"
+    [35mreq[39m: {
+      "id": "148d20ae-c4cc-46d8-a595-e97adca3fe8a",
+      "method": "POST",
+      "url": "/v1/workspaces/e52ab96a-07e5-484f-b888-d7b451ff1d38/broadcasts",
+      "query": {},
+      "parameters": {
+        "workspaceId": "e52ab96a-07e5-484f-b888-d7b451ff1d38"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "148d20ae-c4cc-46d8-a595-e97adca3fe8a"
+    [35mres[39m: {
+      "statusCode": 404
+    }
+    [35mresponseTime[39m: 10.174667000000227
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "7bf67bae-5b26-4796-8572-9ab1bfbfbe6d"
+    [35mreq[39m: {
+      "id": "7bf67bae-5b26-4796-8572-9ab1bfbfbe6d",
+      "method": "POST",
+      "url": "/v1/workspaces/7d83452e-82db-4c46-8d83-681ce0f916b8/broadcasts/prepare",
+      "query": {},
+      "parameters": {
+        "workspaceId": "7d83452e-82db-4c46-8d83-681ce0f916b8"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "7bf67bae-5b26-4796-8572-9ab1bfbfbe6d"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 16.90270899999996
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "57107aa1-b824-4eb4-9c99-fc88458d1272"
+    [35mreq[39m: {
+      "id": "57107aa1-b824-4eb4-9c99-fc88458d1272",
+      "method": "POST",
+      "url": "/v1/workspaces/7d83452e-82db-4c46-8d83-681ce0f916b8/broadcasts",
+      "query": {},
+      "parameters": {
+        "workspaceId": "7d83452e-82db-4c46-8d83-681ce0f916b8"
+      }
+    }
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "57107aa1-b824-4eb4-9c99-fc88458d1272"
+    [35mres[39m: {
+      "statusCode": 404
+    }
+    [35mresponseTime[39m: 12.707875000000058
+[03:24:34 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "f467f5a5-ebeb-4037-aed7-79d89a24dc1d"
+    [35mreq[39m: {
+      "id": "f467f5a5-ebeb-4037-aed7-79d89a24dc1d",
+      "method": "POST",
+      "url": "/v1/workspaces/f0f0e2ad-3966-4217-9a0f-a9e4232cc5c1/broadcasts/prepare",
+      "query": {},
+      "parameters": {
+        "workspaceId": "f0f0e2ad-3966-4217-9a0f-a9e4232cc5c1"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "f467f5a5-ebeb-4037-aed7-79d89a24dc1d"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 6.060041999999612
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "5bba0e4f-424a-4701-830f-e4334b1cafc9"
+    [35mreq[39m: {
+      "id": "5bba0e4f-424a-4701-830f-e4334b1cafc9",
+      "method": "POST",
+      "url": "/v1/workspaces/f0f0e2ad-3966-4217-9a0f-a9e4232cc5c1/broadcasts/test",
+      "query": {},
+      "parameters": {
+        "workspaceId": "f0f0e2ad-3966-4217-9a0f-a9e4232cc5c1"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "5bba0e4f-424a-4701-830f-e4334b1cafc9"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 24.51929199999995
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "e5a9e6a8-631b-45ea-b1a5-b9f764bac053"
+    [35mreq[39m: {
+      "id": "e5a9e6a8-631b-45ea-b1a5-b9f764bac053",
+      "method": "POST",
+      "url": "/v1/workspaces/f0f0e2ad-3966-4217-9a0f-a9e4232cc5c1/broadcasts",
+      "query": {},
+      "parameters": {
+        "workspaceId": "f0f0e2ad-3966-4217-9a0f-a9e4232cc5c1"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "e5a9e6a8-631b-45ea-b1a5-b9f764bac053"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 24.12341600000036
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "d5b94fd0-80a7-4613-8d54-b3fe02077e74"
+    [35mreq[39m: {
+      "id": "d5b94fd0-80a7-4613-8d54-b3fe02077e74",
+      "method": "POST",
+      "url": "/v1/workspaces/41109005-6d89-4de8-933d-30c08452bd92/journeys",
+      "query": {},
+      "parameters": {
+        "workspaceId": "41109005-6d89-4de8-933d-30c08452bd92"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "d5b94fd0-80a7-4613-8d54-b3fe02077e74"
+    [35mres[39m: {
+      "statusCode": 201
+    }
+    [35mresponseTime[39m: 6.339874999999665
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "6ca84c8e-f6ff-49b5-9f9a-beb7828825f2"
+    [35mreq[39m: {
+      "id": "6ca84c8e-f6ff-49b5-9f9a-beb7828825f2",
+      "method": "POST",
+      "url": "/v1/workspaces/41109005-6d89-4de8-933d-30c08452bd92/broadcasts/prepare",
+      "query": {},
+      "parameters": {
+        "workspaceId": "41109005-6d89-4de8-933d-30c08452bd92"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "6ca84c8e-f6ff-49b5-9f9a-beb7828825f2"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 7.117999999999938
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "73ad223c-8115-405a-9972-c1b30517ef6f"
+    [35mreq[39m: {
+      "id": "73ad223c-8115-405a-9972-c1b30517ef6f",
+      "method": "POST",
+      "url": "/v1/workspaces/41109005-6d89-4de8-933d-30c08452bd92/broadcasts/test",
+      "query": {},
+      "parameters": {
+        "workspaceId": "41109005-6d89-4de8-933d-30c08452bd92"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "73ad223c-8115-405a-9972-c1b30517ef6f"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 19.47816600000033
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "34e64b46-b98c-4457-8c1c-5861f80cf323"
+    [35mreq[39m: {
+      "id": "34e64b46-b98c-4457-8c1c-5861f80cf323",
+      "method": "POST",
+      "url": "/v1/workspaces/41109005-6d89-4de8-933d-30c08452bd92/broadcasts",
+      "query": {},
+      "parameters": {
+        "workspaceId": "41109005-6d89-4de8-933d-30c08452bd92"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "34e64b46-b98c-4457-8c1c-5861f80cf323"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 26.589790999999877
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "64e9b9dc-04c9-4c7f-8cf5-5fd6a1eaa005"
+    [35mreq[39m: {
+      "id": "64e9b9dc-04c9-4c7f-8cf5-5fd6a1eaa005",
+      "method": "POST",
+      "url": "/v1/workspaces/6e57841d-99bd-4705-a15c-77fe8381a9f1/broadcasts/prepare",
+      "query": {},
+      "parameters": {
+        "workspaceId": "6e57841d-99bd-4705-a15c-77fe8381a9f1"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "64e9b9dc-04c9-4c7f-8cf5-5fd6a1eaa005"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 6.061708000000181
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "3a123947-8623-4497-8668-68238db35114"
+    [35mreq[39m: {
+      "id": "3a123947-8623-4497-8668-68238db35114",
+      "method": "POST",
+      "url": "/v1/workspaces/6e57841d-99bd-4705-a15c-77fe8381a9f1/broadcasts",
+      "query": {},
+      "parameters": {
+        "workspaceId": "6e57841d-99bd-4705-a15c-77fe8381a9f1"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "3a123947-8623-4497-8668-68238db35114"
+    [35mres[39m: {
+      "statusCode": 422
+    }
+    [35mresponseTime[39m: 7.411333000000013
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "a6f6dce5-5a72-44e8-9969-079185813a64"
+    [35mreq[39m: {
+      "id": "a6f6dce5-5a72-44e8-9969-079185813a64",
+      "method": "POST",
+      "url": "/v1/workspaces/6e57841d-99bd-4705-a15c-77fe8381a9f1/broadcasts/test",
+      "query": {},
+      "parameters": {
+        "workspaceId": "6e57841d-99bd-4705-a15c-77fe8381a9f1"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "a6f6dce5-5a72-44e8-9969-079185813a64"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 19.463541000000077
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "67656530-29ee-4604-afc2-84fbdb5de27c"
+    [35mreq[39m: {
+      "id": "67656530-29ee-4604-afc2-84fbdb5de27c",
+      "method": "POST",
+      "url": "/v1/workspaces/6e57841d-99bd-4705-a15c-77fe8381a9f1/broadcasts",
+      "query": {},
+      "parameters": {
+        "workspaceId": "6e57841d-99bd-4705-a15c-77fe8381a9f1"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "67656530-29ee-4604-afc2-84fbdb5de27c"
+    [35mres[39m: {
+      "statusCode": 422
+    }
+    [35mresponseTime[39m: 7.55212500000016
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "189fb0b9-2fe3-447e-b973-a1c4f951e9f0"
+    [35mreq[39m: {
+      "id": "189fb0b9-2fe3-447e-b973-a1c4f951e9f0",
+      "method": "GET",
+      "url": "/v1/workspaces/6e57841d-99bd-4705-a15c-77fe8381a9f1/broadcasts/preparations/c917e002-0290-4d5b-9baa-37b4fbaa2cb0/tests",
+      "query": {},
+      "parameters": {
+        "workspaceId": "6e57841d-99bd-4705-a15c-77fe8381a9f1",
+        "preparationId": "c917e002-0290-4d5b-9baa-37b4fbaa2cb0"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "189fb0b9-2fe3-447e-b973-a1c4f951e9f0"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 3.424250000000029
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "6c3cf000-e34b-49e7-9a87-30482488fe01"
+    [35mreq[39m: {
+      "id": "6c3cf000-e34b-49e7-9a87-30482488fe01",
+      "method": "POST",
+      "url": "/v1/workspaces/6e57841d-99bd-4705-a15c-77fe8381a9f1/broadcasts/test",
+      "query": {},
+      "parameters": {
+        "workspaceId": "6e57841d-99bd-4705-a15c-77fe8381a9f1"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "6c3cf000-e34b-49e7-9a87-30482488fe01"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 9.066915999999765
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "86d4d783-30aa-4ed3-8504-ef7b5d73547f"
+    [35mreq[39m: {
+      "id": "86d4d783-30aa-4ed3-8504-ef7b5d73547f",
+      "method": "POST",
+      "url": "/v1/workspaces/6e57841d-99bd-4705-a15c-77fe8381a9f1/broadcasts",
+      "query": {},
+      "parameters": {
+        "workspaceId": "6e57841d-99bd-4705-a15c-77fe8381a9f1"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "86d4d783-30aa-4ed3-8504-ef7b5d73547f"
+    [35mres[39m: {
+      "statusCode": 422
+    }
+    [35mresponseTime[39m: 7.388124999999945
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "bf89e647-c9e6-4078-966f-69b61d008354"
+    [35mreq[39m: {
+      "id": "bf89e647-c9e6-4078-966f-69b61d008354",
+      "method": "POST",
+      "url": "/v1/workspaces/6e57841d-99bd-4705-a15c-77fe8381a9f1/broadcasts",
+      "query": {},
+      "parameters": {
+        "workspaceId": "6e57841d-99bd-4705-a15c-77fe8381a9f1"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "bf89e647-c9e6-4078-966f-69b61d008354"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 35.38920800000005
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "46eebb85-9621-418d-bbaa-5da4842ba7ee"
+    [35mreq[39m: {
+      "id": "46eebb85-9621-418d-bbaa-5da4842ba7ee",
+      "method": "POST",
+      "url": "/v1/workspaces/3e4865bf-ed79-4ae8-ab5e-5625390f14ad/broadcasts/prepare",
+      "query": {},
+      "parameters": {
+        "workspaceId": "3e4865bf-ed79-4ae8-ab5e-5625390f14ad"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "46eebb85-9621-418d-bbaa-5da4842ba7ee"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 6.401624999999967
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "51ca36a3-7c67-40bd-adca-8276dfe712e8"
+    [35mreq[39m: {
+      "id": "51ca36a3-7c67-40bd-adca-8276dfe712e8",
+      "method": "POST",
+      "url": "/v1/workspaces/3e4865bf-ed79-4ae8-ab5e-5625390f14ad/broadcasts/test",
+      "query": {},
+      "parameters": {
+        "workspaceId": "3e4865bf-ed79-4ae8-ab5e-5625390f14ad"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "51ca36a3-7c67-40bd-adca-8276dfe712e8"
+    [35mres[39m: {
+      "statusCode": 422
+    }
+    [35mresponseTime[39m: 7.592416999999841
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "f8543b17-91d5-4aa7-bad0-11b8f880afa8"
+    [35mreq[39m: {
+      "id": "f8543b17-91d5-4aa7-bad0-11b8f880afa8",
+      "method": "POST",
+      "url": "/v1/workspaces/3e4865bf-ed79-4ae8-ab5e-5625390f14ad/broadcasts/test",
+      "query": {},
+      "parameters": {
+        "workspaceId": "3e4865bf-ed79-4ae8-ab5e-5625390f14ad"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "f8543b17-91d5-4aa7-bad0-11b8f880afa8"
+    [35mres[39m: {
+      "statusCode": 422
+    }
+    [35mresponseTime[39m: 6.5345830000001115
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "1a7426b4-3fbc-442e-9477-9663bd2b9634"
+    [35mreq[39m: {
+      "id": "1a7426b4-3fbc-442e-9477-9663bd2b9634",
+      "method": "POST",
+      "url": "/v1/workspaces/3e4865bf-ed79-4ae8-ab5e-5625390f14ad/broadcasts/test",
+      "query": {},
+      "parameters": {
+        "workspaceId": "3e4865bf-ed79-4ae8-ab5e-5625390f14ad"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "1a7426b4-3fbc-442e-9477-9663bd2b9634"
+    [35mres[39m: {
+      "statusCode": 422
+    }
+    [35mresponseTime[39m: 6.990084000000024
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "ee876f70-eb5d-44ac-ab7d-a0c477203129"
+    [35mreq[39m: {
+      "id": "ee876f70-eb5d-44ac-ab7d-a0c477203129",
+      "method": "POST",
+      "url": "/v1/workspaces/3e4865bf-ed79-4ae8-ab5e-5625390f14ad/broadcasts/test",
+      "query": {},
+      "parameters": {
+        "workspaceId": "3e4865bf-ed79-4ae8-ab5e-5625390f14ad"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "ee876f70-eb5d-44ac-ab7d-a0c477203129"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 24.313040999999885
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "231e5709-dc91-424f-b6d6-f3023f10a697"
+    [35mreq[39m: {
+      "id": "231e5709-dc91-424f-b6d6-f3023f10a697",
+      "method": "POST",
+      "url": "/v1/workspaces/3e4865bf-ed79-4ae8-ab5e-5625390f14ad/broadcasts/test",
+      "query": {},
+      "parameters": {
+        "workspaceId": "3e4865bf-ed79-4ae8-ab5e-5625390f14ad"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "231e5709-dc91-424f-b6d6-f3023f10a697"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 11.249708000000282
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "9e22b155-f993-427d-83b4-02bb9e3ce024"
+    [35mreq[39m: {
+      "id": "9e22b155-f993-427d-83b4-02bb9e3ce024",
+      "method": "POST",
+      "url": "/v1/workspaces/3e4865bf-ed79-4ae8-ab5e-5625390f14ad/broadcasts/test",
+      "query": {},
+      "parameters": {
+        "workspaceId": "3e4865bf-ed79-4ae8-ab5e-5625390f14ad"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "9e22b155-f993-427d-83b4-02bb9e3ce024"
+    [35mres[39m: {
+      "statusCode": 409
+    }
+    [35mresponseTime[39m: 37.79212499999994
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "0cb9f9b3-a994-4c1a-b76e-265c0d19685b"
+    [35mreq[39m: {
+      "id": "0cb9f9b3-a994-4c1a-b76e-265c0d19685b",
+      "method": "POST",
+      "url": "/v1/workspaces/75be5786-339e-4cc8-90a1-1793630e1e28/broadcasts/prepare",
+      "query": {},
+      "parameters": {
+        "workspaceId": "75be5786-339e-4cc8-90a1-1793630e1e28"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "0cb9f9b3-a994-4c1a-b76e-265c0d19685b"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 13.105542000000241
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "8185bc7b-50cb-4162-a61d-56c690e3fdfa"
+    [35mreq[39m: {
+      "id": "8185bc7b-50cb-4162-a61d-56c690e3fdfa",
+      "method": "POST",
+      "url": "/v1/workspaces/75be5786-339e-4cc8-90a1-1793630e1e28/broadcasts/test",
+      "query": {},
+      "parameters": {
+        "workspaceId": "75be5786-339e-4cc8-90a1-1793630e1e28"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "8185bc7b-50cb-4162-a61d-56c690e3fdfa"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 51.095000000000255
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "3bc79812-81f6-4e27-a2b0-eccbb6f0d1af"
+    [35mreq[39m: {
+      "id": "3bc79812-81f6-4e27-a2b0-eccbb6f0d1af",
+      "method": "POST",
+      "url": "/v1/workspaces/75be5786-339e-4cc8-90a1-1793630e1e28/broadcasts/test",
+      "query": {},
+      "parameters": {
+        "workspaceId": "75be5786-339e-4cc8-90a1-1793630e1e28"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "3bc79812-81f6-4e27-a2b0-eccbb6f0d1af"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 23.48924999999963
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "b1e8d0a7-66c3-427f-b21f-867624b71ede"
+    [35mreq[39m: {
+      "id": "b1e8d0a7-66c3-427f-b21f-867624b71ede",
+      "method": "GET",
+      "url": "/v1/workspaces/75be5786-339e-4cc8-90a1-1793630e1e28/broadcasts/preparations/d3ce003a-ef0a-436f-a9e9-f28f0a45b0e9/tests",
+      "query": {},
+      "parameters": {
+        "workspaceId": "75be5786-339e-4cc8-90a1-1793630e1e28",
+        "preparationId": "d3ce003a-ef0a-436f-a9e9-f28f0a45b0e9"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "b1e8d0a7-66c3-427f-b21f-867624b71ede"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 7.807499999999891
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "0374949c-9073-4c5e-b33b-8f932ea1e5e4"
+    [35mreq[39m: {
+      "id": "0374949c-9073-4c5e-b33b-8f932ea1e5e4",
+      "method": "POST",
+      "url": "/v1/workspaces/75be5786-339e-4cc8-90a1-1793630e1e28/broadcasts",
+      "query": {},
+      "parameters": {
+        "workspaceId": "75be5786-339e-4cc8-90a1-1793630e1e28"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "0374949c-9073-4c5e-b33b-8f932ea1e5e4"
+    [35mres[39m: {
+      "statusCode": 422
+    }
+    [35mresponseTime[39m: 17.773125000000164
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "d7912635-00a5-473d-8663-e1307148dfc9"
+    [35mreq[39m: {
+      "id": "d7912635-00a5-473d-8663-e1307148dfc9",
+      "method": "POST",
+      "url": "/v1/workspaces/75be5786-339e-4cc8-90a1-1793630e1e28/broadcasts",
+      "query": {},
+      "parameters": {
+        "workspaceId": "75be5786-339e-4cc8-90a1-1793630e1e28"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "d7912635-00a5-473d-8663-e1307148dfc9"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 42.242209
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "2badd54d-1716-4685-befa-c3a686bfad46"
+    [35mreq[39m: {
+      "id": "2badd54d-1716-4685-befa-c3a686bfad46",
+      "method": "POST",
+      "url": "/v1/workspaces/0e7826d1-8e63-4e02-a6da-4f6c333d44dd/broadcasts/prepare",
+      "query": {},
+      "parameters": {
+        "workspaceId": "0e7826d1-8e63-4e02-a6da-4f6c333d44dd"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "2badd54d-1716-4685-befa-c3a686bfad46"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 7.928915999999845
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "0d75b217-c0d2-4a11-8712-bb96c0495069"
+    [35mreq[39m: {
+      "id": "0d75b217-c0d2-4a11-8712-bb96c0495069",
+      "method": "POST",
+      "url": "/v1/workspaces/0e7826d1-8e63-4e02-a6da-4f6c333d44dd/broadcasts/test",
+      "query": {},
+      "parameters": {
+        "workspaceId": "0e7826d1-8e63-4e02-a6da-4f6c333d44dd"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "0d75b217-c0d2-4a11-8712-bb96c0495069"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 19.534415999999965
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "784423ff-481b-458b-984d-8239e76c04c5"
+    [35mreq[39m: {
+      "id": "784423ff-481b-458b-984d-8239e76c04c5",
+      "method": "GET",
+      "url": "/v1/workspaces/0e7826d1-8e63-4e02-a6da-4f6c333d44dd/broadcasts/preparations/f9cc130e-b0ca-4ccf-b56f-6dd47a6fa962/tests",
+      "query": {},
+      "parameters": {
+        "workspaceId": "0e7826d1-8e63-4e02-a6da-4f6c333d44dd",
+        "preparationId": "f9cc130e-b0ca-4ccf-b56f-6dd47a6fa962"
+      }
+    }
+[03:24:35 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "784423ff-481b-458b-984d-8239e76c04c5"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 4.984124999999949
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "635d0abc-a4f1-4b74-913d-beec73832847"
+    [35mreq[39m: {
+      "id": "635d0abc-a4f1-4b74-913d-beec73832847",
+      "method": "GET",
+      "url": "/v1/workspaces/ac915493-7419-455e-ad48-ac1a05bcd2d3/broadcasts/campaigns",
+      "query": {},
+      "parameters": {
+        "workspaceId": "ac915493-7419-455e-ad48-ac1a05bcd2d3"
+      }
+    }
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "635d0abc-a4f1-4b74-913d-beec73832847"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 274.553083
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "b1849077-b74f-4f5f-a733-0fddd00db75f"
+    [35mreq[39m: {
+      "id": "b1849077-b74f-4f5f-a733-0fddd00db75f",
+      "method": "GET",
+      "url": "/v1/workspaces/ac915493-7419-455e-ad48-ac1a05bcd2d3/broadcasts/campaigns?beforeCreatedAt=2026-10-17T12%3A00%3A00.123456Z&beforeId=160c21f9-8f9d-4466-9691-f64ba72c5b36",
+      "query": {
+        "beforeCreatedAt": "2026-10-17T12:00:00.123456Z",
+        "beforeId": "160c21f9-8f9d-4466-9691-f64ba72c5b36"
+      },
+      "parameters": {
+        "workspaceId": "ac915493-7419-455e-ad48-ac1a05bcd2d3"
+      }
+    }
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "b1849077-b74f-4f5f-a733-0fddd00db75f"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 16.90758299999993
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "5d68bfaf-16d1-447e-96ec-25aa5f7ef5c2"
+    [35mreq[39m: {
+      "id": "5d68bfaf-16d1-447e-96ec-25aa5f7ef5c2",
+      "method": "GET",
+      "url": "/v1/workspaces/ac915493-7419-455e-ad48-ac1a05bcd2d3/broadcasts/campaigns?beforeCreatedAt=invalid",
+      "query": {
+        "beforeCreatedAt": "invalid"
+      },
+      "parameters": {
+        "workspaceId": "ac915493-7419-455e-ad48-ac1a05bcd2d3"
+      }
+    }
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "5d68bfaf-16d1-447e-96ec-25aa5f7ef5c2"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 2.5587920000000395
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "836856f2-1b86-4517-a0ba-ecf8c958f72e"
+    [35mreq[39m: {
+      "id": "836856f2-1b86-4517-a0ba-ecf8c958f72e",
+      "method": "GET",
+      "url": "/v1/workspaces/ac915493-7419-455e-ad48-ac1a05bcd2d3/broadcasts/campaigns?beforeId=0e66908f-76b7-4566-ad5b-10fb79b12fa6",
+      "query": {
+        "beforeId": "0e66908f-76b7-4566-ad5b-10fb79b12fa6"
+      },
+      "parameters": {
+        "workspaceId": "ac915493-7419-455e-ad48-ac1a05bcd2d3"
+      }
+    }
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "836856f2-1b86-4517-a0ba-ecf8c958f72e"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 2.0829579999999623
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "f0884b91-eb6b-4b26-afd1-048394a0efad"
+    [35mreq[39m: {
+      "id": "f0884b91-eb6b-4b26-afd1-048394a0efad",
+      "method": "GET",
+      "url": "/v1/workspaces/ac915493-7419-455e-ad48-ac1a05bcd2d3/broadcasts/campaigns?beforeCreatedAt=2026-10-17T12%3A00%3A00Z&beforeId=invalid",
+      "query": {
+        "beforeCreatedAt": "2026-10-17T12:00:00Z",
+        "beforeId": "invalid"
+      },
+      "parameters": {
+        "workspaceId": "ac915493-7419-455e-ad48-ac1a05bcd2d3"
+      }
+    }
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "f0884b91-eb6b-4b26-afd1-048394a0efad"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 1.9009170000000495
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "a93fcba5-fbf6-45ff-b92a-d7bd56e3e67e"
+    [35mreq[39m: {
+      "id": "a93fcba5-fbf6-45ff-b92a-d7bd56e3e67e",
+      "method": "GET",
+      "url": "/v1/workspaces/ce7e368c-43c3-468a-a86e-73d7125c4de8/broadcasts/campaigns",
+      "query": {},
+      "parameters": {
+        "workspaceId": "ce7e368c-43c3-468a-a86e-73d7125c4de8"
+      }
+    }
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "a93fcba5-fbf6-45ff-b92a-d7bd56e3e67e"
+    [35mres[39m: {
+      "statusCode": 403
+    }
+    [35mresponseTime[39m: 4.522334000000001
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "1afab99e-576a-46d9-bf27-a137096be583"
+    [35mreq[39m: {
+      "id": "1afab99e-576a-46d9-bf27-a137096be583",
+      "method": "GET",
+      "url": "/v1/workspaces/ac915493-7419-455e-ad48-ac1a05bcd2d3/broadcasts/campaigns?search=needle&type=AB_ONLY",
+      "query": {
+        "search": "needle",
+        "type": "AB_ONLY"
+      },
+      "parameters": {
+        "workspaceId": "ac915493-7419-455e-ad48-ac1a05bcd2d3"
+      }
+    }
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "1afab99e-576a-46d9-bf27-a137096be583"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 13.474042000000054
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "5ddfe2b8-1602-4d2e-a31e-f7617f5ca083"
+    [35mreq[39m: {
+      "id": "5ddfe2b8-1602-4d2e-a31e-f7617f5ca083",
+      "method": "GET",
+      "url": "/v1/workspaces/ac915493-7419-455e-ad48-ac1a05bcd2d3/broadcasts/campaigns?search=100%25_literal&type=AB_ONLY",
+      "query": {
+        "search": "100%_literal",
+        "type": "AB_ONLY"
+      },
+      "parameters": {
+        "workspaceId": "ac915493-7419-455e-ad48-ac1a05bcd2d3"
+      }
+    }
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "5ddfe2b8-1602-4d2e-a31e-f7617f5ca083"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 16.195540999999935
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "6a748b8b-3c65-4781-b376-6c1e995f4e23"
+    [35mreq[39m: {
+      "id": "6a748b8b-3c65-4781-b376-6c1e995f4e23",
+      "method": "GET",
+      "url": "/v1/workspaces/ac915493-7419-455e-ad48-ac1a05bcd2d3/broadcasts/campaigns?search=needle&type=SINGLE",
+      "query": {
+        "search": "needle",
+        "type": "SINGLE"
+      },
+      "parameters": {
+        "workspaceId": "ac915493-7419-455e-ad48-ac1a05bcd2d3"
+      }
+    }
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "6a748b8b-3c65-4781-b376-6c1e995f4e23"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 6.584582999999952
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "3d8c93fa-3594-4a88-b5f3-98825584ac67"
+    [35mreq[39m: {
+      "id": "3d8c93fa-3594-4a88-b5f3-98825584ac67",
+      "method": "GET",
+      "url": "/v1/workspaces/ac915493-7419-455e-ad48-ac1a05bcd2d3/broadcasts/campaigns?search=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "query": {
+        "search": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "parameters": {
+        "workspaceId": "ac915493-7419-455e-ad48-ac1a05bcd2d3"
+      }
+    }
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "3d8c93fa-3594-4a88-b5f3-98825584ac67"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 3.418583999999896
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "dbcbaf50-fd5e-42cb-b631-4b43fe0a9901"
+    [35mreq[39m: {
+      "id": "dbcbaf50-fd5e-42cb-b631-4b43fe0a9901",
+      "method": "GET",
+      "url": "/v1/workspaces/ac915493-7419-455e-ad48-ac1a05bcd2d3/broadcasts/campaigns?search=SIM+channel",
+      "query": {
+        "search": "SIM channel"
+      },
+      "parameters": {
+        "workspaceId": "ac915493-7419-455e-ad48-ac1a05bcd2d3"
+      }
+    }
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "dbcbaf50-fd5e-42cb-b631-4b43fe0a9901"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 96.21108300000003
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "d9656409-c195-43dc-adcf-444a2e5cee71"
+    [35mreq[39m: {
+      "id": "d9656409-c195-43dc-adcf-444a2e5cee71",
+      "method": "GET",
+      "url": "/v1/workspaces/ac915493-7419-455e-ad48-ac1a05bcd2d3/broadcasts/campaigns?search=SIM+recorded+failure+evidence",
+      "query": {
+        "search": "SIM recorded failure evidence"
+      },
+      "parameters": {
+        "workspaceId": "ac915493-7419-455e-ad48-ac1a05bcd2d3"
+      }
+    }
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "d9656409-c195-43dc-adcf-444a2e5cee71"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 5.184500000000071
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "cc635316-de6b-4328-be5e-f4a7b479bd74"
+    [35mreq[39m: {
+      "id": "cc635316-de6b-4328-be5e-f4a7b479bd74",
+      "method": "GET",
+      "url": "/v1/workspaces/ac915493-7419-455e-ad48-ac1a05bcd2d3/broadcasts/campaigns",
+      "query": {},
+      "parameters": {
+        "workspaceId": "ac915493-7419-455e-ad48-ac1a05bcd2d3"
+      }
+    }
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "cc635316-de6b-4328-be5e-f4a7b479bd74"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 73.8749170000001
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "bd0f5e1b-6e97-4109-baef-98e6292c114b"
+    [35mreq[39m: {
+      "id": "bd0f5e1b-6e97-4109-baef-98e6292c114b",
+      "method": "POST",
+      "url": "/v1/workspaces/ac915493-7419-455e-ad48-ac1a05bcd2d3/broadcasts/26386c97-01d9-4789-92ea-6f6bf64132dc/cancel",
+      "query": {},
+      "parameters": {
+        "workspaceId": "ac915493-7419-455e-ad48-ac1a05bcd2d3",
+        "campaignId": "26386c97-01d9-4789-92ea-6f6bf64132dc"
+      }
+    }
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "bd0f5e1b-6e97-4109-baef-98e6292c114b"
+    [35mres[39m: {
+      "statusCode": 403
+    }
+    [35mresponseTime[39m: 1.3856670000000122
+[03:24:36 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "7cba43c0-627c-4e67-979a-c56231ce9b4c"
+    [35mreq[39m: {
+      "id": "7cba43c0-627c-4e67-979a-c56231ce9b4c",
+      "method": "GET",
+      "url": "/v1/workspaces/ac915493-7419-455e-ad48-ac1a05bcd2d3/broadcasts/campaigns",
+      "query": {},
+      "parameters": {
+        "workspaceId": "ac915493-7419-455e-ad48-ac1a05bcd2d3"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "c48b5602-6fe1-4205-95a9-a424a43a74d5"
+    [35mreq[39m: {
+      "id": "c48b5602-6fe1-4205-95a9-a424a43a74d5",
+      "method": "GET",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels?includeInactive=true",
+      "query": {
+        "includeInactive": "true"
+      },
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "c48b5602-6fe1-4205-95a9-a424a43a74d5"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 24.416457999999977
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "8f4da733-a4ed-488e-acc9-44c788696c05"
+    [35mreq[39m: {
+      "id": "8f4da733-a4ed-488e-acc9-44c788696c05",
+      "method": "PATCH",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels/503242aa-7099-4512-9c85-4145c4b85790/billing",
+      "query": {},
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af",
+        "channelId": "503242aa-7099-4512-9c85-4145c4b85790"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "8f4da733-a4ed-488e-acc9-44c788696c05"
+    [35mres[39m: {
+      "statusCode": 422
+    }
+    [35mresponseTime[39m: 1.918375000000026
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "a5e70b48-5ae4-4175-9eaa-b268959f192e"
+    [35mreq[39m: {
+      "id": "a5e70b48-5ae4-4175-9eaa-b268959f192e",
+      "method": "PATCH",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels/503242aa-7099-4512-9c85-4145c4b85790/billing",
+      "query": {},
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af",
+        "channelId": "503242aa-7099-4512-9c85-4145c4b85790"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "a5e70b48-5ae4-4175-9eaa-b268959f192e"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 6.156042000000014
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "94ae7003-e95a-4701-b9b3-2e717c5e605e"
+    [35mreq[39m: {
+      "id": "94ae7003-e95a-4701-b9b3-2e717c5e605e",
+      "method": "PATCH",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels/503242aa-7099-4512-9c85-4145c4b85790/billing",
+      "query": {},
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af",
+        "channelId": "503242aa-7099-4512-9c85-4145c4b85790"
+      }
+    }
+[03:24:38 UTC] [31mERROR[39m (sos-sales-v3): [36mRequest execution error[39m
+    [35mreqId[39m: "94ae7003-e95a-4701-b9b3-2e717c5e605e"
+    [35mcorrelationId[39m: "94ae7003-e95a-4701-b9b3-2e717c5e605e"
+    err: {
+      "type": "Error",
+      "message": "O canal mudou desde a revisão. Atualize a lista antes de alterar o faturamento.",
+      "stack":
+          Error: O canal mudou desde a revisão. Atualize a lista antes de alterar o faturamento.
+              at channelConflict (/Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/apps/api/src/routes/channels.routes.ts:25:24)
+              at /Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/apps/api/src/routes/channels.routes.ts:1146:64
+              at processTicksAndRejections (node:internal/process/task_queues:105:5)
+              at withTenantTransaction (/Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/packages/database/dist/index.js:260:20)
+              at Object.<anonymous> (/Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/apps/api/src/routes/channels.routes.ts:1141:23)
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "94ae7003-e95a-4701-b9b3-2e717c5e605e"
+    [35mres[39m: {
+      "statusCode": 409
+    }
+    [35mresponseTime[39m: 7.920583000000022
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "1abbda54-8bab-46d7-96ea-3efa47bc81b0"
+    [35mreq[39m: {
+      "id": "1abbda54-8bab-46d7-96ea-3efa47bc81b0",
+      "method": "GET",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels?includeInactive=true",
+      "query": {
+        "includeInactive": "true"
+      },
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "1abbda54-8bab-46d7-96ea-3efa47bc81b0"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 3.4097920000000386
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "ad5b8526-a99c-4cd3-b802-98c7a5448c76"
+    [35mreq[39m: {
+      "id": "ad5b8526-a99c-4cd3-b802-98c7a5448c76",
+      "method": "PATCH",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels/503242aa-7099-4512-9c85-4145c4b85790/billing",
+      "query": {},
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af",
+        "channelId": "503242aa-7099-4512-9c85-4145c4b85790"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "ad5b8526-a99c-4cd3-b802-98c7a5448c76"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 4.678707999999972
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "bb87e543-e63f-43cd-a768-eaf5ed04e457"
+    [35mreq[39m: {
+      "id": "bb87e543-e63f-43cd-a768-eaf5ed04e457",
+      "method": "GET",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels?includeInactive=true",
+      "query": {
+        "includeInactive": "true"
+      },
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "bb87e543-e63f-43cd-a768-eaf5ed04e457"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 2.6336659999999483
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "b6eee007-a4be-44dd-ab41-2daabbdaa6d5"
+    [35mreq[39m: {
+      "id": "b6eee007-a4be-44dd-ab41-2daabbdaa6d5",
+      "method": "PATCH",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels/503242aa-7099-4512-9c85-4145c4b85790/billing",
+      "query": {},
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af",
+        "channelId": "503242aa-7099-4512-9c85-4145c4b85790"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "d280bef0-8018-4f43-86c0-c48973204081"
+    [35mreq[39m: {
+      "id": "d280bef0-8018-4f43-86c0-c48973204081",
+      "method": "PATCH",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels/503242aa-7099-4512-9c85-4145c4b85790/billing",
+      "query": {},
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af",
+        "channelId": "503242aa-7099-4512-9c85-4145c4b85790"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "b6eee007-a4be-44dd-ab41-2daabbdaa6d5"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 4.899875000000009
+[03:24:38 UTC] [31mERROR[39m (sos-sales-v3): [36mRequest execution error[39m
+    [35mreqId[39m: "d280bef0-8018-4f43-86c0-c48973204081"
+    [35mcorrelationId[39m: "d280bef0-8018-4f43-86c0-c48973204081"
+    err: {
+      "type": "Error",
+      "message": "O canal mudou desde a revisão. Atualize a lista antes de alterar o faturamento.",
+      "stack":
+          Error: O canal mudou desde a revisão. Atualize a lista antes de alterar o faturamento.
+              at channelConflict (/Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/apps/api/src/routes/channels.routes.ts:25:24)
+              at /Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/apps/api/src/routes/channels.routes.ts:1146:64
+              at processTicksAndRejections (node:internal/process/task_queues:105:5)
+              at withTenantTransaction (/Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/packages/database/dist/index.js:260:20)
+              at Object.<anonymous> (/Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/apps/api/src/routes/channels.routes.ts:1141:23)
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "d280bef0-8018-4f43-86c0-c48973204081"
+    [35mres[39m: {
+      "statusCode": 409
+    }
+    [35mresponseTime[39m: 24.288250000000005
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "afdb955d-7c7f-4066-b220-575dff6f8cad"
+    [35mreq[39m: {
+      "id": "afdb955d-7c7f-4066-b220-575dff6f8cad",
+      "method": "GET",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels?includeInactive=true",
+      "query": {
+        "includeInactive": "true"
+      },
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "afdb955d-7c7f-4066-b220-575dff6f8cad"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 3.463624999999979
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "c110aed2-db6b-4d98-a105-efe8802e69a8"
+    [35mreq[39m: {
+      "id": "c110aed2-db6b-4d98-a105-efe8802e69a8",
+      "method": "PATCH",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels/b18525c9-f0b5-45d5-b524-8745e6afe99b/billing",
+      "query": {},
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af",
+        "channelId": "b18525c9-f0b5-45d5-b524-8745e6afe99b"
+      }
+    }
+[03:24:38 UTC] [31mERROR[39m (sos-sales-v3): [36mRequest execution error[39m
+    [35mreqId[39m: "c110aed2-db6b-4d98-a105-efe8802e69a8"
+    [35mcorrelationId[39m: "c110aed2-db6b-4d98-a105-efe8802e69a8"
+    err: {
+      "type": "Error",
+      "message": "A declaração de faturamento Meta se aplica somente ao canal oficial WhatsApp da Meta.",
+      "stack":
+          Error: A declaração de faturamento Meta se aplica somente ao canal oficial WhatsApp da Meta.
+              at channelConflict (/Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/apps/api/src/routes/channels.routes.ts:25:24)
+              at /Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/apps/api/src/routes/channels.routes.ts:1145:53
+              at processTicksAndRejections (node:internal/process/task_queues:105:5)
+              at withTenantTransaction (/Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/packages/database/dist/index.js:260:20)
+              at Object.<anonymous> (/Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/apps/api/src/routes/channels.routes.ts:1141:23)
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "c110aed2-db6b-4d98-a105-efe8802e69a8"
+    [35mres[39m: {
+      "statusCode": 422
+    }
+    [35mresponseTime[39m: 2.871749999999963
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "14c558b7-1349-422e-a590-8a5f66aceb95"
+    [35mreq[39m: {
+      "id": "14c558b7-1349-422e-a590-8a5f66aceb95",
+      "method": "PATCH",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels/503242aa-7099-4512-9c85-4145c4b85790/billing",
+      "query": {},
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af",
+        "channelId": "503242aa-7099-4512-9c85-4145c4b85790"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "14c558b7-1349-422e-a590-8a5f66aceb95"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 1.4698339999999916
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "913f2b4c-3899-4c8e-85f5-be5c35e00456"
+    [35mreq[39m: {
+      "id": "913f2b4c-3899-4c8e-85f5-be5c35e00456",
+      "method": "GET",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels?includeInactive=true",
+      "query": {
+        "includeInactive": "true"
+      },
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "913f2b4c-3899-4c8e-85f5-be5c35e00456"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 2.526875000000018
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "b5b70378-df1f-4294-bd68-18264d6d9b20"
+    [35mreq[39m: {
+      "id": "b5b70378-df1f-4294-bd68-18264d6d9b20",
+      "method": "PATCH",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels/503242aa-7099-4512-9c85-4145c4b85790/billing",
+      "query": {},
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af",
+        "channelId": "503242aa-7099-4512-9c85-4145c4b85790"
+      }
+    }
+[03:24:38 UTC] [31mERROR[39m (sos-sales-v3): [36mRequest execution error[39m
+    [35mreqId[39m: "b5b70378-df1f-4294-bd68-18264d6d9b20"
+    [35mcorrelationId[39m: "b5b70378-df1f-4294-bd68-18264d6d9b20"
+    err: {
+      "type": "Error",
+      "message": "Conecte o canal antes de declarar o faturamento Meta.",
+      "stack":
+          Error: Conecte o canal antes de declarar o faturamento Meta.
+              at channelConflict (/Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/apps/api/src/routes/channels.routes.ts:25:24)
+              at /Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/apps/api/src/routes/channels.routes.ts:1147:106
+              at processTicksAndRejections (node:internal/process/task_queues:105:5)
+              at withTenantTransaction (/Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/packages/database/dist/index.js:260:20)
+              at Object.<anonymous> (/Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/apps/api/src/routes/channels.routes.ts:1141:23)
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "b5b70378-df1f-4294-bd68-18264d6d9b20"
+    [35mres[39m: {
+      "statusCode": 409
+    }
+    [35mresponseTime[39m: 3.0722920000000045
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "2cbc6357-e923-4526-89fd-ea7e8929ef09"
+    [35mreq[39m: {
+      "id": "2cbc6357-e923-4526-89fd-ea7e8929ef09",
+      "method": "PATCH",
+      "url": "/v1/workspaces/7f4f6700-111f-4bb3-a3ec-aa61c96bd6aa/channels/503242aa-7099-4512-9c85-4145c4b85790/billing",
+      "query": {},
+      "parameters": {
+        "workspaceId": "7f4f6700-111f-4bb3-a3ec-aa61c96bd6aa",
+        "channelId": "503242aa-7099-4512-9c85-4145c4b85790"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "2cbc6357-e923-4526-89fd-ea7e8929ef09"
+    [35mres[39m: {
+      "statusCode": 403
+    }
+    [35mresponseTime[39m: 3.3183329999999955
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "428b7217-5b2f-41ed-b578-b7fd914b6111"
+    [35mreq[39m: {
+      "id": "428b7217-5b2f-41ed-b578-b7fd914b6111",
+      "method": "PATCH",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels/503242aa-7099-4512-9c85-4145c4b85790/billing",
+      "query": {},
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af",
+        "channelId": "503242aa-7099-4512-9c85-4145c4b85790"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "428b7217-5b2f-41ed-b578-b7fd914b6111"
+    [35mres[39m: {
+      "statusCode": 403
+    }
+    [35mresponseTime[39m: 0.9787079999999833
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "c4bdcbf3-8d8c-475d-b037-627bb3a89ca4"
+    [35mreq[39m: {
+      "id": "c4bdcbf3-8d8c-475d-b037-627bb3a89ca4",
+      "method": "GET",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels?includeInactive=true",
+      "query": {
+        "includeInactive": "true"
+      },
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "c4bdcbf3-8d8c-475d-b037-627bb3a89ca4"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 2.963209000000006
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "93852cd3-d712-4944-9286-1c424647ab0a"
+    [35mreq[39m: {
+      "id": "93852cd3-d712-4944-9286-1c424647ab0a",
+      "method": "PATCH",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels/503242aa-7099-4512-9c85-4145c4b85790/billing",
+      "query": {},
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af",
+        "channelId": "503242aa-7099-4512-9c85-4145c4b85790"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "93852cd3-d712-4944-9286-1c424647ab0a"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 4.6723329999999805
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "18cbf307-a9b5-439b-955c-c8fd306204b8"
+    [35mreq[39m: {
+      "id": "18cbf307-a9b5-439b-955c-c8fd306204b8",
+      "method": "POST",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels/503242aa-7099-4512-9c85-4145c4b85790/revoke",
+      "query": {},
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af",
+        "channelId": "503242aa-7099-4512-9c85-4145c4b85790"
+      }
+    }
+[03:24:38 UTC] [31mERROR[39m (sos-sales-v3): [36mRequest execution error[39m
+    [35mreqId[39m: "18cbf307-a9b5-439b-955c-c8fd306204b8"
+    [35mcorrelationId[39m: "18cbf307-a9b5-439b-955c-c8fd306204b8"
+    err: {
+      "type": "Error",
+      "message": "O canal mudou desde a revisão. Atualize a lista e confira a ação novamente.",
+      "stack":
+          Error: O canal mudou desde a revisão. Atualize a lista e confira a ação novamente.
+              at channelConflict (/Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/apps/api/src/routes/channels.routes.ts:25:24)
+              at /Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/apps/api/src/routes/channels.routes.ts:869:70
+              at processTicksAndRejections (node:internal/process/task_queues:105:5)
+              at withTenantTransaction (/Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/packages/database/dist/index.js:260:20)
+              at Object.<anonymous> (/Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/apps/api/src/routes/channels.routes.ts:865:23)
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "18cbf307-a9b5-439b-955c-c8fd306204b8"
+    [35mres[39m: {
+      "statusCode": 409
+    }
+    [35mresponseTime[39m: 3.134999999999991
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "c67db620-f1bd-4a18-b0c0-ecb78894aa98"
+    [35mreq[39m: {
+      "id": "c67db620-f1bd-4a18-b0c0-ecb78894aa98",
+      "method": "DELETE",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels/b18525c9-f0b5-45d5-b524-8745e6afe99b",
+      "query": {},
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af",
+        "channelId": "b18525c9-f0b5-45d5-b524-8745e6afe99b"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "c67db620-f1bd-4a18-b0c0-ecb78894aa98"
+    [35mres[39m: {
+      "statusCode": 428
+    }
+    [35mresponseTime[39m: 0.8111670000000117
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "e96e95af-4b1c-4435-8f0f-75a83466da3f"
+    [35mreq[39m: {
+      "id": "e96e95af-4b1c-4435-8f0f-75a83466da3f",
+      "method": "GET",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels?includeInactive=true",
+      "query": {
+        "includeInactive": "true"
+      },
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "e96e95af-4b1c-4435-8f0f-75a83466da3f"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 1.9481670000000122
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "73605c35-5f47-4a3a-acd7-6202f4375b12"
+    [35mreq[39m: {
+      "id": "73605c35-5f47-4a3a-acd7-6202f4375b12",
+      "method": "POST",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels/503242aa-7099-4512-9c85-4145c4b85790/revoke",
+      "query": {},
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af",
+        "channelId": "503242aa-7099-4512-9c85-4145c4b85790"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "73605c35-5f47-4a3a-acd7-6202f4375b12"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 4.073959000000002
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "68e77383-d0f9-4ac6-8f12-cdfad1397841"
+    [35mreq[39m: {
+      "id": "68e77383-d0f9-4ac6-8f12-cdfad1397841",
+      "method": "GET",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels?includeInactive=true",
+      "query": {
+        "includeInactive": "true"
+      },
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "68e77383-d0f9-4ac6-8f12-cdfad1397841"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 3.6117079999999646
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "77501bf4-c9eb-4396-8ef3-2ad82a954b3e"
+    [35mreq[39m: {
+      "id": "77501bf4-c9eb-4396-8ef3-2ad82a954b3e",
+      "method": "DELETE",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels/b18525c9-f0b5-45d5-b524-8745e6afe99b",
+      "query": {},
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af",
+        "channelId": "b18525c9-f0b5-45d5-b524-8745e6afe99b"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "77501bf4-c9eb-4396-8ef3-2ad82a954b3e"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 5.1347920000000045
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "2cb8b191-c7f7-4860-887b-67760c41dd71"
+    [35mreq[39m: {
+      "id": "2cb8b191-c7f7-4860-887b-67760c41dd71",
+      "method": "GET",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels?includeInactive=true",
+      "query": {
+        "includeInactive": "true"
+      },
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "2cb8b191-c7f7-4860-887b-67760c41dd71"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 2.3678750000000264
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "3ea5bc24-19a8-45b2-826a-7066697340f4"
+    [35mreq[39m: {
+      "id": "3ea5bc24-19a8-45b2-826a-7066697340f4",
+      "method": "GET",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels?includeInactive=true",
+      "query": {
+        "includeInactive": "true"
+      },
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "3ea5bc24-19a8-45b2-826a-7066697340f4"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 2.3305410000000393
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "dc256370-5521-4cdb-8404-371827b99ca4"
+    [35mreq[39m: {
+      "id": "dc256370-5521-4cdb-8404-371827b99ca4",
+      "method": "POST",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels/f5a97d1b-334a-4d7e-a290-197c3216b2ad/revoke",
+      "query": {},
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af",
+        "channelId": "f5a97d1b-334a-4d7e-a290-197c3216b2ad"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "91b73ead-720d-44ce-a6d1-10d0da6de262"
+    [35mreq[39m: {
+      "id": "91b73ead-720d-44ce-a6d1-10d0da6de262",
+      "method": "DELETE",
+      "url": "/v1/workspaces/58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af/channels/e1a9db1e-74f3-424c-be49-c0fa2c021088",
+      "query": {},
+      "parameters": {
+        "workspaceId": "58ed005c-c3a5-4d81-ad6a-aa8c8c41a4af",
+        "channelId": "e1a9db1e-74f3-424c-be49-c0fa2c021088"
+      }
+    }
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "dc256370-5521-4cdb-8404-371827b99ca4"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 5.458666000000051
+[03:24:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "91b73ead-720d-44ce-a6d1-10d0da6de262"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 7.0043340000000285
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "d45954cb-1bb4-4b77-8637-e2f26eb66532"
+    [35mreq[39m: {
+      "id": "d45954cb-1bb4-4b77-8637-e2f26eb66532",
+      "method": "GET",
+      "url": "/v1/workspaces/f0685beb-8c80-448e-b652-f83a1ba4d7e5/broadcasts/bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00/recipients",
+      "query": {},
+      "parameters": {
+        "workspaceId": "f0685beb-8c80-448e-b652-f83a1ba4d7e5",
+        "campaignId": "bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00"
+      }
+    }
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "d45954cb-1bb4-4b77-8637-e2f26eb66532"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 19.363749999999982
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "f0f4f663-0e3b-4a34-8d13-6ef0bfa8491a"
+    [35mreq[39m: {
+      "id": "f0f4f663-0e3b-4a34-8d13-6ef0bfa8491a",
+      "method": "GET",
+      "url": "/v1/workspaces/f0685beb-8c80-448e-b652-f83a1ba4d7e5/broadcasts/bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00/recipients?afterId=e75c0f83-4b5e-41ec-baf4-9d81ee78b7a0",
+      "query": {
+        "afterId": "e75c0f83-4b5e-41ec-baf4-9d81ee78b7a0"
+      },
+      "parameters": {
+        "workspaceId": "f0685beb-8c80-448e-b652-f83a1ba4d7e5",
+        "campaignId": "bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00"
+      }
+    }
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "f0f4f663-0e3b-4a34-8d13-6ef0bfa8491a"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 4.238667000000021
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "3934c02c-ef87-42b5-9aae-825ffa46615d"
+    [35mreq[39m: {
+      "id": "3934c02c-ef87-42b5-9aae-825ffa46615d",
+      "method": "GET",
+      "url": "/v1/workspaces/f0685beb-8c80-448e-b652-f83a1ba4d7e5/broadcasts/campaigns",
+      "query": {},
+      "parameters": {
+        "workspaceId": "f0685beb-8c80-448e-b652-f83a1ba4d7e5"
+      }
+    }
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "3934c02c-ef87-42b5-9aae-825ffa46615d"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 22.154291999999998
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "ae048737-9c20-42d0-bc69-e95c9aee7971"
+    [35mreq[39m: {
+      "id": "ae048737-9c20-42d0-bc69-e95c9aee7971",
+      "method": "GET",
+      "url": "/v1/workspaces/f0685beb-8c80-448e-b652-f83a1ba4d7e5/broadcasts/bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00/recipients?group=ATTENTION",
+      "query": {
+        "group": "ATTENTION"
+      },
+      "parameters": {
+        "workspaceId": "f0685beb-8c80-448e-b652-f83a1ba4d7e5",
+        "campaignId": "bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00"
+      }
+    }
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "ae048737-9c20-42d0-bc69-e95c9aee7971"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 4.455332999999996
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "83a814ed-9491-4d20-a3da-d88963851036"
+    [35mreq[39m: {
+      "id": "83a814ed-9491-4d20-a3da-d88963851036",
+      "method": "GET",
+      "url": "/v1/workspaces/f0685beb-8c80-448e-b652-f83a1ba4d7e5/broadcasts/bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00/recipients?group=PENDING",
+      "query": {
+        "group": "PENDING"
+      },
+      "parameters": {
+        "workspaceId": "f0685beb-8c80-448e-b652-f83a1ba4d7e5",
+        "campaignId": "bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00"
+      }
+    }
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "83a814ed-9491-4d20-a3da-d88963851036"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 4.584499999999991
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "9e6dcf5c-2841-4760-80bb-6966152f6321"
+    [35mreq[39m: {
+      "id": "9e6dcf5c-2841-4760-80bb-6966152f6321",
+      "method": "GET",
+      "url": "/v1/workspaces/f0685beb-8c80-448e-b652-f83a1ba4d7e5/broadcasts/bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00/recipients?group=CONFIRMED",
+      "query": {
+        "group": "CONFIRMED"
+      },
+      "parameters": {
+        "workspaceId": "f0685beb-8c80-448e-b652-f83a1ba4d7e5",
+        "campaignId": "bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00"
+      }
+    }
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "9e6dcf5c-2841-4760-80bb-6966152f6321"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 4.09495800000002
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "9dd5d42e-d6ae-4e3d-a11c-7540a85d5b65"
+    [35mreq[39m: {
+      "id": "9dd5d42e-d6ae-4e3d-a11c-7540a85d5b65",
+      "method": "GET",
+      "url": "/v1/workspaces/f0685beb-8c80-448e-b652-f83a1ba4d7e5/broadcasts/bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00/recipients?search=%C3%A1gata&group=PENDING",
+      "query": {
+        "search": "ágata",
+        "group": "PENDING"
+      },
+      "parameters": {
+        "workspaceId": "f0685beb-8c80-448e-b652-f83a1ba4d7e5",
+        "campaignId": "bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00"
+      }
+    }
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "9dd5d42e-d6ae-4e3d-a11c-7540a85d5b65"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 4.642083000000014
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "9511b5ba-27f4-457b-835f-fd89147311c7"
+    [35mreq[39m: {
+      "id": "9511b5ba-27f4-457b-835f-fd89147311c7",
+      "method": "GET",
+      "url": "/v1/workspaces/f0685beb-8c80-448e-b652-f83a1ba4d7e5/broadcasts/bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00/recipients?search=%2B55%20(0000)%20000051",
+      "query": {
+        "search": "+55 (0000) 000051"
+      },
+      "parameters": {
+        "workspaceId": "f0685beb-8c80-448e-b652-f83a1ba4d7e5",
+        "campaignId": "bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00"
+      }
+    }
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "9511b5ba-27f4-457b-835f-fd89147311c7"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 4.592917
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "be0d1f1d-fd7d-40a6-b061-85ffeec77056"
+    [35mreq[39m: {
+      "id": "be0d1f1d-fd7d-40a6-b061-85ffeec77056",
+      "method": "GET",
+      "url": "/v1/workspaces/f0685beb-8c80-448e-b652-f83a1ba4d7e5/broadcasts/bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00/recipients?search=%C3%81gata&group=ATTENTION",
+      "query": {
+        "search": "Ágata",
+        "group": "ATTENTION"
+      },
+      "parameters": {
+        "workspaceId": "f0685beb-8c80-448e-b652-f83a1ba4d7e5",
+        "campaignId": "bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00"
+      }
+    }
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "be0d1f1d-fd7d-40a6-b061-85ffeec77056"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 3.965332999999987
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "9982fc64-650e-4ddd-b900-e08849720da0"
+    [35mreq[39m: {
+      "id": "9982fc64-650e-4ddd-b900-e08849720da0",
+      "method": "GET",
+      "url": "/v1/workspaces/f0685beb-8c80-448e-b652-f83a1ba4d7e5/broadcasts/bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00/recipients?group=INVALID",
+      "query": {
+        "group": "INVALID"
+      },
+      "parameters": {
+        "workspaceId": "f0685beb-8c80-448e-b652-f83a1ba4d7e5",
+        "campaignId": "bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00"
+      }
+    }
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "9982fc64-650e-4ddd-b900-e08849720da0"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 1.2186659999999847
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "8eae3d7e-56a8-47c5-8396-0e1e2e543177"
+    [35mreq[39m: {
+      "id": "8eae3d7e-56a8-47c5-8396-0e1e2e543177",
+      "method": "GET",
+      "url": "/v1/workspaces/f0685beb-8c80-448e-b652-f83a1ba4d7e5/broadcasts/bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00/recipients?search=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+      "query": {
+        "search": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+      },
+      "parameters": {
+        "workspaceId": "f0685beb-8c80-448e-b652-f83a1ba4d7e5",
+        "campaignId": "bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00"
+      }
+    }
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "8eae3d7e-56a8-47c5-8396-0e1e2e543177"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 0.9309160000000247
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "48e12f81-c31f-482d-9e9c-27534234d591"
+    [35mreq[39m: {
+      "id": "48e12f81-c31f-482d-9e9c-27534234d591",
+      "method": "GET",
+      "url": "/v1/workspaces/f0685beb-8c80-448e-b652-f83a1ba4d7e5/broadcasts/bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00/recipients?group=ATTENTION",
+      "query": {
+        "group": "ATTENTION"
+      },
+      "parameters": {
+        "workspaceId": "f0685beb-8c80-448e-b652-f83a1ba4d7e5",
+        "campaignId": "bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00"
+      }
+    }
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "48e12f81-c31f-482d-9e9c-27534234d591"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 3.8247499999999945
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "9f7e6d61-5e3b-4332-b491-0afbe0737ef4"
+    [35mreq[39m: {
+      "id": "9f7e6d61-5e3b-4332-b491-0afbe0737ef4",
+      "method": "GET",
+      "url": "/v1/workspaces/e62b5f55-2549-42da-8620-a616d49205ed/broadcasts/bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00/recipients",
+      "query": {},
+      "parameters": {
+        "workspaceId": "e62b5f55-2549-42da-8620-a616d49205ed",
+        "campaignId": "bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00"
+      }
+    }
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "9f7e6d61-5e3b-4332-b491-0afbe0737ef4"
+    [35mres[39m: {
+      "statusCode": 403
+    }
+    [35mresponseTime[39m: 2.4198749999999905
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "e9c3bfa7-042c-4a9e-8762-515064056f07"
+    [35mreq[39m: {
+      "id": "e9c3bfa7-042c-4a9e-8762-515064056f07",
+      "method": "GET",
+      "url": "/v1/workspaces/f0685beb-8c80-448e-b652-f83a1ba4d7e5/broadcasts/a5ceb988-60a0-4416-a100-ab39f4d09193/recipients",
+      "query": {},
+      "parameters": {
+        "workspaceId": "f0685beb-8c80-448e-b652-f83a1ba4d7e5",
+        "campaignId": "a5ceb988-60a0-4416-a100-ab39f4d09193"
+      }
+    }
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "e9c3bfa7-042c-4a9e-8762-515064056f07"
+    [35mres[39m: {
+      "statusCode": 404
+    }
+    [35mresponseTime[39m: 2.403666000000044
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "7f387738-814d-4cfe-a37f-43755d6e6336"
+    [35mreq[39m: {
+      "id": "7f387738-814d-4cfe-a37f-43755d6e6336",
+      "method": "GET",
+      "url": "/v1/workspaces/f0685beb-8c80-448e-b652-f83a1ba4d7e5/broadcasts/bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00/recipients?afterId=invalid",
+      "query": {
+        "afterId": "invalid"
+      },
+      "parameters": {
+        "workspaceId": "f0685beb-8c80-448e-b652-f83a1ba4d7e5",
+        "campaignId": "bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00"
+      }
+    }
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "7f387738-814d-4cfe-a37f-43755d6e6336"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 0.7846250000000055
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "9ba336d9-24a9-44d0-9c61-ab9df21acc04"
+    [35mreq[39m: {
+      "id": "9ba336d9-24a9-44d0-9c61-ab9df21acc04",
+      "method": "GET",
+      "url": "/v1/workspaces/f0685beb-8c80-448e-b652-f83a1ba4d7e5/broadcasts/bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00/recipients?extra=1",
+      "query": {
+        "extra": "1"
+      },
+      "parameters": {
+        "workspaceId": "f0685beb-8c80-448e-b652-f83a1ba4d7e5",
+        "campaignId": "bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00"
+      }
+    }
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "9ba336d9-24a9-44d0-9c61-ab9df21acc04"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 0.8004999999999995
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "101874fa-fdc4-484d-80d1-132a34f23eac"
+    [35mreq[39m: {
+      "id": "101874fa-fdc4-484d-80d1-132a34f23eac",
+      "method": "GET",
+      "url": "/v1/workspaces/f0685beb-8c80-448e-b652-f83a1ba4d7e5/broadcasts/bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00/recipients",
+      "query": {},
+      "parameters": {
+        "workspaceId": "f0685beb-8c80-448e-b652-f83a1ba4d7e5",
+        "campaignId": "bbe8a58a-98c5-4e6f-8fb6-3f8566c89f00"
+      }
+    }
+[03:24:39 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "101874fa-fdc4-484d-80d1-132a34f23eac"
+    [35mres[39m: {
+      "statusCode": 401
+    }
+    [35mresponseTime[39m: 0.0745420000000081
+
+ Test Files  10 passed (10)
+      Tests  85 passed (85)
+   Start at  00:24:32
+   Duration  7.20s (tests 60%, import 25%, transform 14%)
+
+    Isolate  10 workers spawned · ~69ms startup each (spawn + environment, per file)
+             at least ~625ms faster with isolate: false — reuses workers across files instead of one per file
+

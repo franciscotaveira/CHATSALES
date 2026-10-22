@@ -1,0 +1,26 @@
+{
+  "origin": "SIMULADO",
+  "network": "disabled; fetchFn local stub only",
+  "v2": {
+    "urls": [
+      "https://api.abacatepay.com/v1/billing/create",
+      "https://api.abacatepay.com/v2/transparents/create"
+    ],
+    "id": "SIM-charge",
+    "directV2": false
+  },
+  "amount": {
+    "expectedCents": 10000,
+    "reportedPaidCents": 1,
+    "observedStatus": "PAID"
+  },
+  "replay": {
+    "secondAlreadySettled": true,
+    "chargeUpdates": 1,
+    "receiptInsertAttempts": 2,
+    "auditInserts": 2
+  },
+  "authentication": {
+    "querySecretWithoutHmacAccepted": true
+  }
+}

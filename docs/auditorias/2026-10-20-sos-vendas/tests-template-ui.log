@@ -1,0 +1,10 @@
+$ vitest run src/__tests__/template-library-ux.test.tsx --maxWorkers=1
+
+ RUN  v5.0.1 /Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/apps/web
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  23:56:00
+   Duration  1.14s (tests 40%, environment 25%, transform 21%, import 14%)
+

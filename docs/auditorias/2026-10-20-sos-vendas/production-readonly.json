@@ -1,0 +1,23 @@
+{
+  "checked_on": "2026-10-21",
+  "mode": "SSH read-only; PostgreSQL BEGIN READ ONLY",
+  "postgres": "16.15",
+  "containers_healthy": [
+    "chat-sales-api",
+    "chat-sales-worker",
+    "web",
+    "sos-sales-waha"
+  ],
+  "schema_confirmed": {
+    "commercial_outcomes.registered_by_user_id": "NOT NULL",
+    "outbound_commands.command_type": "absent",
+    "outbound_commands.payload": "absent",
+    "commercial_messages": "absent in public schema",
+    "contacts.display_name": "absent",
+    "contacts.email": "absent",
+    "channel_instances.name": "absent"
+  },
+  "migration_ledger": "No migration/schema named ledger found in non-system schemas; applied count not verified",
+  "deployed_commit": "Project directory has no Git repository; revision not verified",
+  "mutations_performed": false
+}

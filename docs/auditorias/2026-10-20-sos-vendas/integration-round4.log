@@ -1,0 +1,172 @@
+
+ RUN  v5.0.1 /Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES
+
+[03:23:32 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "d79307be-3219-48a8-b0cf-82d507e5fe04"
+    [35mreq[39m: {
+      "id": "d79307be-3219-48a8-b0cf-82d507e5fe04",
+      "method": "POST",
+      "url": "/v1/workspaces/9fa5681c-2b43-475f-9b05-d3b99ec8f3ad/channels/d3edaf70-dbbb-4047-b42a-347d8a0d0a79/sync",
+      "query": {},
+      "parameters": {
+        "workspaceId": "9fa5681c-2b43-475f-9b05-d3b99ec8f3ad",
+        "channelId": "d3edaf70-dbbb-4047-b42a-347d8a0d0a79"
+      }
+    }
+[03:23:32 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "d79307be-3219-48a8-b0cf-82d507e5fe04"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 39.40091600000005
+[03:23:32 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "749ae737-a8ca-46f4-8d57-4528213dbf6a"
+    [35mreq[39m: {
+      "id": "749ae737-a8ca-46f4-8d57-4528213dbf6a",
+      "method": "POST",
+      "url": "/v1/workspaces/9fa5681c-2b43-475f-9b05-d3b99ec8f3ad/channels/d3edaf70-dbbb-4047-b42a-347d8a0d0a79/sync",
+      "query": {},
+      "parameters": {
+        "workspaceId": "9fa5681c-2b43-475f-9b05-d3b99ec8f3ad",
+        "channelId": "d3edaf70-dbbb-4047-b42a-347d8a0d0a79"
+      }
+    }
+[03:23:32 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "749ae737-a8ca-46f4-8d57-4528213dbf6a"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 9.191458000000011
+[03:23:32 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "e5c26cf0-283c-42a8-baae-88936e81d0b2"
+    [35mreq[39m: {
+      "id": "e5c26cf0-283c-42a8-baae-88936e81d0b2",
+      "method": "POST",
+      "url": "/v1/workspaces/9fa5681c-2b43-475f-9b05-d3b99ec8f3ad/channels/d3edaf70-dbbb-4047-b42a-347d8a0d0a79/sync",
+      "query": {},
+      "parameters": {
+        "workspaceId": "9fa5681c-2b43-475f-9b05-d3b99ec8f3ad",
+        "channelId": "d3edaf70-dbbb-4047-b42a-347d8a0d0a79"
+      }
+    }
+[03:23:32 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "e5c26cf0-283c-42a8-baae-88936e81d0b2"
+    [35mres[39m: {
+      "statusCode": 409
+    }
+    [35mresponseTime[39m: 2.8124160000000984
+[03:23:32 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "e28ca117-77ec-4696-99e4-b5ced090afdb"
+    [35mreq[39m: {
+      "id": "e28ca117-77ec-4696-99e4-b5ced090afdb",
+      "method": "POST",
+      "url": "/v1/workspaces/9fa5681c-2b43-475f-9b05-d3b99ec8f3ad/channels/d3edaf70-dbbb-4047-b42a-347d8a0d0a79/sync",
+      "query": {},
+      "parameters": {
+        "workspaceId": "9fa5681c-2b43-475f-9b05-d3b99ec8f3ad",
+        "channelId": "d3edaf70-dbbb-4047-b42a-347d8a0d0a79"
+      }
+    }
+[03:23:32 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "e28ca117-77ec-4696-99e4-b5ced090afdb"
+    [35mres[39m: {
+      "statusCode": 409
+    }
+    [35mresponseTime[39m: 4.020541000000094
+[03:23:32 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "13a07cd8-4048-4c7e-bc72-e2a52324f816"
+    [35mreq[39m: {
+      "id": "13a07cd8-4048-4c7e-bc72-e2a52324f816",
+      "method": "POST",
+      "url": "/v1/workspaces/9fa5681c-2b43-475f-9b05-d3b99ec8f3ad/channels/d3edaf70-dbbb-4047-b42a-347d8a0d0a79/sync",
+      "query": {},
+      "parameters": {
+        "workspaceId": "9fa5681c-2b43-475f-9b05-d3b99ec8f3ad",
+        "channelId": "d3edaf70-dbbb-4047-b42a-347d8a0d0a79"
+      }
+    }
+[03:23:32 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "13a07cd8-4048-4c7e-bc72-e2a52324f816"
+    [35mres[39m: {
+      "statusCode": 502
+    }
+    [35mresponseTime[39m: 3.6597080000000233
+[03:23:32 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "abf9a932-03e2-433f-a8de-503052b326ae"
+    [35mreq[39m: {
+      "id": "abf9a932-03e2-433f-a8de-503052b326ae",
+      "method": "POST",
+      "url": "/v1/workspaces/9fa5681c-2b43-475f-9b05-d3b99ec8f3ad/channels/d3edaf70-dbbb-4047-b42a-347d8a0d0a79/sync",
+      "query": {},
+      "parameters": {
+        "workspaceId": "9fa5681c-2b43-475f-9b05-d3b99ec8f3ad",
+        "channelId": "d3edaf70-dbbb-4047-b42a-347d8a0d0a79"
+      }
+    }
+[03:23:32 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "abf9a932-03e2-433f-a8de-503052b326ae"
+    [35mres[39m: {
+      "statusCode": 409
+    }
+    [35mresponseTime[39m: 3.4257499999999936
+[03:23:32 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "12d369c8-f636-4623-8fd0-8503f8d44cf0"
+    [35mreq[39m: {
+      "id": "12d369c8-f636-4623-8fd0-8503f8d44cf0",
+      "method": "POST",
+      "url": "/v1/workspaces/9fa5681c-2b43-475f-9b05-d3b99ec8f3ad/channels/d3edaf70-dbbb-4047-b42a-347d8a0d0a79/sync",
+      "query": {},
+      "parameters": {
+        "workspaceId": "9fa5681c-2b43-475f-9b05-d3b99ec8f3ad",
+        "channelId": "d3edaf70-dbbb-4047-b42a-347d8a0d0a79"
+      }
+    }
+[03:23:32 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "12d369c8-f636-4623-8fd0-8503f8d44cf0"
+    [35mres[39m: {
+      "statusCode": 502
+    }
+    [35mresponseTime[39m: 4.52312500000005
+[03:23:32 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "fff8bfa5-5614-4213-90fd-47cd49e1c7dc"
+    [35mreq[39m: {
+      "id": "fff8bfa5-5614-4213-90fd-47cd49e1c7dc",
+      "method": "POST",
+      "url": "/v1/workspaces/9fa5681c-2b43-475f-9b05-d3b99ec8f3ad/channels/d3edaf70-dbbb-4047-b42a-347d8a0d0a79/sync",
+      "query": {},
+      "parameters": {
+        "workspaceId": "9fa5681c-2b43-475f-9b05-d3b99ec8f3ad",
+        "channelId": "d3edaf70-dbbb-4047-b42a-347d8a0d0a79"
+      }
+    }
+[03:23:32 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "fff8bfa5-5614-4213-90fd-47cd49e1c7dc"
+    [35mres[39m: {
+      "statusCode": 502
+    }
+    [35mresponseTime[39m: 6.47566699999993
+ ❯ apps/api/src/__tests__/channel-history.test.ts (5 tests | 1 failed) 203ms
+   × imports without auto-creating a negotiation, delivery claims, inbox replay or duplicate effects 67ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/api/src/__tests__/channel-history.test.ts > imports without auto-creating a negotiation, delivery claims, inbox replay or duplicate effects
+AssertionError: expected 2 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 2
+
+ ❯ apps/api/src/__tests__/channel-history.test.ts:52:52
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 16 passed (17)
+   Start at  00:23:30
+   Duration  1.83s (transform 41%, tests 31%, import 27%)
+

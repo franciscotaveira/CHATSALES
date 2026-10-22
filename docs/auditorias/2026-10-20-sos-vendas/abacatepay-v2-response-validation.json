@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-21",
+  "scope": "AbacatePay v2 transparent PIX response validation",
+  "endpointInvariant": "https://api.abacatepay.com/v2/transparents/create",
+  "sourceContract": "AbacatePay v2 APIResponse and APIQRCodePIX types",
+  "requiredResponse": ["success=true", "data.id", "data.amount matches request cents", "data.status=PENDING", "data.brCode non-empty"],
+  "optionalResponse": ["data.brCodeBase64", "data.receiptUrl or data.url"],
+  "behavior": "invalid HTTP 200 envelope/data throws before local charge persistence",
+  "tests": {
+    "files": 3,
+    "passed": 38,
+    "apiTypecheck": "passed",
+    "fullSuite": "204 files / 2621 tests passed"
+  },
+  "externalProviderCalls": 0,
+  "productionChanged": false,
+  "remainingRisk": "provider may create charge before network timeout or local commit failure; durable uncertain-outcome reconciliation is still needed"
+}

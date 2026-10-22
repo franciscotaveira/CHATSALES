@@ -1,0 +1,15 @@
+{
+  "reference_date_client": "2026-10-20",
+  "method": "Unauthenticated GET only; no production mutation",
+  "checks": [
+    {"url":"https://chat.automatizaprocessos.tech/health","httpStatus":200,"status":"live","version":"3.0.0-alpha.1"},
+    {"url":"https://chat.automatizaprocessos.tech/ready","httpStatus":200,"status":"ready"},
+    {"url":"https://chat.automatizaprocessos.tech/v1/me","httpStatus":401},
+    {"url":"https://automatizaprocessos.tech/","httpStatus":200,"sosVendasBrandPresent":true}
+  ],
+  "localDocker":"Unavailable: Docker socket missing; daemon was not started",
+  "deployedCommitVerified":false,
+  "paymentSettlementVerified":false,
+  "postgresMigrationLedgerVerified":false,
+  "providerDeliveryVerified":false
+}

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCT DocOps — Dossiê Digital de Liberação de Portaria & SST</title>
+  <meta name="description" content="Dossiê digital e semáforo de conformidade para acesso a plantas industriais e canteiros de obras. Homologado para exigências de SST.">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070B14;
+      --bg-card: rgba(15, 23, 42, 0.85);
+      --border: rgba(255, 255, 255, 0.08);
+      --green: #10B981;
+      --green-glow: rgba(16, 185, 129, 0.2);
+      --yellow: #F59E0B;
+      --red: #F43F5E;
+      --text: #F8FAFC;
+      --text-muted: #94A3B8;
+      --font-main: 'Inter', -apple-system, sans-serif;
+      --font-heading: 'Plus Jakarta Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-main);
+      line-height: 1.5;
+      padding: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    /* TOP BAR */
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    .brand-title {
+      font-family: var(--font-heading);
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: #fff;
+    }
+    .audit-badge {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--green);
+      background: rgba(16, 185, 129, 0.1);
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    /* SUMMARY BANNER */
+    .summary-card {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(15, 23, 42, 0.9));
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .summary-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.25rem;
+      font-weight: 800;
+      font-family: var(--font-heading);
+      color: #34D399;
+      margin-bottom: 8px;
+    }
+    .summary-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 12px var(--green);
+    }
+    .summary-details {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* SEARCH / FILTER */
+    .search-box {
+      margin-bottom: 20px;
+    }
+    .search-input {
+      width: 100%;
+      padding: 14px 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-input:focus {
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+
+    /* WORKER CARDS */
+    .worker-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 14px;
+      transition: transform 0.15s ease;
+    }
+    .worker-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .worker-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .worker-role {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .badge-green { background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-yellow { background: rgba(245, 158, 11, 0.15); color: #FCD34D; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-red { background: rgba(244, 63, 94, 0.15); color: #FDA4AF; border: 1px solid rgba(244, 63, 94, 0.3); }
+
+    .doc-list {
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      font-size: 0.82rem;
+    }
+    .doc-item {
+      color: #CBD5E1;
+    }
+    .doc-item span {
+      color: var(--text-muted);
+      display: block;
+      font-size: 0.75rem;
+    }
+
+    /* ACTIONS */
+    .action-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #10B981, #059669);
+      color: #fff;
+      font-weight: 700;
+      font-size: 1rem;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 24px;
+      text-decoration: none;
+    }
+    .action-btn:hover {
+      opacity: 0.95;
+    }
+
+    footer {
+      text-align: center;
+      color: #64748B;
+      font-size: 0.78rem;
+      margin-top: 30px;
+      padding-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- HEADER -->
+    <header class="top-header">
+      <div class="brand-title">MCT DocOps • Portaria Industrial</div>
+      <div class="audit-badge">● AUDITORIA ATIVA</div>
+    </header>
+
+    <!-- SUMMARY CARD -->
+    <div class="summary-card">
+      <div class="summary-status">
+        <span class="summary-dot"></span>
+        EQUIPE LIBERADA PARA ENTRADA
+      </div>
+      <p class="summary-details">
+        Obra: <strong>Unidade Industrial de Frigorífico</strong><br>
+        10 de 10 colaboradores com exames ocupacionais e NRs em conformidade.
+      </p>
+    </div>
+
+    <!-- BUSCA -->
+    <div class="search-box">
+      <input type="text" id="searchInput" class="search-input" placeholder="Buscar colaborador por nome ou função...">
+    </div>
+
+    <!-- LISTA DE COLABORADORES -->
+    <div id="workerList">
+      
+      <div class="worker-card" data-search="joao da silva mestre de obras">
+        <div class="worker-header">
+          <div>
+            <div class="worker-name">João da Silva</div>
+            <div class="worker-role">Mestre de Obras • CPF: ***.482.919-**</div>
+          </div>
+          <span class="badge badge-green">🟢 LIBERADO</span>
+        </div>
+        <div class="doc-list">
+          <div class="doc-item">
+            ASO Ocupacional
+            <span>Validade: 15/10/2027</span>
+          </div>
+          <div class="doc-item">
+            NR-35 (Trabalho em Altura)
+            <span>Validade: 20/09/2027</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="worker-card" data-search="carlos eduardo santos montador industrial">
+        <div class="worker-header">
+          <div>
+            <div class="worker-name">Carlos Eduardo Santos</div>
+            <div class="worker-role">Montador Industrial • CPF: ***.109.839-**</div>
+          </div>
+          <span class="badge badge-green">🟢 LIBERADO</span>
+        </div>
+        <div class="doc-list">
+          <div class="doc-item">
+            ASO Periódico
+            <span>Validade: 12/08/2027</span>
+          </div>
+          <div class="doc-item">
+            NR-33 (Espaço Confinado)
+            <span>Validade: 05/11/2026 (15 dias)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="worker-card" data-search="lucas ferreira eletricista">
+        <div class="worker-header">
+          <div>
+            <div class="worker-name">Lucas Ferreira</div>
+            <div class="worker-role">Eletricista Industrial • CPF: ***.928.309-**</div>
+          </div>
+          <span class="badge badge-green">🟢 LIBERADO</span>
+        </div>
+        <div class="doc-list">
+          <div class="doc-item">
+            ASO Ocupacional
+            <span>Validade: 02/06/2027</span>
+          </div>
+          <div class="doc-item">
+            NR-10 (Segurança em Eletricidade)
+            <span>Validade: 18/04/2027</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="worker-card" data-search="marcos antonio pereira soldador">
+        <div class="worker-header">
+          <div>
+            <div class="worker-name">Marcos Antônio Pereira</div>
+            <div class="worker-role">Soldador Industrial • CPF: ***.712.449-**</div>
+          </div>
+          <span class="badge badge-yellow">🟡 ATENÇÃO: RENOVAR EM 12 DIAS</span>
+        </div>
+        <div class="doc-list">
+          <div class="doc-item">
+            ASO Periódico
+            <span>Validade: 03/11/2026</span>
+          </div>
+          <div class="doc-item">
+            NR-35 (Trabalho em Altura)
+            <span>Validade: 22/01/2027</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- AÇÃO WHATSAPP -->
+    <a href="https://wa.me/554988447562?text=Olá,%20estou%20na%20portaria%20apresentando%20o%20dossiê%20da%20equipe" target="_blank" rel="noreferrer" class="action-btn">
+      Apresentar Dossiê à Segurança da Portaria
+    </a>
+
+    <footer>
+      MCT DocOps • Plataforma de Liberação e Conformidade Industrial • Chapecó, SC
+    </footer>
+
+  </div>
+
+  <script>
+    const searchInput = document.getElementById('searchInput');
+    const workerCards = document.querySelectorAll('.worker-card');
+
+    searchInput.addEventListener('input', (e) => {
+      const term = e.target.value.toLowerCase().trim();
+      workerCards.forEach(card => {
+        const text = card.getAttribute('data-search');
+        if (text.includes(term)) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,14 @@
+$ tsc --noEmit
+src/__tests__/templates-library-routes.test.ts(66,13): error TS18048: 'targetItem' is possibly 'undefined'.
+src/__tests__/templates-library-routes.test.ts(67,17): error TS18048: 'targetItem' is possibly 'undefined'.
+src/__tests__/templates-library-routes.test.ts(69,20): error TS18048: 'targetItem' is possibly 'undefined'.
+src/__tests__/templates-library-routes.test.ts(70,18): error TS18048: 'targetItem' is possibly 'undefined'.
+src/__tests__/templates-library-routes.test.ts(71,20): error TS18048: 'targetItem' is possibly 'undefined'.
+src/__tests__/templates-library-routes.test.ts(72,16): error TS18048: 'targetItem' is possibly 'undefined'.
+src/__tests__/templates-library-routes.test.ts(73,18): error TS18048: 'targetItem' is possibly 'undefined'.
+src/__tests__/templates-library-routes.test.ts(83,30): error TS18048: 'targetItem' is possibly 'undefined'.
+src/__tests__/templates-library-routes.test.ts(88,37): error TS18048: 'targetItem' is possibly 'undefined'.
+src/__tests__/templates-library-routes.test.ts(89,41): error TS18048: 'targetItem' is possibly 'undefined'.
+/Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES/apps/api:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @sos-sales/api@3.0.0-alpha.1 typecheck: `tsc --noEmit`
+Exit status 2

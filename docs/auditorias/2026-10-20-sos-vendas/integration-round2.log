@@ -1,0 +1,660 @@
+
+ RUN  v5.0.1 /Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES
+
+ ❯ apps/api/src/__tests__/channel-history.test.ts (5 tests | 4 failed) 195ms
+   × imports without auto-creating a negotiation, delivery claims, inbox replay or duplicate effects 18ms
+   × rejects inactive channels before network access and never starts a stopped session 6ms
+   × does not mistake provider outage, malformed history or another account for an empty successful import 2ms
+   × reports per-chat failures and cannot write after the channel is disabled during consultation 2ms
+ ❯ apps/api/src/__tests__/ai-provider-boundary.test.ts (12 tests | 6 failed) 270ms
+   ❯ AI provider boundaries — isolated database and replaced LLM (12)
+     × retains the key on same-provider edits and bounds multi-turn history before invoking a model 10ms
+     × requires an observed revision and serializes competing draft saves without changing runtime 20ms
+     × encrypts a draft credential, simulates that exact revision and never exposes the key 8ms
+     × prepares an approved guided plan as a new draft with its criteria, without activating it 8ms
+     × suspends runtime immediately while preserving the selected draft and recording the reason 13ms
+     × preserves unrelated rules and skills when a client patches only one setting 6ms
+[03:22:37 UTC] [33mWARN[39m (sos-sales-v3): [36mJWT token verification failed[39m
+    [35mauthError[39m: {
+      "name": "JWSSignatureVerificationFailed",
+      "code": "ERR_JWS_SIGNATURE_VERIFICATION_FAILED",
+      "provider": "local-jwt",
+      "messageCategory": "signature_verification_failed"
+    }
+[03:22:37 UTC] [33mWARN[39m (sos-sales-v3): [36mJWT token verification failed[39m
+    [35mauthError[39m: {
+      "name": "JWSSignatureVerificationFailed",
+      "code": "ERR_JWS_SIGNATURE_VERIFICATION_FAILED",
+      "provider": "local-jwt",
+      "messageCategory": "signature_verification_failed"
+    }
+[03:22:37 UTC] [33mWARN[39m (sos-sales-v3): [36mJWT token verification failed[39m
+    [35mauthError[39m: {
+      "name": "JWSSignatureVerificationFailed",
+      "code": "ERR_JWS_SIGNATURE_VERIFICATION_FAILED",
+      "provider": "local-jwt",
+      "messageCategory": "signature_verification_failed"
+    }
+[03:22:37 UTC] [33mWARN[39m (sos-sales-v3): [36mJWT token verification failed[39m
+    [35mauthError[39m: {
+      "name": "JWSSignatureVerificationFailed",
+      "code": "ERR_JWS_SIGNATURE_VERIFICATION_FAILED",
+      "provider": "local-jwt",
+      "messageCategory": "signature_verification_failed"
+    }
+[03:22:37 UTC] [33mWARN[39m (sos-sales-v3): [36mJWT token verification failed[39m
+    [35mauthError[39m: {
+      "name": "JWSSignatureVerificationFailed",
+      "code": "ERR_JWS_SIGNATURE_VERIFICATION_FAILED",
+      "provider": "local-jwt",
+      "messageCategory": "signature_verification_failed"
+    }
+[03:22:37 UTC] [33mWARN[39m (sos-sales-v3): [36mJWT token verification failed[39m
+    [35mauthError[39m: {
+      "name": "JWSSignatureVerificationFailed",
+      "code": "ERR_JWS_SIGNATURE_VERIFICATION_FAILED",
+      "provider": "local-jwt",
+      "messageCategory": "signature_verification_failed"
+    }
+[03:22:37 UTC] [33mWARN[39m (sos-sales-v3): [36mJWT token verification failed[39m
+    [35mauthError[39m: {
+      "name": "JWSSignatureVerificationFailed",
+      "code": "ERR_JWS_SIGNATURE_VERIFICATION_FAILED",
+      "provider": "local-jwt",
+      "messageCategory": "signature_verification_failed"
+    }
+ ❯ apps/api/src/__tests__/campaign-pagination.test.ts (8 tests | 8 failed) 149ms
+   × pages timestamp ties without loss or duplicates and preserves microsecond cursor precision 14ms
+   × rejects malformed or half cursors and does not grant another company access 2ms
+   × finds older campaigns through server-side search, keeps literal symbols and filters type 3ms
+   × reports recorded failure counts without treating them as delivery receipts 2ms
+   × allows report consultation but rejects cancellation by operator 5ms
+   × allows report consultation but rejects cancellation by manager 6ms
+   × allows cancellation by owner without creating outbound commands 3ms
+   × allows cancellation by admin without creating outbound commands 7ms
+[03:22:37 UTC] [33mWARN[39m (sos-sales-v3): [36mJWT token verification failed[39m
+    [35mauthError[39m: {
+      "name": "JWSSignatureVerificationFailed",
+      "code": "ERR_JWS_SIGNATURE_VERIFICATION_FAILED",
+      "provider": "local-jwt",
+      "messageCategory": "signature_verification_failed"
+    }
+[03:22:37 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "bf02050b-a751-482d-b2bc-fe18c8c4ccdb"
+    [35mreq[39m: {
+      "id": "bf02050b-a751-482d-b2bc-fe18c8c4ccdb",
+      "method": "GET",
+      "url": "/v1/workspaces/788102bf-21c6-4b48-8cc1-b946a85251bd/broadcasts/375b4481-3838-4b69-9141-c00a0ce3d59d/recipients",
+      "query": {},
+      "parameters": {
+        "workspaceId": "788102bf-21c6-4b48-8cc1-b946a85251bd",
+        "campaignId": "375b4481-3838-4b69-9141-c00a0ce3d59d"
+      }
+    }
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "bf02050b-a751-482d-b2bc-fe18c8c4ccdb"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 40.64708300000001
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "8839a11f-b94f-47b9-8cde-1b83dd91993d"
+    [35mreq[39m: {
+      "id": "8839a11f-b94f-47b9-8cde-1b83dd91993d",
+      "method": "GET",
+      "url": "/v1/workspaces/788102bf-21c6-4b48-8cc1-b946a85251bd/broadcasts/375b4481-3838-4b69-9141-c00a0ce3d59d/recipients?afterId=e7325fd7-2aca-498b-862f-f873af029482",
+      "query": {
+        "afterId": "e7325fd7-2aca-498b-862f-f873af029482"
+      },
+      "parameters": {
+        "workspaceId": "788102bf-21c6-4b48-8cc1-b946a85251bd",
+        "campaignId": "375b4481-3838-4b69-9141-c00a0ce3d59d"
+      }
+    }
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "8839a11f-b94f-47b9-8cde-1b83dd91993d"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 11.580584000000044
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "b426c776-4309-432a-be73-341ed0d1fb52"
+    [35mreq[39m: {
+      "id": "b426c776-4309-432a-be73-341ed0d1fb52",
+      "method": "GET",
+      "url": "/v1/workspaces/788102bf-21c6-4b48-8cc1-b946a85251bd/broadcasts/campaigns",
+      "query": {},
+      "parameters": {
+        "workspaceId": "788102bf-21c6-4b48-8cc1-b946a85251bd"
+      }
+    }
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "b426c776-4309-432a-be73-341ed0d1fb52"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 101.45854100000003
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "ed23c312-33c1-4ad7-8465-d2d3c5ecb8aa"
+    [35mreq[39m: {
+      "id": "ed23c312-33c1-4ad7-8465-d2d3c5ecb8aa",
+      "method": "GET",
+      "url": "/v1/workspaces/788102bf-21c6-4b48-8cc1-b946a85251bd/broadcasts/375b4481-3838-4b69-9141-c00a0ce3d59d/recipients?group=ATTENTION",
+      "query": {
+        "group": "ATTENTION"
+      },
+      "parameters": {
+        "workspaceId": "788102bf-21c6-4b48-8cc1-b946a85251bd",
+        "campaignId": "375b4481-3838-4b69-9141-c00a0ce3d59d"
+      }
+    }
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "ed23c312-33c1-4ad7-8465-d2d3c5ecb8aa"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 6.157500000000027
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "62e75d95-7d4d-445e-8f2b-57f46464c990"
+    [35mreq[39m: {
+      "id": "62e75d95-7d4d-445e-8f2b-57f46464c990",
+      "method": "GET",
+      "url": "/v1/workspaces/788102bf-21c6-4b48-8cc1-b946a85251bd/broadcasts/375b4481-3838-4b69-9141-c00a0ce3d59d/recipients?group=PENDING",
+      "query": {
+        "group": "PENDING"
+      },
+      "parameters": {
+        "workspaceId": "788102bf-21c6-4b48-8cc1-b946a85251bd",
+        "campaignId": "375b4481-3838-4b69-9141-c00a0ce3d59d"
+      }
+    }
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "62e75d95-7d4d-445e-8f2b-57f46464c990"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 4.857000000000085
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "8d30fff8-b509-434f-85c4-72b19fb9efd9"
+    [35mreq[39m: {
+      "id": "8d30fff8-b509-434f-85c4-72b19fb9efd9",
+      "method": "GET",
+      "url": "/v1/workspaces/788102bf-21c6-4b48-8cc1-b946a85251bd/broadcasts/375b4481-3838-4b69-9141-c00a0ce3d59d/recipients?group=CONFIRMED",
+      "query": {
+        "group": "CONFIRMED"
+      },
+      "parameters": {
+        "workspaceId": "788102bf-21c6-4b48-8cc1-b946a85251bd",
+        "campaignId": "375b4481-3838-4b69-9141-c00a0ce3d59d"
+      }
+    }
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "8d30fff8-b509-434f-85c4-72b19fb9efd9"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 11.665791999999897
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "07d9baf2-3b6b-4e2a-98e9-27428c9d6215"
+    [35mreq[39m: {
+      "id": "07d9baf2-3b6b-4e2a-98e9-27428c9d6215",
+      "method": "GET",
+      "url": "/v1/workspaces/788102bf-21c6-4b48-8cc1-b946a85251bd/broadcasts/375b4481-3838-4b69-9141-c00a0ce3d59d/recipients?search=%C3%A1gata&group=PENDING",
+      "query": {
+        "search": "ágata",
+        "group": "PENDING"
+      },
+      "parameters": {
+        "workspaceId": "788102bf-21c6-4b48-8cc1-b946a85251bd",
+        "campaignId": "375b4481-3838-4b69-9141-c00a0ce3d59d"
+      }
+    }
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "07d9baf2-3b6b-4e2a-98e9-27428c9d6215"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 9.585624999999936
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "5a8e33df-da22-4f5d-bc28-884d66074da2"
+    [35mreq[39m: {
+      "id": "5a8e33df-da22-4f5d-bc28-884d66074da2",
+      "method": "GET",
+      "url": "/v1/workspaces/788102bf-21c6-4b48-8cc1-b946a85251bd/broadcasts/375b4481-3838-4b69-9141-c00a0ce3d59d/recipients?search=%2B55%20(0000)%20000051",
+      "query": {
+        "search": "+55 (0000) 000051"
+      },
+      "parameters": {
+        "workspaceId": "788102bf-21c6-4b48-8cc1-b946a85251bd",
+        "campaignId": "375b4481-3838-4b69-9141-c00a0ce3d59d"
+      }
+    }
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "5a8e33df-da22-4f5d-bc28-884d66074da2"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 6.290666999999985
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "4e1ee057-a577-4b8f-9309-c9c58094becd"
+    [35mreq[39m: {
+      "id": "4e1ee057-a577-4b8f-9309-c9c58094becd",
+      "method": "GET",
+      "url": "/v1/workspaces/788102bf-21c6-4b48-8cc1-b946a85251bd/broadcasts/375b4481-3838-4b69-9141-c00a0ce3d59d/recipients?search=%C3%81gata&group=ATTENTION",
+      "query": {
+        "search": "Ágata",
+        "group": "ATTENTION"
+      },
+      "parameters": {
+        "workspaceId": "788102bf-21c6-4b48-8cc1-b946a85251bd",
+        "campaignId": "375b4481-3838-4b69-9141-c00a0ce3d59d"
+      }
+    }
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "4e1ee057-a577-4b8f-9309-c9c58094becd"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 7.899042000000009
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "ce389d62-5945-4102-81a3-06823067d1aa"
+    [35mreq[39m: {
+      "id": "ce389d62-5945-4102-81a3-06823067d1aa",
+      "method": "GET",
+      "url": "/v1/workspaces/788102bf-21c6-4b48-8cc1-b946a85251bd/broadcasts/375b4481-3838-4b69-9141-c00a0ce3d59d/recipients?group=INVALID",
+      "query": {
+        "group": "INVALID"
+      },
+      "parameters": {
+        "workspaceId": "788102bf-21c6-4b48-8cc1-b946a85251bd",
+        "campaignId": "375b4481-3838-4b69-9141-c00a0ce3d59d"
+      }
+    }
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "ce389d62-5945-4102-81a3-06823067d1aa"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 1.305833000000007
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "38981c48-edd7-484d-856a-63d61a55397b"
+    [35mreq[39m: {
+      "id": "38981c48-edd7-484d-856a-63d61a55397b",
+      "method": "GET",
+      "url": "/v1/workspaces/788102bf-21c6-4b48-8cc1-b946a85251bd/broadcasts/375b4481-3838-4b69-9141-c00a0ce3d59d/recipients?search=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+      "query": {
+        "search": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+      },
+      "parameters": {
+        "workspaceId": "788102bf-21c6-4b48-8cc1-b946a85251bd",
+        "campaignId": "375b4481-3838-4b69-9141-c00a0ce3d59d"
+      }
+    }
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "38981c48-edd7-484d-856a-63d61a55397b"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 1.0342500000000427
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "d4ac17b1-a19d-4337-9c8a-6525681bff0c"
+    [35mreq[39m: {
+      "id": "d4ac17b1-a19d-4337-9c8a-6525681bff0c",
+      "method": "GET",
+      "url": "/v1/workspaces/788102bf-21c6-4b48-8cc1-b946a85251bd/broadcasts/375b4481-3838-4b69-9141-c00a0ce3d59d/recipients?group=ATTENTION",
+      "query": {
+        "group": "ATTENTION"
+      },
+      "parameters": {
+        "workspaceId": "788102bf-21c6-4b48-8cc1-b946a85251bd",
+        "campaignId": "375b4481-3838-4b69-9141-c00a0ce3d59d"
+      }
+    }
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "d4ac17b1-a19d-4337-9c8a-6525681bff0c"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 3.4763750000000755
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "0e49143e-a778-4e81-98c7-3fed6b0cc3a9"
+    [35mreq[39m: {
+      "id": "0e49143e-a778-4e81-98c7-3fed6b0cc3a9",
+      "method": "GET",
+      "url": "/v1/workspaces/3a1009f4-3ab0-4e2b-9cbb-06385de9bab0/broadcasts/375b4481-3838-4b69-9141-c00a0ce3d59d/recipients",
+      "query": {},
+      "parameters": {
+        "workspaceId": "3a1009f4-3ab0-4e2b-9cbb-06385de9bab0",
+        "campaignId": "375b4481-3838-4b69-9141-c00a0ce3d59d"
+      }
+    }
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "0e49143e-a778-4e81-98c7-3fed6b0cc3a9"
+    [35mres[39m: {
+      "statusCode": 403
+    }
+    [35mresponseTime[39m: 2.6735419999999976
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "21810ba7-8fbf-4d6f-a24c-7e2d5b7ce4bd"
+    [35mreq[39m: {
+      "id": "21810ba7-8fbf-4d6f-a24c-7e2d5b7ce4bd",
+      "method": "GET",
+      "url": "/v1/workspaces/788102bf-21c6-4b48-8cc1-b946a85251bd/broadcasts/8375a865-b9df-4f31-afae-3e15c07dc511/recipients",
+      "query": {},
+      "parameters": {
+        "workspaceId": "788102bf-21c6-4b48-8cc1-b946a85251bd",
+        "campaignId": "8375a865-b9df-4f31-afae-3e15c07dc511"
+      }
+    }
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "21810ba7-8fbf-4d6f-a24c-7e2d5b7ce4bd"
+    [35mres[39m: {
+      "statusCode": 404
+    }
+    [35mresponseTime[39m: 2.9483750000000555
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "9ea4c4e3-06fb-48d6-9caa-3a0a5d5026b6"
+    [35mreq[39m: {
+      "id": "9ea4c4e3-06fb-48d6-9caa-3a0a5d5026b6",
+      "method": "GET",
+      "url": "/v1/workspaces/788102bf-21c6-4b48-8cc1-b946a85251bd/broadcasts/375b4481-3838-4b69-9141-c00a0ce3d59d/recipients?afterId=invalid",
+      "query": {
+        "afterId": "invalid"
+      },
+      "parameters": {
+        "workspaceId": "788102bf-21c6-4b48-8cc1-b946a85251bd",
+        "campaignId": "375b4481-3838-4b69-9141-c00a0ce3d59d"
+      }
+    }
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "9ea4c4e3-06fb-48d6-9caa-3a0a5d5026b6"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 0.7627909999999929
+[03:22:38 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "1bf496e0-fc1b-4be6-865d-6ec3d583f1ab"
+    [35mreq[39m: {
+      "id": "1bf496e0-fc1b-4be6-865d-6ec3d583f1ab",
+      "method": "GET",
+      "url": "/v1/workspaces/788102bf-21c6-4b48-8cc1-b946a85251bd/broadcasts/375b4481-3838-4b69-9141-c00a0ce3d59d/recipients?extra=1",
+      "query": {
+        "extra": "1"
+      },
+      "parameters": {
+        "workspaceId": "788102bf-21c6-4b48-8cc1-b946a85251bd",
+        "campaignId": "375b4481-3838-4b69-9141-c00a0ce3d59d"
+      }
+    }
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 18 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/api/src/__tests__/ai-provider-boundary.test.ts > AI provider boundaries — isolated database and replaced LLM > retains the key on same-provider edits and bounds multi-turn history before invoking a model
+AssertionError: {"detail":"Proteção de credenciais indisponível. Configure a chave de criptografia do servidor antes de salvar uma credencial."}: expected 503 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 503
+
+ ❯ apps/api/src/__tests__/ai-provider-boundary.test.ts:58:41
+     56|   it('retains the key on same-provider edits and bounds multi-turn his…
+     57|     const saved=await app.inject({method:'PUT',url:url(),headers,paylo…
+     58|     expect(saved.statusCode,saved.body).toBe(200);expect(saved.json().…
+       |                                         ^
+     59|     const history=Array.from({length:17},()=>({role:'user',content:'SI…
+     60|     const rejected=await app.inject({method:'POST',url:url('/simulate'…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/18]⎯
+
+ FAIL  apps/api/src/__tests__/ai-provider-boundary.test.ts > AI provider boundaries — isolated database and replaced LLM > requires an observed revision and serializes competing draft saves without changing runtime
+AssertionError: expected [ 503, 503 ] to deeply equal [ 200, 409 ]
+
+- Expected
++ Received
+
+  [
+-   200,
+-   409,
++   503,
++   503,
+  ]
+
+ ❯ apps/api/src/__tests__/ai-provider-boundary.test.ts:68:59
+     66|     const missing=await app.inject({method:'PUT',url:url(),headers,pay…
+     67|     const results=await Promise.all(['Rascunho A','Rascunho B'].map(na…
+     68|     expect(results.map(result=>result.statusCode).sort()).toEqual([200…
+       |                                                           ^
+     69|     expect((await ownerPool.query('SELECT count(*)::int n FROM ai_agen…
+     70|     const active=(await ownerPool.query('SELECT ai_receptionist_enable…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/18]⎯
+
+ FAIL  apps/api/src/__tests__/ai-provider-boundary.test.ts > AI provider boundaries — isolated database and replaced LLM > encrypts a draft credential, simulates that exact revision and never exposes the key
+AssertionError: {"detail":"Proteção de credenciais indisponível. Configure a chave de criptografia do servidor antes de salvar uma credencial."}: expected 503 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 503
+
+ ❯ apps/api/src/__tests__/ai-provider-boundary.test.ts:76:41
+     74|     const secret='SIM_DRAFT_CREDENTIAL_ONLY';
+     75|     const saved=await app.inject({method:'PUT',url:url(),headers,paylo…
+     76|     expect(saved.statusCode,saved.body).toBe(200);expect(saved.body).n…
+       |                                         ^
+     77|     const stored=(await ownerPool.query('SELECT config,credential_enve…
+     78|     expect(stored.key_policy).toBe('draft');expect(stored.credential_e…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/18]⎯
+
+ FAIL  apps/api/src/__tests__/ai-provider-boundary.test.ts > AI provider boundaries — isolated database and replaced LLM > prepares an approved guided plan as a new draft with its criteria, without activating it
+AssertionError: {"detail":"Proteção de credenciais indisponível. Configure a chave de criptografia do servidor antes de salvar uma credencial."}: expected 503 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 503
+
+ ❯ apps/api/src/__tests__/ai-provider-boundary.test.ts:94:47
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/18]⎯
+
+ FAIL  apps/api/src/__tests__/ai-provider-boundary.test.ts > AI provider boundaries — isolated database and replaced LLM > suspends runtime immediately while preserving the selected draft and recording the reason
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ apps/api/src/__tests__/ai-provider-boundary.test.ts:111:93
+    109|     const stopped=await app.inject({method:'POST',url:url('/suspend'),…
+    110|     expect(stopped.statusCode,stopped.body).toBe(200);
+    111|     const loaded=await app.inject({url:url(),headers});expect(loaded.j…
+       |                                                                                             ^
+    112|     const audit=(await ownerPool.query("SELECT metadata FROM audit_eve…
+    113|     expect(audit.some(row=>row.metadata.reason==='SIM Suspensão manual…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/18]⎯
+
+ FAIL  apps/api/src/__tests__/ai-provider-boundary.test.ts > AI provider boundaries — isolated database and replaced LLM > preserves unrelated rules and skills when a client patches only one setting
+AssertionError: {"detail":"Proteção de credenciais indisponível. Configure a chave de criptografia do servidor antes de salvar uma credencial."}: expected 503 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 503
+
+ ❯ apps/api/src/__tests__/ai-provider-boundary.test.ts:119:41
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/18]⎯
+
+ FAIL  apps/api/src/__tests__/campaign-pagination.test.ts > pages timestamp ties without loss or duplicates and preserves microsecond cursor precision
+AssertionError: {"type":"https://sos-sales.mct.br/errors/unauthorized","title":"Unauthorized","status":401,"detail":"Invalid, untrusted or expired JWT token","instance":"/v1/workspaces/a9ba8537-29e7-4267-9812-666929b9f07b/broadcasts/campaigns","correlationId":"1c5f0d5d-64a1-44a5-b1b2-3353033f312e"}: expected 401 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 401
+
+ ❯ apps/api/src/__tests__/campaign-pagination.test.ts:15:98
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/18]⎯
+
+ FAIL  apps/api/src/__tests__/campaign-pagination.test.ts > rejects malformed or half cursors and does not grant another company access
+AssertionError: expected 401 to be 400 // Object.is equality
+
+- Expected
++ Received
+
+- 400
++ 401
+
+ ❯ apps/api/src/__tests__/campaign-pagination.test.ts:20:224
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/18]⎯
+
+ FAIL  apps/api/src/__tests__/campaign-pagination.test.ts > finds older campaigns through server-side search, keeps literal symbols and filters type
+AssertionError: {"type":"https://sos-sales.mct.br/errors/unauthorized","title":"Unauthorized","status":401,"detail":"Invalid, untrusted or expired JWT token","instance":"/v1/workspaces/a9ba8537-29e7-4267-9812-666929b9f07b/broadcasts/campaigns?search=needle&type=AB_ONLY","correlationId":"ad32d3ca-7f87-4776-b6a5-13e8021aa4ac"}: expected 401 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 401
+
+ ❯ apps/api/src/__tests__/campaign-pagination.test.ts:26:225
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/18]⎯
+
+ FAIL  apps/api/src/__tests__/campaign-pagination.test.ts > reports recorded failure counts without treating them as delivery receipts
+AssertionError: {"type":"https://sos-sales.mct.br/errors/unauthorized","title":"Unauthorized","status":401,"detail":"Invalid, untrusted or expired JWT token","instance":"/v1/workspaces/a9ba8537-29e7-4267-9812-666929b9f07b/broadcasts/campaigns?search=SIM+recorded+failure+evidence","correlationId":"93f8f1e9-726e-4a0e-80d7-56a74ef8a934"}: expected 401 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 401
+
+ ❯ apps/api/src/__tests__/campaign-pagination.test.ts:34:150
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/18]⎯
+
+ FAIL  apps/api/src/__tests__/campaign-pagination.test.ts > allows report consultation but rejects cancellation by operator
+ FAIL  apps/api/src/__tests__/campaign-pagination.test.ts > allows report consultation but rejects cancellation by manager
+AssertionError: expected 401 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 401
+
+ ❯ apps/api/src/__tests__/campaign-pagination.test.ts:43:66
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/18]⎯
+
+ FAIL  apps/api/src/__tests__/campaign-pagination.test.ts > allows cancellation by owner without creating outbound commands
+AssertionError: {"type":"https://sos-sales.mct.br/errors/unauthorized","title":"Unauthorized","status":401,"detail":"Invalid, untrusted or expired JWT token","instance":"/v1/workspaces/a9ba8537-29e7-4267-9812-666929b9f07b/broadcasts/4297a843-4c45-47bf-9461-7cf662066b40/cancel","correlationId":"d9d510d5-73f4-4577-8073-35323c154461"}: expected 401 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 401
+
+ ❯ apps/api/src/__tests__/campaign-pagination.test.ts:49:187
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/18]⎯
+
+ FAIL  apps/api/src/__tests__/campaign-pagination.test.ts > allows cancellation by admin without creating outbound commands
+AssertionError: {"type":"https://sos-sales.mct.br/errors/unauthorized","title":"Unauthorized","status":401,"detail":"Invalid, untrusted or expired JWT token","instance":"/v1/workspaces/a9ba8537-29e7-4267-9812-666929b9f07b/broadcasts/7de10ad5-f2b9-4fdf-b757-d46bd66b9e95/cancel","correlationId":"40d0510d-3751-474d-b3bb-3cc77c52240f"}: expected 401 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 401
+
+ ❯ apps/api/src/__tests__/campaign-pagination.test.ts:49:187
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/18]⎯
+
+ FAIL  apps/api/src/__tests__/channel-history.test.ts > imports without auto-creating a negotiation, delivery claims, inbox replay or duplicate effects
+AssertionError: {"type":"https://sos-sales.mct.br/errors/unauthorized","title":"Unauthorized","status":401,"detail":"Invalid, untrusted or expired JWT token","instance":"/v1/workspaces/2b4cfd81-86fc-4fe7-8799-7c60e1fa7863/channels/7bf6be9e-e91e-4893-bff5-b065d9c21663/sync","correlationId":"8fa20a3b-4895-43e9-b1da-1c43f95a6356"}: expected 401 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 401
+
+ ❯ apps/api/src/__tests__/channel-history.test.ts:48:75
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/18]⎯
+
+ FAIL  apps/api/src/__tests__/channel-history.test.ts > rejects inactive channels before network access and never starts a stopped session
+AssertionError: expected 401 to be 409 // Object.is equality
+
+- Expected
++ Received
+
+- 409
++ 401
+
+ ❯ apps/api/src/__tests__/channel-history.test.ts:58:129
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/18]⎯
+
+ FAIL  apps/api/src/__tests__/channel-history.test.ts > does not mistake provider outage, malformed history or another account for an empty successful import
+AssertionError: expected 401 to be 502 // Object.is equality
+
+- Expected
++ Received
+
+- 502
++ 401
+
+ ❯ apps/api/src/__tests__/channel-history.test.ts:63:123
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/18]⎯
+
+ FAIL  apps/api/src/__tests__/channel-history.test.ts > reports per-chat failures and cannot write after the channel is disabled during consultation
+AssertionError: {"type":"https://sos-sales.mct.br/errors/unauthorized","title":"Unauthorized","status":401,"detail":"Invalid, untrusted or expired JWT token","instance":"/v1/workspaces/2b4cfd81-86fc-4fe7-8799-7c60e1fa7863/channels/7bf6be9e-e91e-4893-bff5-b065d9c21663/sync","correlationId":"b50f0869-faf2-4a7f-9113-196e31f26e76"}: expected 401 to be 502 // Object.is equality
+
+- Expected
++ Received
+
+- 502
++ 401
+
+ ❯ apps/api/src/__tests__/channel-history.test.ts:73:72
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/18]⎯
+
+
+ Test Files  3 failed | 1 passed (4)
+      Tests  18 failed | 13 passed (31)
+   Start at  00:22:35
+   Duration  3.05s (tests 36%, import 35%, transform 28%, worker 1%)
+

@@ -1,0 +1,831 @@
+
+ RUN  v5.0.1 /Users/franciscotaveira.ads/Downloads/FT/CHAT-SALES
+
+ ❯ apps/api/src/__tests__/ai-provider-boundary.test.ts (12 tests | 6 failed) 278ms
+   ❯ AI provider boundaries — isolated database and replaced LLM (12)
+     × retains the key on same-provider edits and bounds multi-turn history before invoking a model 10ms
+     × requires an observed revision and serializes competing draft saves without changing runtime 17ms
+     × encrypts a draft credential, simulates that exact revision and never exposes the key 6ms
+     × prepares an approved guided plan as a new draft with its criteria, without activating it 8ms
+     × suspends runtime immediately while preserving the selected draft and recording the reason 13ms
+     × preserves unrelated rules and skills when a client patches only one setting 5ms
+ ❯ apps/api/src/__tests__/channel-history.test.ts (5 tests | 4 failed) 160ms
+   × imports without auto-creating a negotiation, delivery claims, inbox replay or duplicate effects 33ms
+   × rejects inactive channels before network access and never starts a stopped session 12ms
+   × does not mistake provider outage, malformed history or another account for an empty successful import 5ms
+   × reports per-chat failures and cannot write after the channel is disabled during consultation 5ms
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "2c93a25c-2f04-423c-a3cb-de4ce1d26742"
+    [35mreq[39m: {
+      "id": "2c93a25c-2f04-423c-a3cb-de4ce1d26742",
+      "method": "GET",
+      "url": "/v1/workspaces/12b565ae-6c8f-4cb9-bc1d-81f0782e40a2/broadcasts/campaigns",
+      "query": {},
+      "parameters": {
+        "workspaceId": "12b565ae-6c8f-4cb9-bc1d-81f0782e40a2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "2c93a25c-2f04-423c-a3cb-de4ce1d26742"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 107.23649999999998
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "7996c764-28ef-40a5-ab71-ab4e66f67b0a"
+    [35mreq[39m: {
+      "id": "7996c764-28ef-40a5-ab71-ab4e66f67b0a",
+      "method": "GET",
+      "url": "/v1/workspaces/12b565ae-6c8f-4cb9-bc1d-81f0782e40a2/broadcasts/campaigns?beforeCreatedAt=2026-10-17T12%3A00%3A00.123456Z&beforeId=0c319c02-6e13-4add-94a3-372226fb0909",
+      "query": {
+        "beforeCreatedAt": "2026-10-17T12:00:00.123456Z",
+        "beforeId": "0c319c02-6e13-4add-94a3-372226fb0909"
+      },
+      "parameters": {
+        "workspaceId": "12b565ae-6c8f-4cb9-bc1d-81f0782e40a2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "7996c764-28ef-40a5-ab71-ab4e66f67b0a"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 7.285624999999982
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "63bc73c4-df47-4b40-9227-e2f90b7ee8d0"
+    [35mreq[39m: {
+      "id": "63bc73c4-df47-4b40-9227-e2f90b7ee8d0",
+      "method": "GET",
+      "url": "/v1/workspaces/12b565ae-6c8f-4cb9-bc1d-81f0782e40a2/broadcasts/campaigns?beforeCreatedAt=invalid",
+      "query": {
+        "beforeCreatedAt": "invalid"
+      },
+      "parameters": {
+        "workspaceId": "12b565ae-6c8f-4cb9-bc1d-81f0782e40a2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "63bc73c4-df47-4b40-9227-e2f90b7ee8d0"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 1.6459590000000048
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "7905ca6f-9a93-4ffe-96e7-505e3ef4472a"
+    [35mreq[39m: {
+      "id": "7905ca6f-9a93-4ffe-96e7-505e3ef4472a",
+      "method": "GET",
+      "url": "/v1/workspaces/12b565ae-6c8f-4cb9-bc1d-81f0782e40a2/broadcasts/campaigns?beforeId=40f84980-b124-43b0-a86a-b70141db8f43",
+      "query": {
+        "beforeId": "40f84980-b124-43b0-a86a-b70141db8f43"
+      },
+      "parameters": {
+        "workspaceId": "12b565ae-6c8f-4cb9-bc1d-81f0782e40a2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "7905ca6f-9a93-4ffe-96e7-505e3ef4472a"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 0.9380419999999958
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "3036ab6b-a8c6-43dc-b49c-619f5d78c3f9"
+    [35mreq[39m: {
+      "id": "3036ab6b-a8c6-43dc-b49c-619f5d78c3f9",
+      "method": "GET",
+      "url": "/v1/workspaces/12b565ae-6c8f-4cb9-bc1d-81f0782e40a2/broadcasts/campaigns?beforeCreatedAt=2026-10-17T12%3A00%3A00Z&beforeId=invalid",
+      "query": {
+        "beforeCreatedAt": "2026-10-17T12:00:00Z",
+        "beforeId": "invalid"
+      },
+      "parameters": {
+        "workspaceId": "12b565ae-6c8f-4cb9-bc1d-81f0782e40a2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "3036ab6b-a8c6-43dc-b49c-619f5d78c3f9"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 1.1470839999999498
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "ab0dfdfb-6060-46c8-8ddb-d4feae20c577"
+    [35mreq[39m: {
+      "id": "ab0dfdfb-6060-46c8-8ddb-d4feae20c577",
+      "method": "GET",
+      "url": "/v1/workspaces/5a70fcdb-33de-4025-a58a-db0df59b4cda/broadcasts/campaigns",
+      "query": {},
+      "parameters": {
+        "workspaceId": "5a70fcdb-33de-4025-a58a-db0df59b4cda"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "ab0dfdfb-6060-46c8-8ddb-d4feae20c577"
+    [35mres[39m: {
+      "statusCode": 403
+    }
+    [35mresponseTime[39m: 3.1737919999999917
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "04da7727-36a7-414b-b809-77ae19922864"
+    [35mreq[39m: {
+      "id": "04da7727-36a7-414b-b809-77ae19922864",
+      "method": "GET",
+      "url": "/v1/workspaces/12b565ae-6c8f-4cb9-bc1d-81f0782e40a2/broadcasts/campaigns?search=needle&type=AB_ONLY",
+      "query": {
+        "search": "needle",
+        "type": "AB_ONLY"
+      },
+      "parameters": {
+        "workspaceId": "12b565ae-6c8f-4cb9-bc1d-81f0782e40a2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "04da7727-36a7-414b-b809-77ae19922864"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 4.947291000000007
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "75f99b53-a91a-4b78-babf-ecd86fab2135"
+    [35mreq[39m: {
+      "id": "75f99b53-a91a-4b78-babf-ecd86fab2135",
+      "method": "GET",
+      "url": "/v1/workspaces/12b565ae-6c8f-4cb9-bc1d-81f0782e40a2/broadcasts/campaigns?search=100%25_literal&type=AB_ONLY",
+      "query": {
+        "search": "100%_literal",
+        "type": "AB_ONLY"
+      },
+      "parameters": {
+        "workspaceId": "12b565ae-6c8f-4cb9-bc1d-81f0782e40a2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "75f99b53-a91a-4b78-babf-ecd86fab2135"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 4.742375000000038
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "49d556cc-e24a-4f47-8ea0-02c8f2455cb8"
+    [35mreq[39m: {
+      "id": "49d556cc-e24a-4f47-8ea0-02c8f2455cb8",
+      "method": "GET",
+      "url": "/v1/workspaces/12b565ae-6c8f-4cb9-bc1d-81f0782e40a2/broadcasts/campaigns?search=needle&type=SINGLE",
+      "query": {
+        "search": "needle",
+        "type": "SINGLE"
+      },
+      "parameters": {
+        "workspaceId": "12b565ae-6c8f-4cb9-bc1d-81f0782e40a2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "49d556cc-e24a-4f47-8ea0-02c8f2455cb8"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 3.5509170000000267
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "f84d9cb0-7d74-4a6e-a9a8-5100cdbba0d0"
+    [35mreq[39m: {
+      "id": "f84d9cb0-7d74-4a6e-a9a8-5100cdbba0d0",
+      "method": "GET",
+      "url": "/v1/workspaces/12b565ae-6c8f-4cb9-bc1d-81f0782e40a2/broadcasts/campaigns?search=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "query": {
+        "search": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "parameters": {
+        "workspaceId": "12b565ae-6c8f-4cb9-bc1d-81f0782e40a2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "f84d9cb0-7d74-4a6e-a9a8-5100cdbba0d0"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 1.0419170000000122
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "87ebe001-8ae9-4a46-af3f-2b150271650d"
+    [35mreq[39m: {
+      "id": "87ebe001-8ae9-4a46-af3f-2b150271650d",
+      "method": "GET",
+      "url": "/v1/workspaces/12b565ae-6c8f-4cb9-bc1d-81f0782e40a2/broadcasts/campaigns?search=SIM+channel",
+      "query": {
+        "search": "SIM channel"
+      },
+      "parameters": {
+        "workspaceId": "12b565ae-6c8f-4cb9-bc1d-81f0782e40a2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "87ebe001-8ae9-4a46-af3f-2b150271650d"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 50.85449999999997
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "4738ba22-14cc-4e62-a898-222f924c5841"
+    [35mreq[39m: {
+      "id": "4738ba22-14cc-4e62-a898-222f924c5841",
+      "method": "GET",
+      "url": "/v1/workspaces/12b565ae-6c8f-4cb9-bc1d-81f0782e40a2/broadcasts/campaigns?search=SIM+recorded+failure+evidence",
+      "query": {
+        "search": "SIM recorded failure evidence"
+      },
+      "parameters": {
+        "workspaceId": "12b565ae-6c8f-4cb9-bc1d-81f0782e40a2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "4738ba22-14cc-4e62-a898-222f924c5841"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 4.54729199999997
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "69f8e027-3087-4589-b00a-8572bac57e79"
+    [35mreq[39m: {
+      "id": "69f8e027-3087-4589-b00a-8572bac57e79",
+      "method": "GET",
+      "url": "/v1/workspaces/12b565ae-6c8f-4cb9-bc1d-81f0782e40a2/broadcasts/campaigns",
+      "query": {},
+      "parameters": {
+        "workspaceId": "12b565ae-6c8f-4cb9-bc1d-81f0782e40a2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "69f8e027-3087-4589-b00a-8572bac57e79"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 48.27362500000004
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "71d45697-596e-4ae0-aa42-934cce97b14f"
+    [35mreq[39m: {
+      "id": "71d45697-596e-4ae0-aa42-934cce97b14f",
+      "method": "POST",
+      "url": "/v1/workspaces/12b565ae-6c8f-4cb9-bc1d-81f0782e40a2/broadcasts/3380f158-ad2f-43eb-ac1b-7460bc2ff78f/cancel",
+      "query": {},
+      "parameters": {
+        "workspaceId": "12b565ae-6c8f-4cb9-bc1d-81f0782e40a2",
+        "campaignId": "3380f158-ad2f-43eb-ac1b-7460bc2ff78f"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "71d45697-596e-4ae0-aa42-934cce97b14f"
+    [35mres[39m: {
+      "statusCode": 403
+    }
+    [35mresponseTime[39m: 1.6243749999999864
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "dd07a9d2-00db-490f-bfdc-1aaeb6a6d0a8"
+    [35mreq[39m: {
+      "id": "dd07a9d2-00db-490f-bfdc-1aaeb6a6d0a8",
+      "method": "GET",
+      "url": "/v1/workspaces/12b565ae-6c8f-4cb9-bc1d-81f0782e40a2/broadcasts/campaigns",
+      "query": {},
+      "parameters": {
+        "workspaceId": "12b565ae-6c8f-4cb9-bc1d-81f0782e40a2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "dd07a9d2-00db-490f-bfdc-1aaeb6a6d0a8"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 77.57945799999993
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "011097c8-5ae2-4601-b882-28164a0303e9"
+    [35mreq[39m: {
+      "id": "011097c8-5ae2-4601-b882-28164a0303e9",
+      "method": "POST",
+      "url": "/v1/workspaces/12b565ae-6c8f-4cb9-bc1d-81f0782e40a2/broadcasts/4a820a40-5539-4c5a-9c68-f54152313973/cancel",
+      "query": {},
+      "parameters": {
+        "workspaceId": "12b565ae-6c8f-4cb9-bc1d-81f0782e40a2",
+        "campaignId": "4a820a40-5539-4c5a-9c68-f54152313973"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "011097c8-5ae2-4601-b882-28164a0303e9"
+    [35mres[39m: {
+      "statusCode": 403
+    }
+    [35mresponseTime[39m: 1.0339999999999918
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "f77ecd17-d7b4-4dee-9c13-f47c45bbfd91"
+    [35mreq[39m: {
+      "id": "f77ecd17-d7b4-4dee-9c13-f47c45bbfd91",
+      "method": "POST",
+      "url": "/v1/workspaces/12b565ae-6c8f-4cb9-bc1d-81f0782e40a2/broadcasts/a2099f19-6db5-4bcd-8f70-73acf7f6a678/cancel",
+      "query": {},
+      "parameters": {
+        "workspaceId": "12b565ae-6c8f-4cb9-bc1d-81f0782e40a2",
+        "campaignId": "a2099f19-6db5-4bcd-8f70-73acf7f6a678"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "f77ecd17-d7b4-4dee-9c13-f47c45bbfd91"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 3.7042920000000095
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "41e5302c-8d5a-4086-a7b1-8b3777ac194f"
+    [35mreq[39m: {
+      "id": "41e5302c-8d5a-4086-a7b1-8b3777ac194f",
+      "method": "POST",
+      "url": "/v1/workspaces/12b565ae-6c8f-4cb9-bc1d-81f0782e40a2/broadcasts/7e81f479-592a-4704-8068-4ba0abce802b/cancel",
+      "query": {},
+      "parameters": {
+        "workspaceId": "12b565ae-6c8f-4cb9-bc1d-81f0782e40a2",
+        "campaignId": "7e81f479-592a-4704-8068-4ba0abce802b"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "41e5302c-8d5a-4086-a7b1-8b3777ac194f"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 2.4602919999999813
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "fb34e617-125e-4685-862c-b218dc4a0931"
+    [35mreq[39m: {
+      "id": "fb34e617-125e-4685-862c-b218dc4a0931",
+      "method": "GET",
+      "url": "/v1/workspaces/1c4d68fc-708a-4ef1-9485-56d29d5687af/broadcasts/2727f416-adac-4db8-a9d8-ceae986139d2/recipients",
+      "query": {},
+      "parameters": {
+        "workspaceId": "1c4d68fc-708a-4ef1-9485-56d29d5687af",
+        "campaignId": "2727f416-adac-4db8-a9d8-ceae986139d2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "fb34e617-125e-4685-862c-b218dc4a0931"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 21.96362499999998
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "29d14915-599d-447f-bd12-e2653ec3f563"
+    [35mreq[39m: {
+      "id": "29d14915-599d-447f-bd12-e2653ec3f563",
+      "method": "GET",
+      "url": "/v1/workspaces/1c4d68fc-708a-4ef1-9485-56d29d5687af/broadcasts/2727f416-adac-4db8-a9d8-ceae986139d2/recipients?afterId=eaa51700-fd2f-466f-bed5-42273d8a355b",
+      "query": {
+        "afterId": "eaa51700-fd2f-466f-bed5-42273d8a355b"
+      },
+      "parameters": {
+        "workspaceId": "1c4d68fc-708a-4ef1-9485-56d29d5687af",
+        "campaignId": "2727f416-adac-4db8-a9d8-ceae986139d2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "29d14915-599d-447f-bd12-e2653ec3f563"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 4.12741699999998
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "66aca887-030b-4662-b605-cf18eadc3605"
+    [35mreq[39m: {
+      "id": "66aca887-030b-4662-b605-cf18eadc3605",
+      "method": "GET",
+      "url": "/v1/workspaces/1c4d68fc-708a-4ef1-9485-56d29d5687af/broadcasts/campaigns",
+      "query": {},
+      "parameters": {
+        "workspaceId": "1c4d68fc-708a-4ef1-9485-56d29d5687af"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "66aca887-030b-4662-b605-cf18eadc3605"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 26.259374999999977
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "0925e7b0-9be7-434b-a2ee-766a7a1be226"
+    [35mreq[39m: {
+      "id": "0925e7b0-9be7-434b-a2ee-766a7a1be226",
+      "method": "GET",
+      "url": "/v1/workspaces/1c4d68fc-708a-4ef1-9485-56d29d5687af/broadcasts/2727f416-adac-4db8-a9d8-ceae986139d2/recipients?group=ATTENTION",
+      "query": {
+        "group": "ATTENTION"
+      },
+      "parameters": {
+        "workspaceId": "1c4d68fc-708a-4ef1-9485-56d29d5687af",
+        "campaignId": "2727f416-adac-4db8-a9d8-ceae986139d2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "0925e7b0-9be7-434b-a2ee-766a7a1be226"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 4.666749999999979
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "0ee55d9b-ff15-4218-b179-2738276006bd"
+    [35mreq[39m: {
+      "id": "0ee55d9b-ff15-4218-b179-2738276006bd",
+      "method": "GET",
+      "url": "/v1/workspaces/1c4d68fc-708a-4ef1-9485-56d29d5687af/broadcasts/2727f416-adac-4db8-a9d8-ceae986139d2/recipients?group=PENDING",
+      "query": {
+        "group": "PENDING"
+      },
+      "parameters": {
+        "workspaceId": "1c4d68fc-708a-4ef1-9485-56d29d5687af",
+        "campaignId": "2727f416-adac-4db8-a9d8-ceae986139d2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "0ee55d9b-ff15-4218-b179-2738276006bd"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 4.298000000000002
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "e0f85cc7-5e64-43fb-82bd-3e7fb7568b08"
+    [35mreq[39m: {
+      "id": "e0f85cc7-5e64-43fb-82bd-3e7fb7568b08",
+      "method": "GET",
+      "url": "/v1/workspaces/1c4d68fc-708a-4ef1-9485-56d29d5687af/broadcasts/2727f416-adac-4db8-a9d8-ceae986139d2/recipients?group=CONFIRMED",
+      "query": {
+        "group": "CONFIRMED"
+      },
+      "parameters": {
+        "workspaceId": "1c4d68fc-708a-4ef1-9485-56d29d5687af",
+        "campaignId": "2727f416-adac-4db8-a9d8-ceae986139d2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "e0f85cc7-5e64-43fb-82bd-3e7fb7568b08"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 3.714084000000014
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "0182886a-c9b3-4d28-b6a2-a5aeb2136d6c"
+    [35mreq[39m: {
+      "id": "0182886a-c9b3-4d28-b6a2-a5aeb2136d6c",
+      "method": "GET",
+      "url": "/v1/workspaces/1c4d68fc-708a-4ef1-9485-56d29d5687af/broadcasts/2727f416-adac-4db8-a9d8-ceae986139d2/recipients?search=%C3%A1gata&group=PENDING",
+      "query": {
+        "search": "ágata",
+        "group": "PENDING"
+      },
+      "parameters": {
+        "workspaceId": "1c4d68fc-708a-4ef1-9485-56d29d5687af",
+        "campaignId": "2727f416-adac-4db8-a9d8-ceae986139d2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "0182886a-c9b3-4d28-b6a2-a5aeb2136d6c"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 3.6700420000000236
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "f07ab42c-d05b-4d42-8e7c-ea97f151e87b"
+    [35mreq[39m: {
+      "id": "f07ab42c-d05b-4d42-8e7c-ea97f151e87b",
+      "method": "GET",
+      "url": "/v1/workspaces/1c4d68fc-708a-4ef1-9485-56d29d5687af/broadcasts/2727f416-adac-4db8-a9d8-ceae986139d2/recipients?search=%2B55%20(0000)%20000051",
+      "query": {
+        "search": "+55 (0000) 000051"
+      },
+      "parameters": {
+        "workspaceId": "1c4d68fc-708a-4ef1-9485-56d29d5687af",
+        "campaignId": "2727f416-adac-4db8-a9d8-ceae986139d2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "f07ab42c-d05b-4d42-8e7c-ea97f151e87b"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 3.6052080000000046
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "24b8d112-e7b3-4b18-b0ba-1d1103f2d17e"
+    [35mreq[39m: {
+      "id": "24b8d112-e7b3-4b18-b0ba-1d1103f2d17e",
+      "method": "GET",
+      "url": "/v1/workspaces/1c4d68fc-708a-4ef1-9485-56d29d5687af/broadcasts/2727f416-adac-4db8-a9d8-ceae986139d2/recipients?search=%C3%81gata&group=ATTENTION",
+      "query": {
+        "search": "Ágata",
+        "group": "ATTENTION"
+      },
+      "parameters": {
+        "workspaceId": "1c4d68fc-708a-4ef1-9485-56d29d5687af",
+        "campaignId": "2727f416-adac-4db8-a9d8-ceae986139d2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "24b8d112-e7b3-4b18-b0ba-1d1103f2d17e"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 4.6547500000000355
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "e6cb4a9a-e43a-45ec-a244-bc9d867c1a90"
+    [35mreq[39m: {
+      "id": "e6cb4a9a-e43a-45ec-a244-bc9d867c1a90",
+      "method": "GET",
+      "url": "/v1/workspaces/1c4d68fc-708a-4ef1-9485-56d29d5687af/broadcasts/2727f416-adac-4db8-a9d8-ceae986139d2/recipients?group=INVALID",
+      "query": {
+        "group": "INVALID"
+      },
+      "parameters": {
+        "workspaceId": "1c4d68fc-708a-4ef1-9485-56d29d5687af",
+        "campaignId": "2727f416-adac-4db8-a9d8-ceae986139d2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "e6cb4a9a-e43a-45ec-a244-bc9d867c1a90"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 1.619875000000036
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "79493534-b038-4862-86a0-632a4e932e39"
+    [35mreq[39m: {
+      "id": "79493534-b038-4862-86a0-632a4e932e39",
+      "method": "GET",
+      "url": "/v1/workspaces/1c4d68fc-708a-4ef1-9485-56d29d5687af/broadcasts/2727f416-adac-4db8-a9d8-ceae986139d2/recipients?search=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+      "query": {
+        "search": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+      },
+      "parameters": {
+        "workspaceId": "1c4d68fc-708a-4ef1-9485-56d29d5687af",
+        "campaignId": "2727f416-adac-4db8-a9d8-ceae986139d2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "79493534-b038-4862-86a0-632a4e932e39"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 1.3025420000000167
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "a10f139a-2b84-4d9f-95f7-2509b196a48d"
+    [35mreq[39m: {
+      "id": "a10f139a-2b84-4d9f-95f7-2509b196a48d",
+      "method": "GET",
+      "url": "/v1/workspaces/1c4d68fc-708a-4ef1-9485-56d29d5687af/broadcasts/2727f416-adac-4db8-a9d8-ceae986139d2/recipients?group=ATTENTION",
+      "query": {
+        "group": "ATTENTION"
+      },
+      "parameters": {
+        "workspaceId": "1c4d68fc-708a-4ef1-9485-56d29d5687af",
+        "campaignId": "2727f416-adac-4db8-a9d8-ceae986139d2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "a10f139a-2b84-4d9f-95f7-2509b196a48d"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 3.7840830000000096
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "4cdd8803-07c3-4c2f-8c60-7d4eafae7771"
+    [35mreq[39m: {
+      "id": "4cdd8803-07c3-4c2f-8c60-7d4eafae7771",
+      "method": "GET",
+      "url": "/v1/workspaces/cf466fb7-e533-420f-86f2-e7fcc9c2b2e3/broadcasts/2727f416-adac-4db8-a9d8-ceae986139d2/recipients",
+      "query": {},
+      "parameters": {
+        "workspaceId": "cf466fb7-e533-420f-86f2-e7fcc9c2b2e3",
+        "campaignId": "2727f416-adac-4db8-a9d8-ceae986139d2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "4cdd8803-07c3-4c2f-8c60-7d4eafae7771"
+    [35mres[39m: {
+      "statusCode": 403
+    }
+    [35mresponseTime[39m: 2.3009999999999877
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "c02220a5-a69c-47c4-a7da-26aa970c24b3"
+    [35mreq[39m: {
+      "id": "c02220a5-a69c-47c4-a7da-26aa970c24b3",
+      "method": "GET",
+      "url": "/v1/workspaces/1c4d68fc-708a-4ef1-9485-56d29d5687af/broadcasts/685db396-5131-4cd4-a2df-6838d5b41dd0/recipients",
+      "query": {},
+      "parameters": {
+        "workspaceId": "1c4d68fc-708a-4ef1-9485-56d29d5687af",
+        "campaignId": "685db396-5131-4cd4-a2df-6838d5b41dd0"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "c02220a5-a69c-47c4-a7da-26aa970c24b3"
+    [35mres[39m: {
+      "statusCode": 404
+    }
+    [35mresponseTime[39m: 2.2577499999999873
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "3056741d-7f35-40ab-83d2-e4840aa59f77"
+    [35mreq[39m: {
+      "id": "3056741d-7f35-40ab-83d2-e4840aa59f77",
+      "method": "GET",
+      "url": "/v1/workspaces/1c4d68fc-708a-4ef1-9485-56d29d5687af/broadcasts/2727f416-adac-4db8-a9d8-ceae986139d2/recipients?afterId=invalid",
+      "query": {
+        "afterId": "invalid"
+      },
+      "parameters": {
+        "workspaceId": "1c4d68fc-708a-4ef1-9485-56d29d5687af",
+        "campaignId": "2727f416-adac-4db8-a9d8-ceae986139d2"
+      }
+    }
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mrequest completed[39m
+    [35mreqId[39m: "3056741d-7f35-40ab-83d2-e4840aa59f77"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 0.7655419999999822
+[03:23:09 UTC] [32mINFO[39m (sos-sales-v3): [36mincoming request[39m
+    [35mreqId[39m: "57aaa6d9-7a25-4e1c-96b5-9035321f3346"
+    [35mreq[39m: {
+      "id": "57aaa6d9-7a25-4e1c-96b5-9035321f3346",
+      "method": "GET",
+      "url": "/v1/workspaces/1c4d68fc-708a-4ef1-9485-56d29d5687af/broadcasts/2727f416-adac-4db8-a9d8-ceae986139d2/recipients?extra=1",
+      "query": {
+        "extra": "1"
+      },
+      "parameters": {
+        "workspaceId": "1c4d68fc-708a-4ef1-9485-56d29d5687af",
+        "campaignId": "2727f416-adac-4db8-a9d8-ceae986139d2"
+      }
+    }
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/api/src/__tests__/ai-provider-boundary.test.ts > AI provider boundaries — isolated database and replaced LLM > retains the key on same-provider edits and bounds multi-turn history before invoking a model
+AssertionError: {"detail":"Proteção de credenciais indisponível. Configure a chave de criptografia do servidor antes de salvar uma credencial."}: expected 503 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 503
+
+ ❯ apps/api/src/__tests__/ai-provider-boundary.test.ts:58:41
+     56|   it('retains the key on same-provider edits and bounds multi-turn his…
+     57|     const saved=await app.inject({method:'PUT',url:url(),headers,paylo…
+     58|     expect(saved.statusCode,saved.body).toBe(200);expect(saved.json().…
+       |                                         ^
+     59|     const history=Array.from({length:17},()=>({role:'user',content:'SI…
+     60|     const rejected=await app.inject({method:'POST',url:url('/simulate'…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+
+ FAIL  apps/api/src/__tests__/ai-provider-boundary.test.ts > AI provider boundaries — isolated database and replaced LLM > requires an observed revision and serializes competing draft saves without changing runtime
+AssertionError: expected [ 503, 503 ] to deeply equal [ 200, 409 ]
+
+- Expected
++ Received
+
+  [
+-   200,
+-   409,
++   503,
++   503,
+  ]
+
+ ❯ apps/api/src/__tests__/ai-provider-boundary.test.ts:68:59
+     66|     const missing=await app.inject({method:'PUT',url:url(),headers,pay…
+     67|     const results=await Promise.all(['Rascunho A','Rascunho B'].map(na…
+     68|     expect(results.map(result=>result.statusCode).sort()).toEqual([200…
+       |                                                           ^
+     69|     expect((await ownerPool.query('SELECT count(*)::int n FROM ai_agen…
+     70|     const active=(await ownerPool.query('SELECT ai_receptionist_enable…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯
+
+ FAIL  apps/api/src/__tests__/ai-provider-boundary.test.ts > AI provider boundaries — isolated database and replaced LLM > encrypts a draft credential, simulates that exact revision and never exposes the key
+AssertionError: {"detail":"Proteção de credenciais indisponível. Configure a chave de criptografia do servidor antes de salvar uma credencial."}: expected 503 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 503
+
+ ❯ apps/api/src/__tests__/ai-provider-boundary.test.ts:76:41
+     74|     const secret='SIM_DRAFT_CREDENTIAL_ONLY';
+     75|     const saved=await app.inject({method:'PUT',url:url(),headers,paylo…
+     76|     expect(saved.statusCode,saved.body).toBe(200);expect(saved.body).n…
+       |                                         ^
+     77|     const stored=(await ownerPool.query('SELECT config,credential_enve…
+     78|     expect(stored.key_policy).toBe('draft');expect(stored.credential_e…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/10]⎯
+
+ FAIL  apps/api/src/__tests__/ai-provider-boundary.test.ts > AI provider boundaries — isolated database and replaced LLM > prepares an approved guided plan as a new draft with its criteria, without activating it
+AssertionError: {"detail":"Proteção de credenciais indisponível. Configure a chave de criptografia do servidor antes de salvar uma credencial."}: expected 503 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 503
+
+ ❯ apps/api/src/__tests__/ai-provider-boundary.test.ts:94:47
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/10]⎯
+
+ FAIL  apps/api/src/__tests__/ai-provider-boundary.test.ts > AI provider boundaries — isolated database and replaced LLM > suspends runtime immediately while preserving the selected draft and recording the reason
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ apps/api/src/__tests__/ai-provider-boundary.test.ts:111:93
+    109|     const stopped=await app.inject({method:'POST',url:url('/suspend'),…
+    110|     expect(stopped.statusCode,stopped.body).toBe(200);
+    111|     const loaded=await app.inject({url:url(),headers});expect(loaded.j…
+       |                                                                                             ^
+    112|     const audit=(await ownerPool.query("SELECT metadata FROM audit_eve…
+    113|     expect(audit.some(row=>row.metadata.reason==='SIM Suspensão manual…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/10]⎯
+
+ FAIL  apps/api/src/__tests__/ai-provider-boundary.test.ts > AI provider boundaries — isolated database and replaced LLM > preserves unrelated rules and skills when a client patches only one setting
+AssertionError: {"detail":"Proteção de credenciais indisponível. Configure a chave de criptografia do servidor antes de salvar uma credencial."}: expected 503 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 503
+
+ ❯ apps/api/src/__tests__/ai-provider-boundary.test.ts:119:41
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/10]⎯
+
+ FAIL  apps/api/src/__tests__/channel-history.test.ts > imports without auto-creating a negotiation, delivery claims, inbox replay or duplicate effects
+AssertionError: {"type":"https://sos-sales.mct.br/errors/internal","title":"Decryption Failed","status":500,"detail":"Falha ao decifrar credenciais do canal","instance":"/v1/workspaces/a4511936-6cf9-4474-b5e3-413952c69671/channels/24e704fd-ea9b-4029-8813-33adc4d87c14/sync","correlationId":"41bbe96b-e0a9-4023-829b-b9ea13de88f1"}: expected 500 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 500
+
+ ❯ apps/api/src/__tests__/channel-history.test.ts:48:75
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/10]⎯
+
+ FAIL  apps/api/src/__tests__/channel-history.test.ts > rejects inactive channels before network access and never starts a stopped session
+AssertionError: expected 500 to be 409 // Object.is equality
+
+- Expected
++ Received
+
+- 409
++ 500
+
+ ❯ apps/api/src/__tests__/channel-history.test.ts:59:188
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/10]⎯
+
+ FAIL  apps/api/src/__tests__/channel-history.test.ts > does not mistake provider outage, malformed history or another account for an empty successful import
+AssertionError: expected 500 to be 502 // Object.is equality
+
+- Expected
++ Received
+
+- 502
++ 500
+
+ ❯ apps/api/src/__tests__/channel-history.test.ts:63:123
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/10]⎯
+
+ FAIL  apps/api/src/__tests__/channel-history.test.ts > reports per-chat failures and cannot write after the channel is disabled during consultation
+AssertionError: {"type":"https://sos-sales.mct.br/errors/internal","title":"Decryption Failed","status":500,"detail":"Falha ao decifrar credenciais do canal","instance":"/v1/workspaces/a4511936-6cf9-4474-b5e3-413952c69671/channels/24e704fd-ea9b-4029-8813-33adc4d87c14/sync","correlationId":"0aa9ee0c-8e44-4d15-a4d9-234ff2f4d068"}: expected 500 to be 502 // Object.is equality
+
+- Expected
++ Received
+
+- 502
++ 500
+
+ ❯ apps/api/src/__tests__/channel-history.test.ts:73:72
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/10]⎯
+
+
+ Test Files  2 failed | 2 passed (4)
+      Tests  10 failed | 21 passed (31)
+   Start at  00:23:06
+   Duration  3.01s (tests 41%, import 35%, transform 24%)
+

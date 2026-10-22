@@ -1,0 +1,338 @@
+{
+  "evidence_id": "ev_ffa7ff45cfc89ab775fe3ba09d5f25edaced7c971648756dcdb537d9c5d8830c",
+  "parent_evidence_id": "ev_f57ec57cdbbeaa9125553eab38209a286e7013bae906343749bf8b5764a9dcba",
+  "summary": {
+    "input_path": "/private/tmp/sos-vendas-rea-full",
+    "format": "directory",
+    "root_artifact_sha256": "1ef16d6a4fb3f641c619ef2024dce4b8b532303d4fe838f9172273c0580b3517",
+    "statistics": {
+      "relevant_files": 136,
+      "nested_asar_containers": 0,
+      "text_bytes_read": 1919701,
+      "invalid_utf8_files": 0,
+      "parsed_javascript_files": 136,
+      "skipped_javascript_files": 0,
+      "visited_ast_nodes": 258534,
+      "findings": 1563,
+      "modules": 0,
+      "parse_failures": 0
+    },
+    "electron": {
+      "browser_windows": 0,
+      "explicit_web_preferences": 0,
+      "preload_entrypoints": 0,
+      "context_bridge_apis": 0,
+      "exposed_api_members": 0,
+      "ipc": {
+        "operations": 0,
+        "literal_channels": 0,
+        "dynamic_channel_operations": 0,
+        "renderer_transmissions": 0,
+        "renderer_listeners": 0,
+        "main_handlers": 0,
+        "paired_renderer_transmissions": 0,
+        "ambiguous_renderer_transmissions": 0,
+        "unpaired_literal_renderer_transmissions": 0
+      },
+      "sender_validation_observations": 0,
+      "utility_processes": 0,
+      "resolved_utility_entrypoints": 0,
+      "native_addon_bindings": 0,
+      "resolved_native_addon_bindings": 0
+    },
+    "coverage": {
+      "application": {
+        "status": "partial",
+        "truncated": false,
+        "omitted_count": null,
+        "limits": [
+          {
+            "name": "javascript_analysis_parent_available_result_budget_bytes",
+            "value": 0,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_parent_available_result_budget_bytes",
+            "value": 103616,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_parent_available_result_budget_bytes",
+            "value": 1058020,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_parent_available_result_budget_bytes",
+            "value": 112592,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_parent_available_result_budget_bytes",
+            "value": 121166,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_parent_available_result_budget_bytes",
+            "value": 128642,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_parent_available_result_budget_bytes",
+            "value": 15270346,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_parent_available_result_budget_bytes",
+            "value": 17132398,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_parent_available_result_budget_bytes",
+            "value": 18163220,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_parent_available_result_budget_bytes",
+            "value": 69378,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_parent_available_result_budget_bytes",
+            "value": 85148,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_parent_available_result_budget_bytes",
+            "value": 91712,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_parent_result_budget_bytes",
+            "value": 959878416,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_semantic_result_budget_bytes",
+            "value": 0,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_semantic_result_budget_bytes",
+            "value": 136220,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_semantic_result_budget_bytes",
+            "value": 17680,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_semantic_result_budget_bytes",
+            "value": 1872,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_semantic_result_budget_bytes",
+            "value": 33450,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_worker_heap_limit_bytes",
+            "value": 1098907648,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_worker_timeout_ms",
+            "value": 30000,
+            "unit": "milliseconds"
+          }
+        ]
+      },
+      "semantic": {
+        "status": "partial",
+        "truncated": true,
+        "omitted_nodes": null,
+        "omitted_relations": null,
+        "limits": [
+          {
+            "name": "javascript_analysis_parent_available_result_budget_bytes",
+            "value": 15270346,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_parent_available_result_budget_bytes",
+            "value": 17132398,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_parent_available_result_budget_bytes",
+            "value": 18163220,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_parent_available_result_budget_bytes",
+            "value": 69378,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_parent_result_budget_bytes",
+            "value": 959878416,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_semantic_result_budget_bytes",
+            "value": 0,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_semantic_result_budget_bytes",
+            "value": 136220,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_semantic_result_budget_bytes",
+            "value": 17680,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_semantic_result_budget_bytes",
+            "value": 1872,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_semantic_result_budget_bytes",
+            "value": 33450,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_worker_heap_limit_bytes",
+            "value": 1098907648,
+            "unit": "bytes"
+          },
+          {
+            "name": "javascript_analysis_worker_timeout_ms",
+            "value": 30000,
+            "unit": "milliseconds"
+          }
+        ],
+        "families": [
+          {
+            "family": "boundary",
+            "status": "partial",
+            "retained_relations": 371,
+            "omitted_relations": null,
+            "unknown_count": 287
+          },
+          {
+            "family": "call-flow",
+            "status": "partial",
+            "retained_relations": 1249,
+            "omitted_relations": null,
+            "unknown_count": 6213
+          },
+          {
+            "family": "child-process",
+            "status": "partial",
+            "retained_relations": 0,
+            "omitted_relations": null,
+            "unknown_count": 76
+          },
+          {
+            "family": "closure",
+            "status": "partial",
+            "retained_relations": 4324,
+            "omitted_relations": null,
+            "unknown_count": 76
+          },
+          {
+            "family": "configuration",
+            "status": "partial",
+            "retained_relations": 74,
+            "omitted_relations": null,
+            "unknown_count": 81
+          },
+          {
+            "family": "data-flow",
+            "status": "partial",
+            "retained_relations": 46674,
+            "omitted_relations": null,
+            "unknown_count": 4287
+          },
+          {
+            "family": "event",
+            "status": "partial",
+            "retained_relations": 0,
+            "omitted_relations": null,
+            "unknown_count": 76
+          },
+          {
+            "family": "object-flow",
+            "status": "partial",
+            "retained_relations": 8336,
+            "omitted_relations": null,
+            "unknown_count": 10844
+          },
+          {
+            "family": "promise-ownership",
+            "status": "partial",
+            "retained_relations": 640,
+            "omitted_relations": null,
+            "unknown_count": 699
+          },
+          {
+            "family": "request",
+            "status": "partial",
+            "retained_relations": 14,
+            "omitted_relations": null,
+            "unknown_count": 78
+          },
+          {
+            "family": "resource-lifecycle",
+            "status": "partial",
+            "retained_relations": 0,
+            "omitted_relations": null,
+            "unknown_count": 76
+          },
+          {
+            "family": "timer",
+            "status": "partial",
+            "retained_relations": 13,
+            "omitted_relations": null,
+            "unknown_count": 81
+          }
+        ]
+      },
+      "application_unknowns": 144,
+      "semantic_unknowns": 22874
+    },
+    "limitation_count": 150
+  },
+  "limitations": [
+    "Boundary extraction covers unshadowed JSON/global coercions plus parse and validation method candidates.",
+    "Child-process extraction covers asynchronous node:child_process creation, literal argv/env/stdio options, exit/error listeners, and kill signals.",
+    "CommonJS and ESM binding relationships were recovered from inert syntax and resolved only within the inventoried artifact container.",
+    "Configuration extraction covers process.env, process.argv, node:fs reads, and direct logical defaults.",
+    "Event extraction covers EventEmitter-style literal registrations, removals, and dispatch candidates; dynamic names remain unknown.",
+    "Function fingerprints are static candidates; equal digests can remain ambiguous and do not prove behavioral equivalence.",
+    "Graph coverage is incomplete; unavailable facts remain explicit and must not be read as absence.",
+    "JavaScript and HTML were parsed as inert text; bundle bootstrap code was never executed.",
+    "Local data flow does not claim control-flow-sensitive reaching definitions or arbitrary dynamic property resolution.",
+    "Promise ownership covers explicit unshadowed Promise construction, static factories, aggregation, chaining, and await syntax only.",
+    "Request extraction covers fetch, WebSocket, node:http/node:https construction, direct option fields, and exact local response consumers.",
+    "Resource constraint during analyze_javascript_application: Expanded application relationships for apps/web/src/pages/cockpit/drawers/PixDrawer.tsx exceed the parent's result budget; complete static facts were retained on the file node",
+    "Resource constraint during analyze_javascript_application: Expanded application relationships for apps/web/src/pages/cockpit/drawers/ProposalPixDialog.tsx exceed the parent's result budget; complete static facts were retained on the file node",
+    "Resource constraint during analyze_javascript_application: Expanded application relationships for apps/web/src/pages/cockpit/drawers/RadarDrawer.tsx exceed the parent's result budget; complete static facts were retained on the file node",
+    "Resource constraint during analyze_javascript_application: Expanded application relationships for apps/web/src/pages/cockpit/drawers/TemplateDrawer.tsx exceed the parent's result budget; complete static facts were retained on the file node",
+    "Resource constraint during analyze_javascript_application: Expanded application relationships for apps/web/src/pages/cockpit/hooks/useCockpitLayout.ts exceed the parent's result budget; complete static facts were retained on the file node",
+    "Resource constraint during analyze_javascript_application: Expanded application relationships for apps/web/src/pages/cockpit/hooks/useConversation.ts exceed the parent's result budget; complete static facts were retained on the file node",
+    "Resource constraint during analyze_javascript_application: Expanded application relationships for apps/web/src/pages/cockpit/hooks/useInbox.ts exceed the parent's result budget; complete static facts were retained on the file node",
+    "Resource constraint during analyze_javascript_application: Expanded application relationships for apps/web/src/pages/cockpit/utils/formatTime.ts exceed the parent's result budget; complete static facts were retained on the file node",
+    "Resource constraint during analyze_javascript_application: Expanded application relationships for apps/web/src/pages/cockpit/utils/freeformSendAvailability.ts exceed the parent's result budget; complete static facts were retained on the file node",
+    "Resource constraint during analyze_javascript_application: Expanded application relationships for apps/web/src/pages/cockpit/utils/panelFrame.ts exceed the parent's result budget; complete static facts were retained on the file node",
+    "Resource constraint during analyze_javascript_application: Expanded application relationships for apps/web/src/pages/cockpit/utils/pix-receipt.ts exceed the parent's result budget; complete static facts were retained on the file node",
+    "Resource constraint during analyze_javascript_application: Expanded application relationships for apps/web/src/pages/cockpit/utils/whatsappMarkdown.tsx exceed the parent's result budget; complete static facts were retained on the file node",
+    "Resource constraint during analyze_javascript_application: Expanded application relationships for apps/web/src/pages/contact-metadata.ts exceed the parent's result budget; complete static facts were retained on the file node",
+    "Resource constraint during analyze_javascript_application: Expanded application relationships for apps/web/src/pages/opportunities/CustomizeStagesDialog.tsx exceed the parent's result budget; complete static facts were retained on the file node",
+    "136 additional limitations omitted from this view; consult source parent Evidence ev_f57ec57cdbbeaa9125553eab38209a286e7013bae906343749bf8b5764a9dcba for the complete list (the caller-supplied record, or its retaining session)."
+  ]
+}
