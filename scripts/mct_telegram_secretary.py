@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-MCT Soberano — Agente Secretário Executivo no Telegram
-Gerenciamento de Workflows n8n, Onboarding de Clientes e Sentinela de Obras
+MCT Soberano — Agente Secretário Executivo no Telegram (Tavibot)
+Gerenciamento de Workflows n8n, Onboarding Turnkey, Sentinela e IA Nemotron 550B
 MCT OS v2.0 | Francisco Rios | Chapecó, SC
 """
 
@@ -14,9 +14,10 @@ import urllib.request
 import urllib.parse
 from pathlib import Path
 
-# Configurações do Bot
-TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
-ADMIN_USER_ID = os.environ.get("TELEGRAM_ADMIN_ID", "")  # Se vazio, trava no primeiro usuário autorizado
+# Configurações do Bot & Segurança P0
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "8804569791:AAGpM7pVP7TAySQNPUUr7Ch0cle-yJMVLk0")
+ADMIN_USER_ID = os.environ.get("TELEGRAM_ADMIN_ID", "6485261630")
+NVIDIA_API_KEY = os.environ.get("NVIDIA_API_KEY", "nvapi-Zl7m3-9g-W8R0lS2vK0bJ2n6z6aP5kM")
 
 BASE_DIR = Path("/opt/plx-documentos/app/scripts")
 if not BASE_DIR.exists():
@@ -42,12 +43,12 @@ def send_message(chat_id, text, parse_mode="Markdown"):
     try:
         return api_telegram("sendMessage", data)
     except Exception as e:
-        print(f"Erro ao enviar mensagem Telegram: {e}")
-        # Tenta sem parse_mode se falhar por escape de markdown
+        print(f"Erro ao enviar mensagem Telegram (Markdown): {e}")
         data.pop("parse_mode", None)
         try:
             return api_telegram("sendMessage", data)
-        except Exception:
+        except Exception as e2:
+            print(f"Erro no fallback sem Markdown: {e2}")
             return None
 
 def get_vps_status():
@@ -97,7 +98,7 @@ def get_n8n_workflows():
     return msg
 
 def handle_onboarding(text):
-    # Formato esperado: /onboard Nome Empresa | Telefone | Email | Obra 1, Obra 2
+    # Formato: /onboard Nome Empresa | Telefone | Email | Obra 1, Obra 2
     parts = [p.strip() for p in text.replace("/onboard", "").strip().split("|")]
     if len(parts) < 1 or not parts[0]:
         return (
@@ -126,20 +127,57 @@ def handle_onboarding(text):
     
     return f"🚀 *ONBOARDING CONCLUÍDO COM SUCESSO!*\n\n{res.stdout.strip()}"
 
-def handle_audit(company_or_work):
+def handle_audit():
     cmd = ["python3", str(BASE_DIR / "mct_industrial_compliance_engine.py"), "audit"]
     res = subprocess.run(cmd, capture_output=True, text=True)
     if res.returncode != 0:
         return f"❌ Erro ao rodar auditoria:\n`{res.stderr.strip()}`"
     return res.stdout.strip()
 
+def handle_checklist_m02b():
+    cmd = ["python3", str(BASE_DIR / "plx_checklist_engine.py"), "shadow-run"]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    if res.returncode != 0:
+        return f"❌ Erro ao rodar M02B:\n`{res.stderr.strip()}`"
+    return f"📋 *AUDITORIA CONTÁBIL M02B EXECUTADA!*\n\n```\n{res.stdout.strip()[:1500]}\n```"
+
+def ask_nemotron_brain(prompt):
+    """Consulta o modelo NVIDIA Nemotron-3 Ultra 550B para raciocínio e tomada de decisão."""
+    url = "https://integrate.api.nvidia.com/v1/chat/completions"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {NVIDIA_API_KEY}"
+    }
+    system_prompt = (
+        "Você é o Tavibot, o Secretário Executivo Operacional da MCT LTDA e do Francisco Rios em Chapecó/SC. "
+        "Você opera sob a filosofia MCT OS v2.0: Poder invisível, simplicidade visível, Truth in Data. "
+        "Você gerencia as automações na VPS Hostinger KVM 4: DocOps Contábil, DocOps Obras, SOS Vendas, LUMA OS e Google Drive Soberano. "
+        "Seja conciso, direto, prestativo e focado em resolução de problemas reais de negócios. Nunca use jargões desnecessários."
+    )
+    payload = {
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.3,
+        "max_tokens": 1024
+    }
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(url, data=data, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=40) as resp:
+            res = json.loads(resp.read().decode())
+            return res["choices"][0]["message"]["content"].strip()
+    except Exception as e:
+        return f"💡 [Hermes Nemotron Offline no momento]: {e}"
+
 def process_command(chat_id, user_id, text):
     global ADMIN_USER_ID
-    if not ADMIN_USER_ID:
-        ADMIN_USER_ID = str(user_id)
-        print(f"🔒 [SECURITY] Bloqueando bot exclusivamente para o usuário: {ADMIN_USER_ID}")
 
+    # Trava de segurança P0: Apenas o Francisco tem acesso
     if str(user_id) != str(ADMIN_USER_ID):
+        print(f"⛔ Tentativa de acesso não autorizada: {user_id}")
         send_message(chat_id, "⛔ *Acesso Negado.* Este terminal executivo é soberano e restrito à diretoria da MCT LTDA.")
         return
 
@@ -148,15 +186,18 @@ def process_command(chat_id, user_id, text):
 
     if cmd in ["/start", "/help", "/ajuda"]:
         msg = (
-            "🤖 *MCT SECRETÁRIO EXECUTIVO (Soberano)*\n"
-            "Central de comando dos fluxos do n8n, Google Drive e auditorias da VPS.\n\n"
-            "📌 *Comandos Disponíveis:*\n"
-            "• `/onboard <dados>` — Provisiona novo cliente e cria pastas no Drive\n"
-            "• `/auditoria` — Audita liberação de portaria de obras (SST / ASO)\n"
-            "• `/workflows` — Lista e monitora fluxos do n8n na VPS\n"
-            "• `/vps` — Relatório de saúde de hardware (RAM, Disco, Docker)\n"
-            "• `/drive` — Link do repositório master de clientes no Google Drive\n"
-            "• `/ajuda` — Exibe esta mensagem de ajuda"
+            "🤖 *TAVIBOT — SECRETÁRIO EXECUTIVO MCT SOBERANO*\n"
+            "Central de comando da Mothership VPS, n8n, Google Drive e Nemotron 550B.\n\n"
+            "📌 *Comandos Rápidos:*\n"
+            "• `/vps` — Saúde de hardware, memória, disco e 17 containers\n"
+            "• `/workflows` — Monitora os fluxos do n8n na VPS\n"
+            "• `/auditoria` — Auditoria de portaria de obras (SST / ASO)\n"
+            "• `/m02b` — Reconciliação do fechamento contábil e faltantes\n"
+            "• `/onboard <dados>` — Cria cliente e árvore no Google Drive\n"
+            "• `/drive` — Link master das pastas no Google Drive\n"
+            "• `/briefing` — Relatório executivo consolidado agora\n\n"
+            "💬 *Perguntas e Ordens em Linguagem Natural:*\n"
+            "Você pode falar comigo diretamente sobre qualquer tema da operação! O cérebro do NVIDIA Nemotron 550B responde na hora."
         )
         send_message(chat_id, msg)
 
@@ -173,23 +214,55 @@ def process_command(chat_id, user_id, text):
 
     elif cmd.startswith("/auditoria"):
         send_message(chat_id, "🔍 *Executando auditoria de portaria em tempo real...*")
-        reply = handle_audit(text)
+        reply = handle_audit()
+        send_message(chat_id, reply)
+
+    elif cmd.startswith("/m02b"):
+        send_message(chat_id, "🔍 *Executando reconciliação contábil M02B...*")
+        reply = handle_checklist_m02b()
         send_message(chat_id, reply)
 
     elif cmd == "/drive":
         msg = (
             "📁 *REPOSITÓRIO MASTER DE CLIENTES*\n\n"
             "🔗 [Abrir Google Drive MCT Clientes](https://drive.google.com/drive/folders/1pm8OyvZogbs2jcXnl1o2tPQToX1IsAL4)\n\n"
-            "Service Account ativa: `mct-drive-worker@sosautonatiza.iam.gserviceaccount.com`"
+            "• Service Account ativa: `mct-drive-worker@sosautonatiza.iam.gserviceaccount.com`\n"
+            "• Todas as subpastas de empresas criadas aparecem aqui automaticamente."
         )
         send_message(chat_id, msg)
 
+    elif cmd == "/briefing":
+        send_message(chat_id, "📊 *Gerando briefing executivo da operação...*")
+        cmd_b = ["python3", str(BASE_DIR / "mct_hermes_morning_briefing.py")]
+        res = subprocess.run(cmd_b, capture_output=True, text=True)
+        if res.returncode == 0:
+            lines = res.stdout.split("=== BRIEFING GERADO ===")
+            out = lines[1].strip() if len(lines) > 1 else res.stdout.strip()
+            send_message(chat_id, out)
+        else:
+            send_message(chat_id, f"❌ Erro ao gerar briefing: {res.stderr.strip()}")
+
     else:
-        send_message(chat_id, f"❓ Comando não reconhecido: `{cmd}`. Digite `/ajuda` para ver as opções.")
+        # Mensagem em linguagem natural: passa para o cérebro NVIDIA Nemotron 550B
+        send_message(chat_id, "🧠 *Consultando Nemotron 550B...*")
+        answer = ask_nemotron_brain(text)
+        send_message(chat_id, answer)
 
 def run_polling():
-    print("🚀 [TELEGRAM-SECRETARY] Agente Secretário Soberano iniciado em modo Long-Polling...")
+    print(f"🚀 [TAVIBOT] Agente Secretário Soberano ativo para o usuário {ADMIN_USER_ID}...")
     offset = 0
+    # Envia mensagem inicial avisando o Francisco que o bot subiu
+    try:
+        welcome = (
+            "🚀 *Tavibot Conectado com Sucesso!*\n\n"
+            "Olá Francisco! Seu Secretário Executivo Operacional está online 24/7 na VPS Hostinger KVM 4.\n\n"
+            "Digite `/ajuda` para ver os comandos ou mande qualquer pergunta em áudio/texto para o Nemotron 550B."
+        )
+        send_message(ADMIN_USER_ID, welcome)
+        print("✅ Mensagem de boas-vindas enviada para o Francisco!")
+    except Exception as e:
+        print(f"Aviso ao enviar boas-vindas: {e}")
+
     while True:
         try:
             updates = api_telegram("getUpdates", {"offset": offset, "timeout": 20})
@@ -201,7 +274,7 @@ def run_polling():
                         chat_id = msg["chat"]["id"]
                         user_id = msg["from"]["id"]
                         text = msg["text"]
-                        user_name = msg["from"].get("first_name", "Desconhecido")
+                        user_name = msg["from"].get("first_name", "Francisco")
                         print(f"📩 [{user_name} ({user_id})]: {text}")
                         process_command(chat_id, user_id, text)
         except Exception as e:
@@ -209,8 +282,4 @@ def run_polling():
             time.sleep(3)
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "test":
-        print("Teste local de status:")
-        print(get_vps_status())
-    else:
-        run_polling()
+    run_polling()
