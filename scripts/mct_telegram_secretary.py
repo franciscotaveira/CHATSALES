@@ -278,39 +278,15 @@ def get_n8n_workflows():
     msg += "\n🔗 [Abrir n8n Web](https://automacao.automatizaprocessos.tech)"
     return msg
 
-def handle_onboarding(text):
-    # Formato: /onboard Nome Empresa | Telefone | Email | Obra 1, Obra 2
-    parts = [p.strip() for p in text.replace("/onboard", "").strip().split("|")]
-    if len(parts) < 1 or not parts[0]:
-        return (
-            "⚠️ *Formato inválido.*\n"
-            "Use: `/onboard Nome Empresa | Telefone | Email | Obra 1, Obra 2`\n\n"
-            "*Exemplo:*\n"
-            "`/onboard Construtora Alfa | 49999999999 | dono@alfa.com | Obra Aurora, Obra BRF`"
-        )
-    
-    name = parts[0]
-    phone = parts[1] if len(parts) > 1 and parts[1] else None
-    email = parts[2] if len(parts) > 2 and parts[2] else None
-    works = [w.strip() for w in parts[3].split(",")] if len(parts) > 3 and parts[3] else None
-
-    cmd = ["python3", str(BASE_DIR / "mct_client_onboarding.py"), "--name", name]
-    if phone:
-        cmd.extend(["--phone", phone])
-    if email:
-        cmd.extend(["--email", email])
-    if works:
-        cmd.extend(["--works"] + works)
-
-    res = subprocess.run(cmd, capture_output=True, text=True)
-    if res.returncode != 0:
-        return f"❌ Erro ao provisionar cliente:\n`{res.stderr.strip()}`"
-    
-    return f"🚀 *ONBOARDING CONCLUÍDO COM SUCESSO!*\n\n{res.stdout.strip()}"
-
 def handle_provision(text):
-    # Formato: /provisionar [Nome Empresa] | [Telefone] | [Nicho: CONTABIL/OBRAS/FROTAS/VENDAS] | [Sub-itens]
-    raw = text.replace("/provisionar", "").strip()
+    """
+    Provisionamento Zero-Touch Multi-Tenant canônico.
+    Unifica e substitui os antigos /onboard e /provisionar duplicados.
+    Formato: /provisionar [Nome Empresa] | [Telefone] | [Nicho: CONTABIL/OBRAS/FROTAS/VENDAS] | [Sub-itens]
+    Suporta retrocompatibilidade com /onboard.
+    """
+    is_legacy_onboard = text.startswith("/onboard")
+    raw = text.replace("/onboard", "").replace("/provisionar", "").strip()
     parts = [p.strip() for p in raw.split("|")]
     if len(parts) < 1 or not parts[0]:
         return (
@@ -322,8 +298,13 @@ def handle_provision(text):
     
     name = parts[0]
     phone = parts[1] if len(parts) > 1 and parts[1] else None
-    niche = parts[2] if len(parts) > 2 and parts[2] else "OBRAS"
-    items = [w.strip() for w in parts[3].split(",")] if len(parts) > 3 and parts[3] else None
+    
+    if is_legacy_onboard:
+        niche = "OBRAS"
+        items = [w.strip() for w in parts[3].split(",")] if len(parts) > 3 and parts[3] else None
+    else:
+        niche = parts[2] if len(parts) > 2 and parts[2] else "OBRAS"
+        items = [w.strip() for w in parts[3].split(",")] if len(parts) > 3 and parts[3] else None
 
     cmd = ["python3", str(BASE_DIR / "mct_tenant_provisioner.py"), "--name", name, "--niche", niche]
     if phone:
@@ -378,6 +359,55 @@ def handle_conciliar():
     if res.returncode != 0:
         return f"❌ Erro na Conciliação OFX:\n`{res.stderr.strip()}`"
     return res.stdout.strip()
+
+def handle_monofasicos():
+    cmd = ["python3", str(BASE_DIR / "mct_monofasicos_auditor.py")]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    if res.returncode != 0:
+        return f"❌ Erro ao auditar PIS/COFINS Monofásicos:\n`{res.stderr.strip()}`"
+    
+    try:
+        lines = res.stdout.strip().split("\n")
+        json_idx = -1
+        for i, l in enumerate(lines):
+            if l.strip().startswith("{"):
+                json_idx = i
+                break
+        if json_idx != -1:
+            raw_json = "\n".join(lines[json_idx:])
+            data = json.loads(raw_json)
+            
+            card = (
+                "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n"
+                "┃  💰 *AUDITORIA PIS/COFINS MONOFÁSICO*┃\n"
+                "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n"
+                f"🏢 *Empresa:* {data.get('emitente', 'N/A')}\n"
+                f"📄 *CNPJ:* `{data.get('cnpj', 'N/A')}` • *NF-e:* `{data.get('numero_nota', 'N/A')}`\n"
+                f"📊 *Regime:* {data.get('regime_tributario', 'Simples Nacional')}\n"
+                "─────────────────────────────────────\n"
+                f"📦 *Total Produtos na Nota:* `R$ {data.get('total_produtos', 0):,.2f}`\n"
+                f"🏷️ *Total Monofásico:* `R$ {data.get('total_monofasico', 0):,.2f}` (*{data.get('percentual_monofasico', 0)}%*)\n"
+                f"💵 *Crédito Recuperável Estimado:* `R$ {data.get('imposto_recuperavel_estimado', 0):,.2f}`\n"
+                "─────────────────────────────────────\n"
+                "🎯 *Itens Segregados com Tributação Monofásica:*\n"
+            )
+            for it in data.get("itens", [])[:3]:
+                card += (
+                    f"┌ 🔧 *{it.get('descricao', '')}*\n"
+                    f"│ 🏷️ NCM: `{it.get('ncm', '')}` • CFOP: `{it.get('cfop', '')}`\n"
+                    f"│ 💰 Valor: `R$ {it.get('valor', 0):,.2f}` ({it.get('categoria', '')})\n"
+                    "└ ⚖️ *Amparo:* Lei 10.147/2000 & Lei 10.485/2002\n\n"
+                )
+            card += (
+                "─────────────────────────────────────\n"
+                "💡 *Diagnóstico MCT:* Empresa pode abater este valor da base do PGDAS-D, "
+                "gerando economia fiscal imediata ou pedido de restituição dos últimos 5 anos."
+            )
+            return card
+    except Exception as e:
+        print(f"Erro ao formatar auditoria de monofásicos: {e}")
+        
+    return f"💰 *AUDITORIA DE MONOFÁSICOS:*\n\n```\n{res.stdout.strip()[:1500]}\n```"
 
 def handle_doacao(text):
     # Formato: /doacao [Doador] | [CPF] | [Valor] | [Finalidade]
@@ -467,30 +497,31 @@ def get_master_panel_inline_keyboard():
                 {"text": "📡 Licitações SC/PR/RS", "callback_data": "panel_licitacoes"},
                 {"text": "🔨 Leilões Públicos Sul", "callback_data": "panel_leiloes"}
             ],
-            # Bloco 2: Contabilidade & Doações
+            # Bloco 2: Contabilidade & Fiscal
             [
                 {"text": "🏦 Conciliação OFX", "callback_data": "panel_conciliar"},
-                {"text": "📖 Livro Caixa 3º Setor", "callback_data": "panel_livrocaixa"}
+                {"text": "💰 PIS/COFINS Monofásico", "callback_data": "panel_monofasicos"}
             ],
-            # Bloco 3: Regulação & Prevenção
+            # Bloco 3: Terceiro Setor & Frotas
             [
-                {"text": "🚛 Frotas & Multa NIC", "callback_data": "panel_frotas"},
-                {"text": "🛡️ Varredura CNDs", "callback_data": "panel_cnd"}
+                {"text": "📖 Livro Caixa 3º Setor", "callback_data": "panel_livrocaixa"},
+                {"text": "🚛 Frotas & Multa NIC", "callback_data": "panel_frotas"}
             ],
-            # Bloco 4: Operações & Gestão
+            # Bloco 4: Regulação & Compliance
             [
-                {"text": "📋 Fechamento M02B", "callback_data": "panel_m02b"},
+                {"text": "🛡️ Varredura CNDs", "callback_data": "panel_cnd"},
                 {"text": "🏗️ Auditoria Obras (SST)", "callback_data": "panel_auditoria"}
             ],
-            # Bloco 5: Infraestrutura & Inteligência
+            # Bloco 5: Operações & Gestão
             [
-                {"text": "🖥️ Hardware & VPS", "callback_data": "panel_vps"},
+                {"text": "📋 Fechamento M02B", "callback_data": "panel_m02b"},
                 {"text": "🤖 Modelo Hermes IA", "callback_data": "panel_modelo"}
             ],
             # Bloco 6: Atalhos Rápidos & Repositório
             [
                 {"text": "📜 Emitir Recibo", "callback_data": "panel_form_doacao"},
                 {"text": "📋 Formulário FICI", "callback_data": "panel_form_fici"},
+                {"text": "🖥️ VPS Status", "callback_data": "panel_vps"},
                 {"text": "📁 Drive Master", "callback_data": "panel_drive"}
             ]
         ]
@@ -513,9 +544,10 @@ def get_master_panel_text():
         f"🤖 *Cérebro Hermes IA:* `{active_model['nome']}`\n\n"
         "🏛️ *1. B2G & Mercados Ocultos*\n"
         "  • *Licitações:* Dispensas e pregões da Região Sul (SC, PR, RS)\n"
-        "  • *Leilões:* Alienação de frotas e ativos com deságio\n\n"
-        "💼 *2. DocOps, Finanças & Frotas*\n"
+        "  • *Leilões:* Alienação de frotas e ativos com deságio (Mod. 7)\n\n"
+        "💼 *2. Contábil, Fiscal & Finanças*\n"
         "  • *OFX:* Conciliação bancária determinística (M02C)\n"
+        "  • *Monofásicos:* Auditoria NCM/CFOP PIS/COFINS (Lei 10.147)\n"
         "  • *Frotas:* Prevenção da duplicação de multas PJ (CTB 257)\n"
         "  • *3º Setor:* Emissão de recibos com CPF, SHA-256 e PDF\n\n"
         "🛡️ *3. Compliance, Infra & IA*\n"
@@ -560,6 +592,11 @@ def process_callback(chat_id, user_id, data, message_id):
     elif data == "panel_conciliar":
         edit_message_text(chat_id, message_id, "🏦 *Executando conciliação de extratos OFX contra notas fiscais...*")
         reply = handle_conciliar()
+        edit_message_text(chat_id, message_id, reply[:4000], reply_markup=back_kb)
+
+    elif data == "panel_monofasicos":
+        edit_message_text(chat_id, message_id, "💰 *Auditando XMLs de notas fiscais para PIS/COFINS Monofásicos...*")
+        reply = handle_monofasicos()
         edit_message_text(chat_id, message_id, reply[:4000], reply_markup=back_kb)
 
     elif data == "panel_frotas":
@@ -656,18 +693,14 @@ def process_command(chat_id, user_id, text):
         )
 
     # 1. Troca de Modelo de IA Hermes
-    elif cmd in ["/modelo", "/model", "/ia"]:
+    elif cmd in ["/modelo", "/model", "/ia"] or text in ["🤖 Hermes IA", "🤖 hermes ia"]:
         parts = text.split()
-        if len(parts) > 1:
+        if len(parts) > 1 and not text.startswith("🤖"):
             sucesso, msg = set_active_model(parts[1])
             send_message(chat_id, msg, reply_markup=back_kb)
         else:
             txt, kb = handle_model_menu()
             send_message(chat_id, txt, reply_markup=kb)
-
-    elif text in ["🤖 Hermes IA", "🤖 hermes ia"]:
-        txt, kb = handle_model_menu()
-        send_message(chat_id, txt, reply_markup=kb)
 
     # 2. Radar PNCP B2G (Licitações)
     elif cmd in ["/licitacoes", "/pncp"] or text in ["📡 Licitações Sul", "📡 licitações sul", "📡 Radar PNCP"]:
@@ -689,7 +722,13 @@ def process_command(chat_id, user_id, text):
         reply = handle_conciliar()
         send_message(chat_id, reply, reply_markup=back_kb)
 
-    # 5. Sentinela de Frotas & NIC
+    # 5. PIS/COFINS Monofásicos
+    elif cmd in ["/monofasicos", "/pis", "/cofins"] or text in ["💰 PIS/COFINS Monofásico", "💰 PIS/COFINS", "💰 pis/cofins", "💰 monofasicos"]:
+        send_message(chat_id, "💰 *Auditando XMLs de notas fiscais para PIS/COFINS Monofásicos...*")
+        reply = handle_monofasicos()
+        send_message(chat_id, reply, reply_markup=back_kb)
+
+    # 6. Sentinela de Frotas & NIC
     elif cmd == "/frotas" or text in ["🚛 Frotas & NIC", "🚛 frotas & nic"]:
         send_message(chat_id, "🚛 *Varrendo autuações de veículos PJ e calculando prazo para Multa NIC...*")
         reply = handle_frotas()
@@ -699,7 +738,7 @@ def process_command(chat_id, user_id, text):
         reply = handle_fici(text)
         send_message(chat_id, reply, reply_markup=back_kb)
 
-    # 6. Motor do Terceiro Setor
+    # 7. Motor do Terceiro Setor
     elif cmd.startswith("/doacao"):
         send_message(chat_id, "📜 *Processando doação, assinando com SHA-256 e gerando PDF formal...*")
         reply = handle_doacao(text)
@@ -710,27 +749,23 @@ def process_command(chat_id, user_id, text):
         reply = handle_livro_caixa(text)
         send_message(chat_id, reply, reply_markup=back_kb)
 
-    # 7. CND Sentinel
+    # 8. CND Sentinel
     elif cmd == "/cnd" or text in ["🛡️ CND Sentinel", "🛡️ cnd sentinel"]:
         send_message(chat_id, "🛡️ *Iniciando varredura autônoma de CNDs...*")
         reply = handle_cnd_check()
         send_message(chat_id, reply, reply_markup=back_kb)
 
-    # 8. Status VPS & Infraestrutura
+    # 9. Status VPS & Infraestrutura
     elif cmd == "/vps" or text in ["🖥️ VPS Status", "🖥️ vps status"]:
         send_message(chat_id, get_vps_status(), reply_markup=back_kb)
 
     elif cmd == "/workflows":
         send_message(chat_id, get_n8n_workflows(), reply_markup=back_kb)
 
-    elif cmd.startswith("/provisionar"):
-        send_message(chat_id, "⏳ *Iniciando provisionamento Zero-Touch (<15s)...*")
+    # 10. Provisionamento Multi-Tenant (Unificado)
+    elif cmd.startswith("/provisionar") or cmd.startswith("/onboard"):
+        send_message(chat_id, "⏳ *Iniciando provisionamento Zero-Touch Multi-Tenant (<15s)...*")
         reply = handle_provision(text)
-        send_message(chat_id, reply, reply_markup=back_kb)
-
-    elif cmd.startswith("/onboard"):
-        send_message(chat_id, "⏳ *Iniciando provisionamento na VPS e no Google Drive...*")
-        reply = handle_onboarding(text)
         send_message(chat_id, reply, reply_markup=back_kb)
 
     elif cmd.startswith("/auditoria"):
