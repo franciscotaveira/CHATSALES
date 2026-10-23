@@ -1,0 +1,159 @@
+{
+  "name": "Conciliação Automática de Extrato Bancário OFX x Notas Fiscais",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "intake-extrato-bancario",
+        "responseMode": "onReceived",
+        "responseData": "allEntries"
+      },
+      "id": "node-1-vik2r",
+      "name": "Inbound Extrato WhatsApp",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "wh-lhrqgy1"
+    },
+    {
+      "parameters": {},
+      "id": "node-2-7zkae",
+      "name": "Parser OFX e Extrator de Transacoes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        510,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Execução gerada a partir da etapa: TELA 3: Reconciliação com Notas Fiscais\nSELECT 1;"
+      },
+      "id": "node-3-ldqm6",
+      "name": "Cruzador com Acervo de Notas Fiscais",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        770,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "node-4-d6bcb",
+      "name": "Arquivamento do Extrato no Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 1,
+      "position": [
+        1030,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chat.automatizaprocessos.tech/api/v1/webhook"
+      },
+      "id": "node-5-4sj2r",
+      "name": "Despacho Relatorio no WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1290,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Execução gerada a partir da etapa: TELA 6: Auditoria e Falhas\nSELECT 1;"
+      },
+      "id": "node-6-1397v",
+      "name": "Handler de Excecoes e Auditoria",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        1550,
+        520
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Inbound Extrato WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Parser OFX e Extrator de Transacoes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser OFX e Extrator de Transacoes": {
+      "main": [
+        [
+          {
+            "node": "Cruzador com Acervo de Notas Fiscais",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cruzador com Acervo de Notas Fiscais": {
+      "main": [
+        [
+          {
+            "node": "Arquivamento do Extrato no Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Arquivamento do Extrato no Drive": {
+      "main": [
+        [
+          {
+            "node": "Despacho Relatorio no WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "tags": [
+    {
+      "name": "contabilidade"
+    },
+    {
+      "name": "conciliacao"
+    },
+    {
+      "name": "ofx"
+    },
+    {
+      "name": "extrato"
+    },
+    {
+      "name": "fiscal"
+    },
+    {
+      "name": "whatsapp"
+    }
+  ]
+}

@@ -1,0 +1,162 @@
+{
+  "name": "Auditoria Preventiva de XML NF-e com Detecção de Monofásicos e ICMS-ST",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "intake-xml-nfe",
+        "responseMode": "onReceived",
+        "responseData": "allEntries"
+      },
+      "id": "node-1-9m68a",
+      "name": "Inbound XML NF-e",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "wh-xxfsv24"
+    },
+    {
+      "parameters": {},
+      "id": "node-2-x0s1c",
+      "name": "Parser Fiscal de Itens e Tributos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        510,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Execução gerada a partir da etapa: TELA 3: Cruzamento com Matriz Tributária Nacional\nSELECT 1;"
+      },
+      "id": "node-3-ecnjp",
+      "name": "Auditor de Monofasicos e ICMS-ST",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        770,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "node-4-ibf2p",
+      "name": "Arquivamento Seguro do XML no Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 1,
+      "position": [
+        1030,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chat.automatizaprocessos.tech/api/v1/webhook"
+      },
+      "id": "node-5-zadar",
+      "name": "Despacho Parecer Fiscal WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1290,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Execução gerada a partir da etapa: TELA 6: Log de Auditoria\nSELECT 1;"
+      },
+      "id": "node-6-pgnq9",
+      "name": "Handler de Excecoes Fiscais",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        1550,
+        520
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Inbound XML NF-e": {
+      "main": [
+        [
+          {
+            "node": "Parser Fiscal de Itens e Tributos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser Fiscal de Itens e Tributos": {
+      "main": [
+        [
+          {
+            "node": "Auditor de Monofasicos e ICMS-ST",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auditor de Monofasicos e ICMS-ST": {
+      "main": [
+        [
+          {
+            "node": "Arquivamento Seguro do XML no Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Arquivamento Seguro do XML no Drive": {
+      "main": [
+        [
+          {
+            "node": "Despacho Parecer Fiscal WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "tags": [
+    {
+      "name": "fiscal"
+    },
+    {
+      "name": "nfe"
+    },
+    {
+      "name": "xml"
+    },
+    {
+      "name": "icms_st"
+    },
+    {
+      "name": "monofasicos"
+    },
+    {
+      "name": "tributario"
+    },
+    {
+      "name": "drive"
+    }
+  ]
+}

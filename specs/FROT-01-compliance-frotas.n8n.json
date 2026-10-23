@@ -1,0 +1,140 @@
+{
+  "name": "Triagem e Dossiê de Liberação de Frotas e Motoristas (Logística & Compliance Rodoviário)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "frotas-documentos",
+        "responseMode": "onReceived",
+        "responseData": "allEntries"
+      },
+      "id": "node-1-czzvf",
+      "name": "TELA 1 Inbound WhatsApp Frota",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "wh-axdy4wa"
+    },
+    {
+      "parameters": {},
+      "id": "node-2-t5osq",
+      "name": "Auditor de Compliance de Frotas",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1,
+      "position": [
+        510,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "node-3-8ykgg",
+      "name": "Organizador de Pastas da Frota",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 1,
+      "position": [
+        770,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chat.automatizaprocessos.tech/api/v1/webhook"
+      },
+      "id": "node-4-3t3os",
+      "name": "Retorno Imediato no WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1030,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Execução gerada a partir da etapa: TELA 5: Tratamento de Exceções & Fila Segura\nSELECT 1;"
+      },
+      "id": "node-5-csqxz",
+      "name": "TELA 5 Tratamento de Excees  Fila Segura",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        1290,
+        520
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "TELA 1 Inbound WhatsApp Frota": {
+      "main": [
+        [
+          {
+            "node": "Auditor de Compliance de Frotas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auditor de Compliance de Frotas": {
+      "main": [
+        [
+          {
+            "node": "Organizador de Pastas da Frota",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Organizador de Pastas da Frota": {
+      "main": [
+        [
+          {
+            "node": "Retorno Imediato no WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "tags": [
+    {
+      "name": "frotas"
+    },
+    {
+      "name": "transportadoras"
+    },
+    {
+      "name": "whatsapp"
+    },
+    {
+      "name": "ocr"
+    },
+    {
+      "name": "antt"
+    },
+    {
+      "name": "cnh"
+    },
+    {
+      "name": "crlv"
+    },
+    {
+      "name": "compliance"
+    }
+  ]
+}

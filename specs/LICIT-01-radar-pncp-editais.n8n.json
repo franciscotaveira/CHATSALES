@@ -1,0 +1,153 @@
+{
+  "name": "Radar Autônomo de Licitações Públicas (PNCP) com Alerta de CND",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "node-1-eu89d",
+      "name": "Cron Matinal 06h30",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://pncp.gov.br/api/consulta/v1/contratacoes/publicacao"
+      },
+      "id": "node-2-34gc2",
+      "name": "Consulta API PNCP Dados Abertos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        510,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "node-3-456uj",
+      "name": "Filtro Semantico por Catalogo do Cliente",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        770,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Execução gerada a partir da etapa: TELA 4: Verificação de CNDs e Aptidão Jurídica\nSELECT 1;"
+      },
+      "id": "node-4-f5emp",
+      "name": "Auditoria de CNDs do Cliente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        1030,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "node-5-q8pwv",
+      "name": "Despacho Briefing no Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1290,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Execução gerada a partir da etapa: TELA 6: Log de Auditoria\nSELECT 1;"
+      },
+      "id": "node-6-0z3xa",
+      "name": "Log de Auditoria e Falhas",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        1550,
+        520
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Cron Matinal 06h30": {
+      "main": [
+        [
+          {
+            "node": "Consulta API PNCP Dados Abertos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consulta API PNCP Dados Abertos": {
+      "main": [
+        [
+          {
+            "node": "Filtro Semantico por Catalogo do Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtro Semantico por Catalogo do Cliente": {
+      "main": [
+        [
+          {
+            "node": "Auditoria de CNDs do Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auditoria de CNDs do Cliente": {
+      "main": [
+        [
+          {
+            "node": "Despacho Briefing no Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "tags": [
+    {
+      "name": "licitacoes"
+    },
+    {
+      "name": "compras_governamentais"
+    },
+    {
+      "name": "pncp"
+    },
+    {
+      "name": "cnd"
+    },
+    {
+      "name": "telegram"
+    },
+    {
+      "name": "whatsapp"
+    }
+  ]
+}

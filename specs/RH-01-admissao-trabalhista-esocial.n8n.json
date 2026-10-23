@@ -1,0 +1,162 @@
+{
+  "name": "Admissão Digital de Colaboradores e Validação eSocial via WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "intake-admissao-rh",
+        "responseMode": "onReceived",
+        "responseData": "allEntries"
+      },
+      "id": "node-1-8amqm",
+      "name": "Inbound WhatsApp Admissao",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "wh-62vtu1e"
+    },
+    {
+      "parameters": {},
+      "id": "node-2-8pd53",
+      "name": "Extrator de Documentos de Pessoal NVIDIA",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1,
+      "position": [
+        510,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "node-3-6jd4h",
+      "name": "Pasta Segura do Colaborador no Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 1,
+      "position": [
+        770,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Execução gerada a partir da etapa: TELA 4: Registro da Ficha Cadastral\nSELECT 1;"
+      },
+      "id": "node-4-sv2ce",
+      "name": "Cadastro de Ficha no Banco de Dados",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        1030,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chat.automatizaprocessos.tech/api/v1/webhook"
+      },
+      "id": "node-5-koayg",
+      "name": "Despacho Contrato e Boas-Vindas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1290,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Execução gerada a partir da etapa: TELA 6: Tratamento de Erros e Documentos Ilegíveis\nSELECT 1;"
+      },
+      "id": "node-6-45vtq",
+      "name": "Handler de Excecoes de Pessoal",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        1550,
+        520
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Inbound WhatsApp Admissao": {
+      "main": [
+        [
+          {
+            "node": "Extrator de Documentos de Pessoal NVIDIA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrator de Documentos de Pessoal NVIDIA": {
+      "main": [
+        [
+          {
+            "node": "Pasta Segura do Colaborador no Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pasta Segura do Colaborador no Drive": {
+      "main": [
+        [
+          {
+            "node": "Cadastro de Ficha no Banco de Dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cadastro de Ficha no Banco de Dados": {
+      "main": [
+        [
+          {
+            "node": "Despacho Contrato e Boas-Vindas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "tags": [
+    {
+      "name": "rh"
+    },
+    {
+      "name": "admissao"
+    },
+    {
+      "name": "esocial"
+    },
+    {
+      "name": "clt"
+    },
+    {
+      "name": "whatsapp"
+    },
+    {
+      "name": "lgpd"
+    },
+    {
+      "name": "ocr"
+    }
+  ]
+}
