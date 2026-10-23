@@ -33,13 +33,15 @@ def api_telegram(method, data=None):
     with urllib.request.urlopen(req, timeout=30) as resp:
         return json.loads(resp.read().decode())
 
-def send_message(chat_id, text, parse_mode="Markdown"):
+def send_message(chat_id, text, parse_mode="Markdown", reply_markup=None):
     data = {
         "chat_id": chat_id,
         "text": text,
         "parse_mode": parse_mode,
         "disable_web_page_preview": False
     }
+    if reply_markup is not None:
+        data["reply_markup"] = reply_markup
     try:
         return api_telegram("sendMessage", data)
     except Exception as e:
@@ -49,6 +51,37 @@ def send_message(chat_id, text, parse_mode="Markdown"):
             return api_telegram("sendMessage", data)
         except Exception as e2:
             print(f"Erro no fallback sem Markdown: {e2}")
+            return None
+
+def answer_callback_query(callback_query_id, text=None):
+    data = {"callback_query_id": callback_query_id}
+    if text:
+        data["text"] = text
+    try:
+        return api_telegram("answerCallbackQuery", data)
+    except Exception as e:
+        print(f"Erro ao responder callback_query: {e}")
+        return None
+
+def edit_message_text(chat_id, message_id, text, parse_mode="Markdown", reply_markup=None):
+    data = {
+        "chat_id": chat_id,
+        "message_id": message_id,
+        "text": text,
+        "parse_mode": parse_mode,
+        "disable_web_page_preview": False
+    }
+    if reply_markup is not None:
+        data["reply_markup"] = reply_markup
+    try:
+        return api_telegram("editMessageText", data)
+    except Exception as e:
+        print(f"Erro ao editar mensagem: {e}")
+        data.pop("parse_mode", None)
+        try:
+            return api_telegram("editMessageText", data)
+        except Exception as e2:
+            print(f"Erro no fallback de edicao sem Markdown: {e2}")
             return None
 
 def get_vps_status():
@@ -288,6 +321,181 @@ def ask_nemotron_brain(prompt):
     except Exception as e:
         return f"💡 [Hermes Nemotron Offline no momento]: {e}"
 
+def get_persistent_keyboard():
+    """Teclado persistente na parte inferior do Telegram para acesso em 1 toque."""
+    return {
+        "keyboard": [
+            [{"text": "📡 Radar PNCP"}, {"text": "🏦 Conciliar OFX"}],
+            [{"text": "🚛 Frotas & NIC"}, {"text": "📖 3º Setor / Doações"}],
+            [{"text": "🛡️ CND Sentinel"}, {"text": "📊 Briefing Matinal"}],
+            [{"text": "🖥️ VPS Status"}, {"text": "🎛️ Painel Master"}]
+        ],
+        "resize_keyboard": True,
+        "is_persistent": True
+    }
+
+def get_master_panel_inline_keyboard():
+    """Painel de botões inline categorizado como um cockpit interativo."""
+    return {
+        "inline_keyboard": [
+            # Categoria 1: B2G & Mercados Ocultos
+            [
+                {"text": "📡 Radar PNCP SC", "callback_data": "panel_licitacoes"},
+                {"text": "🏦 Conciliação OFX", "callback_data": "panel_conciliar"}
+            ],
+            # Categoria 2: Regulação & Frotas
+            [
+                {"text": "🚛 Frotas & Multa NIC", "callback_data": "panel_frotas"},
+                {"text": "📖 3º Setor (Caixa)", "callback_data": "panel_livrocaixa"}
+            ],
+            # Categoria 3: Certidões & Fechamento Contábil
+            [
+                {"text": "🛡️ Varredura CNDs", "callback_data": "panel_cnd"},
+                {"text": "📋 Fechamento M02B", "callback_data": "panel_m02b"}
+            ],
+            # Categoria 4: Operações & Auditoria SST
+            [
+                {"text": "🏗️ Auditoria Obras", "callback_data": "panel_auditoria"},
+                {"text": "📊 Briefing Matinal", "callback_data": "panel_briefing"}
+            ],
+            # Categoria 5: Infraestrutura VPS
+            [
+                {"text": "🖥️ Hardware & VPS", "callback_data": "panel_vps"},
+                {"text": "⚙️ n8n Workflows", "callback_data": "panel_workflows"}
+            ],
+            # Categoria 6: Atalhos Rápidos & Drive
+            [
+                {"text": "📜 Form Doação", "callback_data": "panel_form_doacao"},
+                {"text": "📋 Form FICI", "callback_data": "panel_form_fici"},
+                {"text": "📁 Drive Master", "callback_data": "panel_drive"}
+            ]
+        ]
+    }
+
+def get_back_to_panel_keyboard():
+    """Botão para retornar ao painel central a qualquer momento."""
+    return {
+        "inline_keyboard": [
+            [{"text": "🔙 Voltar ao Painel Master", "callback_data": "panel_home"}]
+        ]
+    }
+
+def get_master_panel_text():
+    return (
+        "🎛️ *MCT COCKPIT EXECUTIVO — PAINEL DE CONTROLE SOBERANO*\n"
+        "Ambiente operacional ativo na VPS Hostinger KVM 4 (`200.141.17.99`).\n"
+        "Toque em qualquer botão abaixo para executar a consulta em tempo real:\n\n"
+        "🏛️ *B2G & Mercados Ocultos:*\n"
+        "  • *Radar PNCP:* Dispensas e pregões SC com checagem de CNDs\n"
+        "  • *Conciliador OFX:* Pareamento bancário contra NF-e (DocOps M02C)\n"
+        "  • *Frotas & NIC:* Prevenção da duplicação de multas PJ (CTB 257)\n"
+        "  • *3º Setor:* Recibos formais com SHA-256 e Livro Caixa\n\n"
+        "🛡️ *Compliance, DocOps & Infra:*\n"
+        "  • *CND Sentinel:* Certidões FGTS, CNDT e Receita Federal\n"
+        "  • *Fechamento M02B:* Auditoria de faltantes contábeis\n"
+        "  • *Auditoria Obras:* Conformidade de portaria e SST\n"
+        "  • *VPS & n8n:* Saúde dos 17 containers e workflows ativos\n\n"
+        "👇 _Selecione uma categoria no painel interativo abaixo:_"
+    )
+
+def process_callback(chat_id, user_id, data, message_id):
+    """Processa ações disparadas pelos botões inline do painel."""
+    global ADMIN_USER_ID
+
+    if str(user_id) != str(ADMIN_USER_ID):
+        print(f"⛔ Callback não autorizado: {user_id}")
+        return
+
+    back_kb = get_back_to_panel_keyboard()
+
+    if data == "panel_home":
+        edit_message_text(chat_id, message_id, get_master_panel_text(), reply_markup=get_master_panel_inline_keyboard())
+
+    elif data == "panel_licitacoes":
+        edit_message_text(chat_id, message_id, "📡 *Consultando API oficial do PNCP e auditando CNDs em Santa Catarina...*")
+        reply = handle_licitacoes()
+        edit_message_text(chat_id, message_id, reply[:4000], reply_markup=back_kb)
+
+    elif data == "panel_conciliar":
+        edit_message_text(chat_id, message_id, "🏦 *Executando conciliação de extratos OFX contra notas fiscais...*")
+        reply = handle_conciliar()
+        edit_message_text(chat_id, message_id, reply[:4000], reply_markup=back_kb)
+
+    elif data == "panel_frotas":
+        edit_message_text(chat_id, message_id, "🚛 *Varrendo autuações de veículos PJ e calculando prazo para Multa NIC...*")
+        reply = handle_frotas()
+        edit_message_text(chat_id, message_id, reply[:4000], reply_markup=back_kb)
+
+    elif data == "panel_livrocaixa":
+        reply = handle_livro_caixa("")
+        edit_message_text(chat_id, message_id, reply[:4000], reply_markup=back_kb)
+
+    elif data == "panel_cnd":
+        edit_message_text(chat_id, message_id, "🛡️ *Iniciando varredura autônoma de CNDs...*")
+        reply = handle_cnd_check()
+        edit_message_text(chat_id, message_id, reply[:4000], reply_markup=back_kb)
+
+    elif data == "panel_m02b":
+        edit_message_text(chat_id, message_id, "🔍 *Executando reconciliação contábil M02B...*")
+        reply = handle_checklist_m02b()
+        edit_message_text(chat_id, message_id, reply[:4000], reply_markup=back_kb)
+
+    elif data == "panel_auditoria":
+        edit_message_text(chat_id, message_id, "🔍 *Executando auditoria de portaria em tempo real...*")
+        reply = handle_audit()
+        edit_message_text(chat_id, message_id, reply[:4000], reply_markup=back_kb)
+
+    elif data == "panel_briefing":
+        edit_message_text(chat_id, message_id, "📊 *Gerando briefing executivo da operação...*")
+        cmd_b = ["python3", str(BASE_DIR / "mct_hermes_morning_briefing.py")]
+        res = subprocess.run(cmd_b, capture_output=True, text=True)
+        if res.returncode == 0:
+            lines = res.stdout.split("=== BRIEFING GERADO ===")
+            out = lines[1].strip() if len(lines) > 1 else res.stdout.strip()
+            edit_message_text(chat_id, message_id, out[:4000], reply_markup=back_kb)
+        else:
+            edit_message_text(chat_id, message_id, f"❌ Erro ao gerar briefing: {res.stderr.strip()}", reply_markup=back_kb)
+
+    elif data == "panel_vps":
+        reply = get_vps_status()
+        edit_message_text(chat_id, message_id, reply[:4000], reply_markup=back_kb)
+
+    elif data == "panel_workflows":
+        reply = get_n8n_workflows()
+        edit_message_text(chat_id, message_id, reply[:4000], reply_markup=back_kb)
+
+    elif data == "panel_form_doacao":
+        txt = (
+            "📜 *EMISSÃO DE RECIBO DO TERCEIRO SETOR (COM CPF & PDF)*\n\n"
+            "Para emitir recibo formal de doação/dízimo com assinatura digital SHA-256 e PDF via ReportLab, "
+            "copie o modelo abaixo, preencha os dados e envie aqui no chat:\n\n"
+            "`/doacao Nome do Doador | 000.000.000-00 | 1250.00 | Dízimo`\n\n"
+            "*Exemplo real:*\n"
+            "`/doacao Marcos Aurelio Silveira | 045.892.119-40 | 1250.00 | Dízimo`\n\n"
+            "⚖️ *Amparo:* Art. 150, VI, 'b' da CF/88 (Imunidade Tributária Religiosa)."
+        )
+        edit_message_text(chat_id, message_id, txt, reply_markup=back_kb)
+
+    elif data == "panel_form_fici":
+        txt = (
+            "📋 *FORMULÁRIO FICI — INDICAÇÃO DE CONDUTOR PJ*\n\n"
+            "Para gerar o formulário pré-preenchido e evitar a duplicação automática da multa (Multa NIC), envie:\n\n"
+            "`/fici <PLACA>`\n\n"
+            "*Exemplo:*\n"
+            "`/fici RLG4E12`\n\n"
+            "⚖️ *Amparo:* Art. 257, § 8º do CTB e Resolução CONTRAN 710/2017."
+        )
+        edit_message_text(chat_id, message_id, txt, reply_markup=back_kb)
+
+    elif data == "panel_drive":
+        txt = (
+            "📁 *REPOSITÓRIO MASTER DE CLIENTES NO GOOGLE DRIVE*\n\n"
+            "🔗 [Abrir Google Drive MCT Clientes](https://drive.google.com/drive/folders/1pm8OyvZogbs2jcXnl1o2tPQToX1IsAL4)\n\n"
+            "• Service Account: `mct-drive-worker@sosautonatiza.iam.gserviceaccount.com`\n"
+            "• Todas as subpastas criadas aparecem aqui automaticamente."
+        )
+        edit_message_text(chat_id, message_id, txt, reply_markup=back_kb)
+
 def process_command(chat_id, user_id, text):
     global ADMIN_USER_ID
 
@@ -299,91 +507,88 @@ def process_command(chat_id, user_id, text):
 
     text = text.strip()
     cmd = text.split()[0].lower() if text else ""
+    persistent_kb = get_persistent_keyboard()
 
-    if cmd in ["/start", "/help", "/ajuda"]:
-        msg = (
-            "🤖 *TAVIBOT — SECRETÁRIO EXECUTIVO MCT SOBERANO*\n"
-            "Central de comando da Mothership VPS, n8n, Google Drive e Motores Soberanos.\n\n"
-            "🏛️ *Mercados Ocultos & B2G:*\n"
-            "• `/licitacoes` — Radar PNCP de Compras Públicas SC com auditoria de CNDs\n"
-            "• `/conciliar` — Conciliador de extratos bancários OFX contra NF-e (DocOps M02C)\n"
-            "• `/doacao <dados>` — Emissão de recibo com CPF, SHA-256 e PDF para Igrejas/ONGs\n"
-            "• `/livrocaixa` — Extrato e saldo contábil do Terceiro Setor (Art. 150 CF)\n"
-            "• `/frotas` — Sentinela de infrações PJ e prevenção de Multa NIC (Art. 257 CTB)\n"
-            "• `/fici <placa>` — Formulário FICI pré-preenchido de indicação de condutor\n\n"
-            "📌 *Comandos Operacionais:*\n"
-            "• `/cnd` — Sentinela autônoma de CNDs (FGTS, CNDT e Federal)\n"
-            "• `/provisionar <dados>` — Provisionamento Zero-Touch multi-tenant (<15s)\n"
-            "• `/vps` — Saúde de hardware, memória, disco e 17 containers\n"
-            "• `/workflows` — Monitora os fluxos do n8n na VPS\n"
-            "• `/auditoria` — Auditoria de portaria de obras (SST / ASO)\n"
-            "• `/m02b` — Reconciliação do fechamento contábil e faltantes\n"
-            "• `/drive` — Link master das pastas no Google Drive\n"
-            "• `/briefing` — Relatório executivo consolidado agora\n\n"
-            "💬 *Perguntas em Linguagem Natural:*\n"
-            "Você pode falar comigo diretamente sobre qualquer tema da operação! O cérebro do NVIDIA Nemotron 550B responde na hora."
+    # Mapeamento do Menu Central e Painel
+    if cmd in ["/start", "/help", "/ajuda", "/painel", "/menu", "painel", "menu"] or text in ["🎛️ Painel Master", "🎛️ painel master"]:
+        # Envia o Painel com Inline Buttons e ativa o Teclado Persistente
+        send_message(
+            chat_id,
+            get_master_panel_text(),
+            reply_markup=get_master_panel_inline_keyboard()
         )
-        send_message(chat_id, msg)
+        # Garante teclado persistente visível
+        send_message(
+            chat_id,
+            "💡 _Use também os atalhos rápidos fixados no teclado abaixo._",
+            reply_markup=persistent_kb
+        )
 
-    elif cmd in ["/licitacoes", "/pncp"]:
+    # 1. Radar PNCP B2G
+    elif cmd in ["/licitacoes", "/pncp"] or text in ["📡 Radar PNCP", "📡 radar pncp"]:
         send_message(chat_id, "📡 *Consultando API oficial do PNCP e auditando CNDs em Santa Catarina...*")
         reply = handle_licitacoes()
-        send_message(chat_id, reply)
+        send_message(chat_id, reply, reply_markup=get_back_to_panel_keyboard())
 
-    elif cmd == "/conciliar":
+    # 2. Conciliação OFX
+    elif cmd == "/conciliar" or text in ["🏦 Conciliar OFX", "🏦 conciliar ofx"]:
         send_message(chat_id, "🏦 *Executando conciliação de extratos OFX contra notas fiscais...*")
         reply = handle_conciliar()
-        send_message(chat_id, reply)
+        send_message(chat_id, reply, reply_markup=get_back_to_panel_keyboard())
 
-    elif cmd.startswith("/doacao"):
-        send_message(chat_id, "📜 *Processando doação, assinando com SHA-256 e gerando PDF formal...*")
-        reply = handle_doacao(text)
-        send_message(chat_id, reply)
-
-    elif cmd.startswith("/livrocaixa"):
-        send_message(chat_id, "📖 *Consultando Livro Caixa do Terceiro Setor...*")
-        reply = handle_livro_caixa(text)
-        send_message(chat_id, reply)
-
-    elif cmd == "/frotas":
+    # 3. Sentinela de Frotas & NIC
+    elif cmd == "/frotas" or text in ["🚛 Frotas & NIC", "🚛 frotas & nic"]:
         send_message(chat_id, "🚛 *Varrendo autuações de veículos PJ e calculando prazo para Multa NIC...*")
         reply = handle_frotas()
-        send_message(chat_id, reply)
+        send_message(chat_id, reply, reply_markup=get_back_to_panel_keyboard())
 
     elif cmd.startswith("/fici"):
         reply = handle_fici(text)
-        send_message(chat_id, reply)
+        send_message(chat_id, reply, reply_markup=get_back_to_panel_keyboard())
 
-    elif cmd == "/vps":
-        send_message(chat_id, get_vps_status())
+    # 4. Motor do Terceiro Setor
+    elif cmd.startswith("/doacao"):
+        send_message(chat_id, "📜 *Processando doação, assinando com SHA-256 e gerando PDF formal...*")
+        reply = handle_doacao(text)
+        send_message(chat_id, reply, reply_markup=get_back_to_panel_keyboard())
+
+    elif cmd.startswith("/livrocaixa") or text in ["📖 3º Setor / Doações", "📖 3º Setor", "📖 3º setor"]:
+        send_message(chat_id, "📖 *Consultando Livro Caixa do Terceiro Setor...*")
+        reply = handle_livro_caixa(text)
+        send_message(chat_id, reply, reply_markup=get_back_to_panel_keyboard())
+
+    # 5. CND Sentinel
+    elif cmd == "/cnd" or text in ["🛡️ CND Sentinel", "🛡️ cnd sentinel"]:
+        send_message(chat_id, "🛡️ *Iniciando varredura autônoma de CNDs...*")
+        reply = handle_cnd_check()
+        send_message(chat_id, reply, reply_markup=get_back_to_panel_keyboard())
+
+    # 6. Status VPS & Infraestrutura
+    elif cmd == "/vps" or text in ["🖥️ VPS Status", "🖥️ vps status"]:
+        send_message(chat_id, get_vps_status(), reply_markup=get_back_to_panel_keyboard())
 
     elif cmd == "/workflows":
-        send_message(chat_id, get_n8n_workflows())
+        send_message(chat_id, get_n8n_workflows(), reply_markup=get_back_to_panel_keyboard())
 
     elif cmd.startswith("/provisionar"):
         send_message(chat_id, "⏳ *Iniciando provisionamento Zero-Touch (<15s)...*")
         reply = handle_provision(text)
-        send_message(chat_id, reply)
+        send_message(chat_id, reply, reply_markup=get_back_to_panel_keyboard())
 
     elif cmd.startswith("/onboard"):
         send_message(chat_id, "⏳ *Iniciando provisionamento na VPS e no Google Drive...*")
         reply = handle_onboarding(text)
-        send_message(chat_id, reply)
-
-    elif cmd == "/cnd":
-        send_message(chat_id, "🛡️ *Iniciando varredura autônoma de CNDs...*")
-        reply = handle_cnd_check()
-        send_message(chat_id, reply)
+        send_message(chat_id, reply, reply_markup=get_back_to_panel_keyboard())
 
     elif cmd.startswith("/auditoria"):
         send_message(chat_id, "🔍 *Executando auditoria de portaria em tempo real...*")
         reply = handle_audit()
-        send_message(chat_id, reply)
+        send_message(chat_id, reply, reply_markup=get_back_to_panel_keyboard())
 
     elif cmd.startswith("/m02b"):
         send_message(chat_id, "🔍 *Executando reconciliação contábil M02B...*")
         reply = handle_checklist_m02b()
-        send_message(chat_id, reply)
+        send_message(chat_id, reply, reply_markup=get_back_to_panel_keyboard())
 
     elif cmd == "/drive":
         msg = (
@@ -392,37 +597,37 @@ def process_command(chat_id, user_id, text):
             "• Service Account ativa: `mct-drive-worker@sosautonatiza.iam.gserviceaccount.com`\n"
             "• Todas as subpastas de empresas criadas aparecem aqui automaticamente."
         )
-        send_message(chat_id, msg)
+        send_message(chat_id, msg, reply_markup=get_back_to_panel_keyboard())
 
-    elif cmd == "/briefing":
+    elif cmd == "/briefing" or text in ["📊 Briefing Matinal", "📊 briefing matinal"]:
         send_message(chat_id, "📊 *Gerando briefing executivo da operação...*")
         cmd_b = ["python3", str(BASE_DIR / "mct_hermes_morning_briefing.py")]
         res = subprocess.run(cmd_b, capture_output=True, text=True)
         if res.returncode == 0:
             lines = res.stdout.split("=== BRIEFING GERADO ===")
             out = lines[1].strip() if len(lines) > 1 else res.stdout.strip()
-            send_message(chat_id, out)
+            send_message(chat_id, out, reply_markup=get_back_to_panel_keyboard())
         else:
-            send_message(chat_id, f"❌ Erro ao gerar briefing: {res.stderr.strip()}")
+            send_message(chat_id, f"❌ Erro ao gerar briefing: {res.stderr.strip()}", reply_markup=get_back_to_panel_keyboard())
 
     else:
         # Mensagem em linguagem natural: passa para o cérebro NVIDIA Nemotron 550B
         send_message(chat_id, "🧠 *Consultando Nemotron 550B...*")
         answer = ask_nemotron_brain(text)
-        send_message(chat_id, answer)
+        send_message(chat_id, answer, reply_markup=get_back_to_panel_keyboard())
 
 def run_polling():
     print(f"🚀 [TAVIBOT] Agente Secretário Soberano ativo para o usuário {ADMIN_USER_ID}...")
     offset = 0
-    # Envia mensagem inicial avisando o Francisco que o bot subiu
+    # Envia mensagem inicial com o teclado persistente e o painel de boas-vindas
     try:
         welcome = (
             "🚀 *Tavibot Conectado com Sucesso!*\n\n"
             "Olá Francisco! Seu Secretário Executivo Operacional está online 24/7 na VPS Hostinger KVM 4.\n\n"
-            "Digite `/ajuda` para ver os comandos ou mande qualquer pergunta em áudio/texto para o Nemotron 550B."
+            "Use os botões de atalho fixados no teclado ou acione `/painel` para o Cockpit interativo completo."
         )
-        send_message(ADMIN_USER_ID, welcome)
-        print("✅ Mensagem de boas-vindas enviada para o Francisco!")
+        send_message(ADMIN_USER_ID, welcome, reply_markup=get_persistent_keyboard())
+        print("✅ Mensagem de boas-vindas com teclado persistente enviada para o Francisco!")
     except Exception as e:
         print(f"Aviso ao enviar boas-vindas: {e}")
 
@@ -432,6 +637,24 @@ def run_polling():
             if updates.get("ok"):
                 for u in updates.get("result", []):
                     offset = u["update_id"] + 1
+
+                    # 1. Trata Cliques em Botões Inline do Painel (Callbacks)
+                    cb = u.get("callback_query")
+                    if cb:
+                        cb_id = cb["id"]
+                        msg_obj = cb.get("message", {})
+                        chat_id = msg_obj.get("chat", {}).get("id")
+                        user_id = cb["from"]["id"]
+                        cb_data = cb.get("data", "")
+                        message_id = msg_obj.get("message_id")
+                        user_name = cb["from"].get("first_name", "Francisco")
+                        print(f"🔘 [{user_name} ({user_id})]: Toque no botão '{cb_data}'")
+                        answer_callback_query(cb_id)
+                        if chat_id and message_id:
+                            process_callback(chat_id, user_id, cb_data, message_id)
+                        continue
+
+                    # 2. Trata Mensagens de Texto e Botões do Teclado Persistente
                     msg = u.get("message")
                     if msg and "text" in msg:
                         chat_id = msg["chat"]["id"]
