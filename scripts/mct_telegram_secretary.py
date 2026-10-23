@@ -127,6 +127,42 @@ def handle_onboarding(text):
     
     return f"🚀 *ONBOARDING CONCLUÍDO COM SUCESSO!*\n\n{res.stdout.strip()}"
 
+def handle_provision(text):
+    # Formato: /provisionar [Nome Empresa] | [Telefone] | [Nicho: CONTABIL/OBRAS/FROTAS/VENDAS] | [Sub-itens]
+    raw = text.replace("/provisionar", "").strip()
+    parts = [p.strip() for p in raw.split("|")]
+    if len(parts) < 1 or not parts[0]:
+        return (
+            "⚠️ *Formato inválido.*\n"
+            "Use: `/provisionar [Nome Empresa] | [Telefone] | [Nicho: CONTABIL/OBRAS/FROTAS/VENDAS] | [Sub-itens]`\n\n"
+            "*Exemplo:*\n"
+            "`/provisionar Construtora Horizonte | 49999999999 | OBRAS | Obra Alpha, Obra Beta`"
+        )
+    
+    name = parts[0]
+    phone = parts[1] if len(parts) > 1 and parts[1] else None
+    niche = parts[2] if len(parts) > 2 and parts[2] else "OBRAS"
+    items = [w.strip() for w in parts[3].split(",")] if len(parts) > 3 and parts[3] else None
+
+    cmd = ["python3", str(BASE_DIR / "mct_tenant_provisioner.py"), "--name", name, "--niche", niche]
+    if phone:
+        cmd.extend(["--phone", phone])
+    if items:
+        cmd.extend(["--items"] + items)
+
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    if res.returncode != 0:
+        return f"❌ Erro ao provisionar tenant:\n`{res.stderr.strip() or res.stdout.strip()}`"
+    
+    return f"⚡ *PROVISIONAMENTO ZERO-TOUCH CONCLUÍDO!*\n\n{res.stdout.strip()}"
+
+def handle_cnd_check():
+    cmd = ["python3", str(BASE_DIR / "mct_cnd_sentinel.py"), "--telegram"]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    if res.returncode != 0:
+        return f"❌ Erro na varredura CND Sentinel:\n`{res.stderr.strip()}`"
+    return f"🛡️ *VARREDURA CND SENTINEL CONCLUÍDA!*\n\n{res.stdout.strip()}"
+
 def handle_audit():
     cmd = ["python3", str(BASE_DIR / "mct_industrial_compliance_engine.py"), "audit"]
     res = subprocess.run(cmd, capture_output=True, text=True)
@@ -189,11 +225,12 @@ def process_command(chat_id, user_id, text):
             "🤖 *TAVIBOT — SECRETÁRIO EXECUTIVO MCT SOBERANO*\n"
             "Central de comando da Mothership VPS, n8n, Google Drive e Nemotron 550B.\n\n"
             "📌 *Comandos Rápidos:*\n"
+            "• `/provisionar <dados>` — Provisionamento Zero-Touch multi-tenant (<15s)\n"
+            "• `/cnd` — Sentinela autônoma de CNDs (FGTS, CNDT e Federal)\n"
             "• `/vps` — Saúde de hardware, memória, disco e 17 containers\n"
             "• `/workflows` — Monitora os fluxos do n8n na VPS\n"
             "• `/auditoria` — Auditoria de portaria de obras (SST / ASO)\n"
             "• `/m02b` — Reconciliação do fechamento contábil e faltantes\n"
-            "• `/onboard <dados>` — Cria cliente e árvore no Google Drive\n"
             "• `/drive` — Link master das pastas no Google Drive\n"
             "• `/briefing` — Relatório executivo consolidado agora\n\n"
             "💬 *Perguntas e Ordens em Linguagem Natural:*\n"
@@ -207,9 +244,19 @@ def process_command(chat_id, user_id, text):
     elif cmd == "/workflows":
         send_message(chat_id, get_n8n_workflows())
 
+    elif cmd.startswith("/provisionar"):
+        send_message(chat_id, "⏳ *Iniciando provisionamento Zero-Touch (<15s)...*")
+        reply = handle_provision(text)
+        send_message(chat_id, reply)
+
     elif cmd.startswith("/onboard"):
         send_message(chat_id, "⏳ *Iniciando provisionamento na VPS e no Google Drive...*")
         reply = handle_onboarding(text)
+        send_message(chat_id, reply)
+
+    elif cmd == "/cnd":
+        send_message(chat_id, "🛡️ *Iniciando varredura autônoma de CNDs...*")
+        reply = handle_cnd_check()
         send_message(chat_id, reply)
 
     elif cmd.startswith("/auditoria"):

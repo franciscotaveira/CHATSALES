@@ -218,21 +218,116 @@ def report(competence="2026-10", group_id="120363430175893546@g.us"):
     print(f"\n📄 Relatório gravado com sucesso em: {report_file}")
     print("\n" + content)
 
+def activate_pilot(group_id="120363430175893546@g.us", enable=True):
+    state_str = "ATIVO (DISPARO HABILITADO)" if enable else "SOMBRA (BLOQUEADO)"
+    print(f"🚀 [PILOT-GATE] Transicionando grupo {group_id} para Modo {state_str}...")
+    bool_val = "true" if enable else "false"
+    sql = f"""
+    UPDATE {RULES_TABLE}
+    SET send_enabled = {bool_val},
+        notes = 'M02B Piloto Homologado - {state_str}',
+        "updatedAt" = NOW()
+    WHERE group_id = '{group_id}';
+    """
+    run_psql(sql)
+    print(f"✅ Regras do grupo {group_id} atualizadas com sucesso: send_enabled = {bool_val}")
+    return enable
+
+def pilot_run(competence="2026-10", group_id="120363430175893546@g.us"):
+    print(f"\n🚀 [PILOT-RUN] Executando Fechamento Contábil no MODO PILOTO ATIVO...")
+    # 1. Ativação segura do grupo de homologação
+    activate_pilot(group_id, enable=True)
+    
+    # 2. Materialização & Reconciliação
+    materialize(competence, group_id)
+    res = reconcile(competence, group_id)
+    if not res:
+        print("Nenhum dado reconciliado.")
+        return
+
+    total = len(res)
+    received = sum(1 for r in res if r["status"] == "RECEIVED")
+    overdue = sum(1 for r in res if r["status"] == "OVERDUE")
+    pending = sum(1 for r in res if r["status"] == "PENDING")
+    compliance_rate = (received / total * 100) if total > 0 else 0
+
+    lines = [
+        f"# Relatório Consolidado de Fechamento Contábil (M02B) — Competência {competence}",
+        f"> **Grupo:** `{group_id}` | **Modo de Operação:** PILOTO ATIVO (Homologação Governada)",
+        f"> **Data da Auditoria:** {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
+        "",
+        "## Resumo Executivo de Fechamento",
+        f"- **Total de Obrigações:** {total}",
+        f"- **Cumpridas (No Google Drive):** {received} ({compliance_rate:.1f}%)",
+        f"- **Em Atraso (Faltantes para Fechamento):** {overdue}",
+        f"- **Pendentes (No Prazo Legal):** {pending}",
+        f"- **Status de Disparo:** HABILITADO (`send_enabled = true` para grupo de homologação)",
+        "",
+        "## Detalhamento das Obrigações",
+        "| Regra | Departamento | Tipo Documental | Status | Docs Recebidos | Prazo Limite | Situação |",
+        "|---|---|---|---|---|---|---|"
+    ]
+
+    for r in res:
+        badge = "✅ RECEBIDO" if r["status"] == "RECEIVED" else ("🚨 EM ATRASO" if r["status"] == "OVERDUE" else "⏳ PENDENTE")
+        lines.append(f"| `{r['rule_id']}` | {r['department'].capitalize()} | {r['document_type'].upper()} | {badge} | {r['found_count']} | {r['expected_by']} | {r['message']} |")
+
+    content = "\n".join(lines)
+    out_dir = Path("/opt/plx-documentos/app/evidence")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    report_file = out_dir / f"checklist-report-{competence}-pilot.md"
+    report_file.write_text(content, encoding="utf-8")
+    print(f"\n📄 Relatório gravado com sucesso em: {report_file}")
+    
+    # Notificação Executiva Telegram
+    import urllib.request
+    TELEGRAM_BOT_TOKEN = "8804569791:AAGpM7pVP7TAySQNPUUr7Ch0cle-yJMVLk0"
+    ADMIN_USER_ID = "6485261630"
+    summary_tg = (
+        f"📊 *FECHAMENTO CONTÁBIL M02B (MODO PILOTO ATIVO)*\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"📅 *Competência:* {competence}\n"
+        f"🏢 *Grupo:* Homologação PLX Contábil\n\n"
+        f"📈 *Conformidade Geral:* {compliance_rate:.1f}%\n"
+        f"✅ *Documentos Entregues:* {received}/{total}\n"
+        f"🚨 *Faltantes em Atraso:* {overdue}\n"
+        f"⏳ *Pendentes no Prazo:* {pending}\n\n"
+        f"⚡ *Modo Piloto Ativo:* Lembretes e conciliação em tempo real habilitados."
+    )
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        data = json.dumps({"chat_id": ADMIN_USER_ID, "text": summary_tg, "parse_mode": "Markdown"}).encode("utf-8")
+        req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+        urllib.request.urlopen(req, timeout=10)
+        print("📨 Resumo do Fechamento despachado para o Telegram do Francisco!")
+    except Exception as e:
+        print(f"Aviso envio Telegram: {e}")
+
+    return content
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "shadow-run"
     comp = sys.argv[2] if len(sys.argv) > 2 else "2026-10"
+    grp = sys.argv[3] if len(sys.argv) > 3 else "120363430175893546@g.us"
     
     if cmd == "seed":
-        seed_default_rules()
+        seed_default_rules(grp)
     elif cmd == "materialize":
-        materialize(comp)
+        materialize(comp, grp)
     elif cmd == "reconcile":
-        reconcile(comp)
+        reconcile(comp, grp)
     elif cmd == "report":
-        report(comp)
+        report(comp, grp)
     elif cmd == "shadow-run":
-        seed_default_rules()
-        materialize(comp)
-        report(comp)
+        seed_default_rules(grp)
+        materialize(comp, grp)
+        report(comp, grp)
+    elif cmd == "pilot-activate":
+        activate_pilot(grp, enable=True)
+    elif cmd == "pilot-run":
+        pilot_run(comp, grp)
+    elif cmd == "shadow-rollback":
+        activate_pilot(grp, enable=False)
     else:
-        print("Uso: python3 plx_checklist_engine.py [seed|materialize|reconcile|report|shadow-run] [competencia]")
+        print("Uso: python3 plx_checklist_engine.py [seed|materialize|reconcile|report|shadow-run|pilot-activate|pilot-run|shadow-rollback] [competencia] [group_id]")
+

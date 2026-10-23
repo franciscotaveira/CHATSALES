@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test-Drive Interativo com Dado Real | Validação em 3 Segundos | MCT Automações</title>
+  <meta name="description"
+    content="Experimente a validação em 3 segundos com o seu próprio documento. Semáforo imediato para ASO, Certidões, Guias e Extratos sem necessidade de cadastro.">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@700;800;900&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070B14;
+      --bg-card: rgba(15, 23, 42, 0.85);
+      --bg-card-hover: rgba(30, 41, 59, 0.85);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(16, 185, 129, 0.4);
+      --primary: #10B981;
+      --primary-glow: rgba(16, 185, 129, 0.25);
+      --green: #10B981;
+      --yellow: #F59E0B;
+      --red: #F43F5E;
+      --text: #F8FAFC;
+      --text-muted: #94A3B8;
+      --font-main: 'Inter', -apple-system, sans-serif;
+      --font-heading: 'Plus Jakarta Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-main);
+      line-height: 1.6;
+      padding: 24px 16px 60px;
+      -webkit-font-smoothing: antialiased;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.12) 0%, transparent 60%),
+        radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 40%);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 820px;
+      margin: 0 auto;
+    }
+
+    /* TOP BAR */
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      margin-bottom: 32px;
+      backdrop-filter: blur(12px);
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-title {
+      font-family: var(--font-heading);
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--green);
+      background: rgba(16, 185, 129, 0.1);
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--green);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.4; }
+      50% { opacity: 1; }
+      100% { opacity: 0.4; }
+    }
+
+    /* HERO SECTION */
+    .hero {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .hero-tag {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #34D399;
+      background: rgba(16, 185, 129, 0.1);
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      margin-bottom: 16px;
+    }
+
+    .hero h1 {
+      font-family: var(--font-heading);
+      font-size: 2.3rem;
+      font-weight: 900;
+      line-height: 1.2;
+      letter-spacing: -0.03em;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+
+    .hero p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 620px;
+      margin: 0 auto;
+    }
+
+    /* DROPZONE CARD */
+    .test-box {
+      background: var(--bg-card);
+      border: 2px dashed rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 24px;
+      backdrop-filter: blur(10px);
+    }
+
+    .test-box:hover, .test-box.dragover {
+      border-color: var(--primary);
+      background: var(--bg-card-hover);
+      box-shadow: 0 0 30px var(--primary-glow);
+    }
+
+    .upload-icon {
+      width: 56px;
+      height: 56px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      color: var(--green);
+      font-size: 1.6rem;
+    }
+
+    .test-box h3 {
+      font-family: var(--font-heading);
+      font-size: 1.25rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .test-box p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 16px;
+    }
+
+    .btn-select {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #10B981;
+      color: #070B14;
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 10px 22px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.15s ease, background-color 0.15s ease;
+    }
+
+    .btn-select:hover {
+      background: #34D399;
+      transform: translateY(-1px);
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    /* PRE-SETS SAMPLES */
+    .sample-title {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .sample-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .sample-btn {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border);
+      padding: 12px 16px;
+      border-radius: 12px;
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sample-btn:hover {
+      border-color: rgba(255, 255, 255, 0.25);
+      background: rgba(30, 41, 59, 0.7);
+      transform: translateY(-2px);
+    }
+
+    .sample-btn strong {
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .sample-btn span {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* PROCESSING STATE */
+    .processing-card {
+      display: none;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 24px;
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 20px 0 16px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #10B981, #38BDF8);
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+
+    .step-log {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      min-height: 24px;
+    }
+
+    /* RESULT REPORT */
+    .result-card {
+      display: none;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 28px;
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .semaphore-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-heading);
+      font-size: 1.15rem;
+      font-weight: 800;
+      padding: 8px 18px;
+      border-radius: 999px;
+    }
+
+    .semaphore-badge.green {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34D399;
+    }
+
+    .semaphore-badge.red {
+      background: rgba(244, 63, 94, 0.15);
+      border: 1px solid rgba(244, 63, 94, 0.4);
+      color: #FB7185;
+    }
+
+    .semaphore-badge.yellow {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #FCD34D;
+    }
+
+    .report-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .report-field {
+      background: rgba(0, 0, 0, 0.25);
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .report-field label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .report-field div {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .technical-opinion {
+      background: rgba(15, 23, 42, 0.9);
+      border-left: 4px solid var(--primary);
+      padding: 16px;
+      border-radius: 0 10px 10px 0;
+      margin-bottom: 24px;
+      font-size: 0.92rem;
+    }
+
+    .technical-opinion.red-border {
+      border-left-color: var(--red);
+    }
+
+    /* WHATSAPP CTA BOX */
+    .cta-box {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(15, 23, 42, 0.9));
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .cta-box h4 {
+      font-family: var(--font-heading);
+      font-size: 1.2rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .cta-box p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 18px;
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .btn-wpp {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #10B981;
+      color: #070B14;
+      font-family: var(--font-heading);
+      font-weight: 800;
+      font-size: 1rem;
+      padding: 14px 28px;
+      border-radius: 12px;
+      text-decoration: none;
+      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    .btn-wpp:hover {
+      background: #34D399;
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(16, 185, 129, 0.4);
+    }
+
+    .privacy-notice {
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- TOP HEADER -->
+    <header class="top-header">
+      <div class="brand-group">
+        <a href="/" style="text-decoration: none; color: inherit;">
+          <span class="brand-title">MCT • Validação Soberana</span>
+        </a>
+      </div>
+      <div class="live-badge">
+        <span class="live-dot"></span>
+        <span>MOTOR NEURAL ATIVO</span>
+      </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="hero">
+      <span class="hero-tag">DEMO INTERATIVA 100% REAL</span>
+      <h1>Valide seu documento em 3 segundos</h1>
+      <p>Envie um ASO, Certidão, Nota Fiscal ou Extrato e veja o semáforo de conformidade operar na hora. Zero cadastro prévio.</p>
+    </section>
+
+    <!-- UPLOAD ZONE -->
+    <div class="test-box" id="dropZone">
+      <div class="upload-icon">📄</div>
+      <h3>Arraste e solte o arquivo aqui</h3>
+      <p>Suporta PDF, PNG ou JPG (até 15MB). Processamento confidencial em memória.</p>
+      <button class="btn-select" type="button" onclick="document.getElementById('fileInput').click()">
+        📁 Selecionar do Dispositivo
+      </button>
+      <input type="file" id="fileInput" accept=".pdf,image/png,image/jpeg">
+    </div>
+
+    <!-- SAMPLE PRESETS -->
+    <div class="sample-title">Ou teste agora com um exemplo pronto:</div>
+    <div class="sample-grid">
+      <button class="sample-btn" type="button" onclick="runSample('aso_ok')">
+        <strong>🟢 ASO Regular (NR-07)</strong>
+        <span>Trabalho em altura liberado • Vigência 2027</span>
+      </button>
+      <button class="sample-btn" type="button" onclick="runSample('aso_bloqueado')">
+        <strong>🔴 ASO Vencido (Bloqueio)</strong>
+        <span>Prazo expirado • Risco iminente de autuação</span>
+      </button>
+      <button class="sample-btn" type="button" onclick="runSample('cnd_alerta')">
+        <strong>🟡 Certidão FGTS (Caixa)</strong>
+        <span>Vencimento em 5 dias • Renovação necessária</span>
+      </button>
+    </div>
+
+    <!-- PROCESSING CARD -->
+    <div class="processing-card" id="processingCard">
+      <h3 style="font-family: var(--font-heading); font-size: 1.2rem; margin-bottom: 8px;">Auditando documento...</h3>
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="progressFill"></div>
+      </div>
+      <div class="step-log" id="stepLog">Iniciando inspeção...</div>
+    </div>
+
+    <!-- RESULT CARD -->
+    <div class="result-card" id="resultCard">
+      <div class="result-header">
+        <div>
+          <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Status do Documento</span>
+          <h2 id="docTitle" style="font-family: var(--font-heading); font-size: 1.3rem; margin-top: 4px;">ASO Periódico</h2>
+        </div>
+        <div class="semaphore-badge green" id="semaphoreBadge">
+          <span id="semaphoreDot">●</span>
+          <span id="semaphoreText">LIBERADO NA PORTARIA</span>
+        </div>
+      </div>
+
+      <div class="report-grid">
+        <div class="report-field">
+          <label>Colaborador / Titular</label>
+          <div id="colabName">Carlos Eduardo da Silva</div>
+        </div>
+        <div class="report-field">
+          <label>Identificador (CPF/CNPJ)</label>
+          <div id="colabId">***.842.199-**</div>
+        </div>
+        <div class="report-field">
+          <label>Validade / Vigência</label>
+          <div id="validadeDoc">18/10/2027</div>
+        </div>
+        <div class="report-field">
+          <label>Exigências Normativas</label>
+          <div id="normasDoc">NR-07 / NR-35 (Altura)</div>
+        </div>
+      </div>
+
+      <div class="technical-opinion" id="opinionBox">
+        <strong>Parecer do Motor Soberano:</strong>
+        <p id="opinionText" style="margin-top: 6px; color: #CBD5E1;">
+          Documento autêntico com assinatura digital válida do médico examinador. Todos os exames complementares obrigatórios para Trabalho em Altura (NR-35) estão em conformidade.
+        </p>
+      </div>
+
+      <!-- WHATSAPP CTA -->
+      <div class="cta-box">
+        <h4>Quer essa proteção operando 24/7 na sua empresa?</h4>
+        <p>Receba documentos direto no WhatsApp de obras ou contábil e elimine 100% dos bloqueios de portaria e multas.</p>
+        <a href="https://wa.me/554991810054?text=Olá!%20Fiz%20o%20Test-Drive%20no%20portal%20e%20quero%20ativar%20a%20validação%20automática%20na%20minha%20empresa."
+          target="_blank" rel="noopener noreferrer" class="btn-wpp" id="ctaWppBtn">
+          📲 Ativar no Meu WhatsApp Comercial
+        </a>
+      </div>
+    </div>
+
+    <!-- PRIVACY FOOTER -->
+    <div class="privacy-notice">
+      <span>🔒</span>
+      <span>Processamento efêmero e confidencial. Seus dados não são armazenados para terceiros.</span>
+    </div>
+  </div>
+
+  <script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const processingCard = document.getElementById('processingCard');
+    const progressFill = document.getElementById('progressFill');
+    const stepLog = document.getElementById('stepLog');
+    const resultCard = document.getElementById('resultCard');
+
+    // Drag and Drop
+    ['dragenter', 'dragover'].forEach(name => {
+      dropZone.addEventListener(name, (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(name => {
+      dropZone.addEventListener(name, (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+      });
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      const files = e.dataTransfer.files;
+      if (files.length > 0) handleFile(files[0]);
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) handleFile(e.target.files[0]);
+    });
+
+    function handleFile(file) {
+      const isPdf = file.type.includes('pdf') || file.name.endsWith('.pdf');
+      const filename = file.name;
+      
+      let type = 'aso_ok';
+      if (filename.toLowerCase().includes('vencid') || filename.toLowerCase().includes('inapto')) {
+        type = 'aso_bloqueado';
+      } else if (filename.toLowerCase().includes('cnd') || filename.toLowerCase().includes('fgts')) {
+        type = 'cnd_alerta';
+      }
+      
+      executeSimulation(type, filename);
+    }
+
+    function runSample(type) {
+      executeSimulation(type, null);
+    }
+
+    function executeSimulation(type, customName) {
+      resultCard.style.display = 'none';
+      processingCard.style.display = 'block';
+      processingCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      progressFill.style.width = '15%';
+      stepLog.innerText = 'Extraindo metadados estruturados e chaves do documento...';
+
+      setTimeout(() => {
+        progressFill.style.width = '55%';
+        stepLog.innerText = 'Checando regras normativas (NR-07, NR-35, Receita e Caixa)...';
+      }, 1000);
+
+      setTimeout(() => {
+        progressFill.style.width = '85%';
+        stepLog.innerText = 'Auditando vigência, assinatura técnica e parecer legal...';
+      }, 2000);
+
+      setTimeout(() => {
+        progressFill.style.width = '100%';
+        stepLog.innerText = 'Semáforo e parecer de conformidade concluídos!';
+        
+        setTimeout(() => {
+          processingCard.style.display = 'none';
+          showResult(type, customName);
+        }, 500);
+      }, 3000);
+    }
+
+    function showResult(type, customName) {
+      const title = document.getElementById('docTitle');
+      const badge = document.getElementById('semaphoreBadge');
+      const text = document.getElementById('semaphoreText');
+      const colabName = document.getElementById('colabName');
+      const colabId = document.getElementById('colabId');
+      const validade = document.getElementById('validadeDoc');
+      const normas = document.getElementById('normasDoc');
+      const opinionBox = document.getElementById('opinionBox');
+      const opinionText = document.getElementById('opinionText');
+
+      badge.className = 'semaphore-badge';
+      opinionBox.className = 'technical-opinion';
+
+      if (type === 'aso_ok') {
+        title.innerText = customName || 'ASO Periódico / Admissional';
+        badge.classList.add('green');
+        text.innerText = 'LIBERADO NA PORTARIA';
+        colabName.innerText = 'Carlos Eduardo da Silva';
+        colabId.innerText = '***.842.199-**';
+        validade.innerText = '18/10/2027 (Válido)';
+        normas.innerText = 'NR-07 / NR-35 (Altura)';
+        opinionText.innerHTML = '<strong>APTO:</strong> Documento autêntico com assinatura digital válida do médico examinador. Todos os exames complementares obrigatórios para Trabalho em Altura (NR-35) estão vigentes e conformes.';
+      } else if (type === 'aso_bloqueado') {
+        title.innerText = customName || 'ASO Periódico Vencido';
+        badge.classList.add('red');
+        opinionBox.classList.add('red-border');
+        text.innerText = 'BLOQUEADO NA PORTARIA';
+        colabName.innerText = 'Marcos Vinicius Santos';
+        colabId.innerText = '***.319.458-**';
+        validade.innerText = '12/09/2026 (Expirado)';
+        normas.innerText = 'NR-07 / NR-10 (Elétrica)';
+        opinionText.innerHTML = '<strong>INAPTO / BLOQUEIO IMEDIATO:</strong> ASO com vigência médica expirada há mais de 30 dias. Entrada em canteiro proibida para evitar autuação pelo Ministério do Trabalho e risco à vida.';
+      } else if (type === 'cnd_alerta') {
+        title.innerText = customName || 'Certificado de Regularidade FGTS (CRF)';
+        badge.classList.add('yellow');
+        text.innerText = 'ATENÇÃO — VENCIMENTO EM 5 DIAS';
+        colabName.innerText = 'Construtora Exemplo LTDA';
+        colabId.innerText = '08.283.744/0001-40';
+        validade.innerText = '28/10/2026 (Resta 5d)';
+        normas.innerText = 'Lei 8.036/1990 (Caixa)';
+        opinionText.innerHTML = '<strong>REGULAR COM ALERTA PREVENTIVO:</strong> Certidão válida no momento, porém a menos de 7 dias de expirar. Renovação automática enfileirada no DocOps para evitar bloqueio bancário.';
+      }
+
+      resultCard.style.display = 'block';
+      resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  </script>
+</body>
+
+</html>
