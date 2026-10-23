@@ -177,6 +177,86 @@ def handle_checklist_m02b():
         return f"❌ Erro ao rodar M02B:\n`{res.stderr.strip()}`"
     return f"📋 *AUDITORIA CONTÁBIL M02B EXECUTADA!*\n\n```\n{res.stdout.strip()[:1500]}\n```"
 
+def handle_licitacoes():
+    cmd = ["python3", str(BASE_DIR / "mct_pncp_radar.py")]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    if res.returncode != 0:
+        return f"❌ Erro no Radar PNCP:\n`{res.stderr.strip()}`"
+    return res.stdout.strip()
+
+def handle_conciliar():
+    cmd = ["python3", str(BASE_DIR / "mct_ofx_conciliator.py")]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    if res.returncode != 0:
+        return f"❌ Erro na Conciliação OFX:\n`{res.stderr.strip()}`"
+    return res.stdout.strip()
+
+def handle_doacao(text):
+    # Formato: /doacao [Doador] | [CPF] | [Valor] | [Finalidade]
+    raw = text.replace("/doacao", "").strip()
+    parts = [p.strip() for p in raw.split("|")]
+    if len(parts) < 3 or not parts[0] or not parts[1] or not parts[2]:
+        return (
+            "⚠️ *Formato inválido.*\n"
+            "Use: `/doacao [Doador] | [CPF] | [Valor] | [Finalidade]`\n\n"
+            "*Exemplo:*\n"
+            "`/doacao Marcos Aurelio Silveira | 045.892.119-40 | 1250.00 | Dízimo`"
+        )
+    doador = parts[0]
+    cpf = parts[1]
+    try:
+        valor = float(parts[2].replace("R$", "").replace(".", "").replace(",", ".").strip())
+    except ValueError:
+        return "❌ Valor numérico inválido para a doação."
+    finalidade = parts[3] if len(parts) > 3 and parts[3] else "Dízimo"
+
+    cmd = [
+        "python3", str(BASE_DIR / "mct_terceiro_setor_engine.py"), "emitir",
+        "--doador", doador, "--cpf", cpf, "--valor", str(valor), "--finalidade", finalidade
+    ]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    if res.returncode != 0:
+        return f"❌ Erro ao emitir recibo do Terceiro Setor:\n`{res.stderr.strip()}`"
+    
+    try:
+        import mct_terceiro_setor_engine
+        data = json.loads(res.stdout.split("[OK]")[0].strip())
+        return mct_terceiro_setor_engine.formatar_recibo_telegram(data)
+    except Exception:
+        return f"📜 *RECIBO EMITIDO COM SUCESSO!*\n\n{res.stdout.strip()}"
+
+def handle_livro_caixa(text):
+    mes = text.replace("/livrocaixa", "").strip() or None
+    cmd = ["python3", str(BASE_DIR / "mct_terceiro_setor_engine.py"), "livro-caixa"]
+    if mes:
+        cmd.extend(["--mes", mes])
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    if res.returncode != 0:
+        return f"❌ Erro ao consultar Livro Caixa:\n`{res.stderr.strip()}`"
+    try:
+        import mct_terceiro_setor_engine
+        data = json.loads(res.stdout.strip())
+        return mct_terceiro_setor_engine.formatar_livro_caixa_telegram(data)
+    except Exception:
+        return res.stdout.strip()
+
+def handle_frotas():
+    cmd = ["python3", str(BASE_DIR / "mct_frotas_nic_sentinel.py"), "auditar"]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    if res.returncode != 0:
+        return f"❌ Erro na Sentinela de Frotas:\n`{res.stderr.strip()}`"
+    return res.stdout.strip()
+
+def handle_fici(text):
+    placa = text.replace("/fici", "").strip()
+    if not placa:
+        return "⚠️ Informe a placa do veículo: `/fici <PLACA>` (Ex: `/fici RLG4E12`)"
+    cmd = ["python3", str(BASE_DIR / "mct_frotas_nic_sentinel.py"), "fici", "--placa", placa]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    if res.returncode != 0:
+        return f"❌ Erro ao gerar FICI:\n`{res.stderr.strip()}`"
+    return f"```\n{res.stdout.strip()}\n```"
+
 def ask_nemotron_brain(prompt):
     """Consulta o modelo NVIDIA Nemotron-3 Ultra 550B para raciocínio e tomada de decisão."""
     url = "https://integrate.api.nvidia.com/v1/chat/completions"
@@ -223,20 +303,56 @@ def process_command(chat_id, user_id, text):
     if cmd in ["/start", "/help", "/ajuda"]:
         msg = (
             "🤖 *TAVIBOT — SECRETÁRIO EXECUTIVO MCT SOBERANO*\n"
-            "Central de comando da Mothership VPS, n8n, Google Drive e Nemotron 550B.\n\n"
-            "📌 *Comandos Rápidos:*\n"
-            "• `/provisionar <dados>` — Provisionamento Zero-Touch multi-tenant (<15s)\n"
+            "Central de comando da Mothership VPS, n8n, Google Drive e Motores Soberanos.\n\n"
+            "🏛️ *Mercados Ocultos & B2G:*\n"
+            "• `/licitacoes` — Radar PNCP de Compras Públicas SC com auditoria de CNDs\n"
+            "• `/conciliar` — Conciliador de extratos bancários OFX contra NF-e (DocOps M02C)\n"
+            "• `/doacao <dados>` — Emissão de recibo com CPF, SHA-256 e PDF para Igrejas/ONGs\n"
+            "• `/livrocaixa` — Extrato e saldo contábil do Terceiro Setor (Art. 150 CF)\n"
+            "• `/frotas` — Sentinela de infrações PJ e prevenção de Multa NIC (Art. 257 CTB)\n"
+            "• `/fici <placa>` — Formulário FICI pré-preenchido de indicação de condutor\n\n"
+            "📌 *Comandos Operacionais:*\n"
             "• `/cnd` — Sentinela autônoma de CNDs (FGTS, CNDT e Federal)\n"
+            "• `/provisionar <dados>` — Provisionamento Zero-Touch multi-tenant (<15s)\n"
             "• `/vps` — Saúde de hardware, memória, disco e 17 containers\n"
             "• `/workflows` — Monitora os fluxos do n8n na VPS\n"
             "• `/auditoria` — Auditoria de portaria de obras (SST / ASO)\n"
             "• `/m02b` — Reconciliação do fechamento contábil e faltantes\n"
             "• `/drive` — Link master das pastas no Google Drive\n"
             "• `/briefing` — Relatório executivo consolidado agora\n\n"
-            "💬 *Perguntas e Ordens em Linguagem Natural:*\n"
+            "💬 *Perguntas em Linguagem Natural:*\n"
             "Você pode falar comigo diretamente sobre qualquer tema da operação! O cérebro do NVIDIA Nemotron 550B responde na hora."
         )
         send_message(chat_id, msg)
+
+    elif cmd in ["/licitacoes", "/pncp"]:
+        send_message(chat_id, "📡 *Consultando API oficial do PNCP e auditando CNDs em Santa Catarina...*")
+        reply = handle_licitacoes()
+        send_message(chat_id, reply)
+
+    elif cmd == "/conciliar":
+        send_message(chat_id, "🏦 *Executando conciliação de extratos OFX contra notas fiscais...*")
+        reply = handle_conciliar()
+        send_message(chat_id, reply)
+
+    elif cmd.startswith("/doacao"):
+        send_message(chat_id, "📜 *Processando doação, assinando com SHA-256 e gerando PDF formal...*")
+        reply = handle_doacao(text)
+        send_message(chat_id, reply)
+
+    elif cmd.startswith("/livrocaixa"):
+        send_message(chat_id, "📖 *Consultando Livro Caixa do Terceiro Setor...*")
+        reply = handle_livro_caixa(text)
+        send_message(chat_id, reply)
+
+    elif cmd == "/frotas":
+        send_message(chat_id, "🚛 *Varrendo autuações de veículos PJ e calculando prazo para Multa NIC...*")
+        reply = handle_frotas()
+        send_message(chat_id, reply)
+
+    elif cmd.startswith("/fici"):
+        reply = handle_fici(text)
+        send_message(chat_id, reply)
 
     elif cmd == "/vps":
         send_message(chat_id, get_vps_status())

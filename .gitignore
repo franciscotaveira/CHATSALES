@@ -65,3 +65,8 @@ emergency_backups/
 
 docs/construcao-guiada/laboratorio/backups/
 docs/construcao-guiada/evidencias/
+
+# Python caches and local data
+__pycache__/
+*.py[cod]
+scripts/data/

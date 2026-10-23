@@ -485,11 +485,11 @@
     <div class="test-box" id="dropZone">
       <div class="upload-icon">📄</div>
       <h3>Arraste e solte o arquivo aqui</h3>
-      <p>Suporta PDF, PNG ou JPG (até 15MB). Processamento confidencial em memória.</p>
+      <p>Suporta PDF, XML de NF-e, PNG ou JPG (até 15MB). Processamento confidencial em memória.</p>
       <button class="btn-select" type="button" onclick="document.getElementById('fileInput').click()">
         📁 Selecionar do Dispositivo
       </button>
-      <input type="file" id="fileInput" accept=".pdf,image/png,image/jpeg">
+      <input type="file" id="fileInput" accept=".pdf,.xml,image/png,image/jpeg">
     </div>
 
     <!-- SAMPLE PRESETS -->
@@ -506,6 +506,10 @@
       <button class="sample-btn" type="button" onclick="runSample('cnd_alerta')">
         <strong>🟡 Certidão FGTS (Caixa)</strong>
         <span>Vencimento em 5 dias • Renovação necessária</span>
+      </button>
+      <button class="sample-btn" type="button" onclick="runSample('nfe_monofasico')">
+        <strong>⚡ XML NF-e (Monofásicos)</strong>
+        <span>Autopeças no Simples • R$ 3.840 de crédito apurado</span>
       </button>
     </div>
 
@@ -612,7 +616,9 @@
       const filename = file.name;
       
       let type = 'aso_ok';
-      if (filename.toLowerCase().includes('vencid') || filename.toLowerCase().includes('inapto')) {
+      if (filename.toLowerCase().endsWith('.xml') || filename.toLowerCase().includes('nfe')) {
+        type = 'nfe_monofasico';
+      } else if (filename.toLowerCase().includes('vencid') || filename.toLowerCase().includes('inapto')) {
         type = 'aso_bloqueado';
       } else if (filename.toLowerCase().includes('cnd') || filename.toLowerCase().includes('fgts')) {
         type = 'cnd_alerta';
@@ -668,7 +674,17 @@
       badge.className = 'semaphore-badge';
       opinionBox.className = 'technical-opinion';
 
-      if (type === 'aso_ok') {
+      if (type === 'nfe_monofasico') {
+        title.innerText = customName || 'NF-e 4521 — Autopeças & Mecânica Chapecó';
+        badge.classList.add('green');
+        text.innerText = 'R$ 3.840,00 A RECUPERAR';
+        colabName.innerText = 'Auto Peças & Mecânica Chapecó LTDA';
+        colabId.innerText = '08.283.744/0001-40';
+        validade.innerText = 'Simples Nacional (Últimos 12 meses)';
+        normas.innerText = 'Lei 10.147/2000 (Monofásicos PIS/COFINS)';
+        opinionText.innerHTML = '<strong>CRÉDITOS TRIBUTÁRIOS IDENTIFICADOS:</strong> A nota contém 83.5% de itens monofásicos (pastilhas de freio, baterias e filtros de óleo NCM 8708/8507/8421) tributados integralmente sem segregação. Valor estimado passível de restituição via PER/DCOMP no e-CAC em até 60 dias.';
+        document.getElementById('ctaWppBtn').href = 'https://wa.me/554991810054?text=Olá!%20Fiz%20o%20Test-Drive%20com%20um%20XML%20e%20identifiquei%20créditos%20de%20PIS/COFINS%20monofásicos.%20Quero%20auditar%20minha%20empresa.';
+      } else if (type === 'aso_ok') {
         title.innerText = customName || 'ASO Periódico / Admissional';
         badge.classList.add('green');
         text.innerText = 'LIBERADO NA PORTARIA';
@@ -677,6 +693,7 @@
         validade.innerText = '18/10/2027 (Válido)';
         normas.innerText = 'NR-07 / NR-35 (Altura)';
         opinionText.innerHTML = '<strong>APTO:</strong> Documento autêntico com assinatura digital válida do médico examinador. Todos os exames complementares obrigatórios para Trabalho em Altura (NR-35) estão vigentes e conformes.';
+        document.getElementById('ctaWppBtn').href = 'https://wa.me/554991810054?text=Olá!%20Fiz%20o%20Test-Drive%20no%20portal%20e%20quero%20ativar%20a%20validação%20automática%20na%20minha%20empresa.';
       } else if (type === 'aso_bloqueado') {
         title.innerText = customName || 'ASO Periódico Vencido';
         badge.classList.add('red');
@@ -687,6 +704,7 @@
         validade.innerText = '12/09/2026 (Expirado)';
         normas.innerText = 'NR-07 / NR-10 (Elétrica)';
         opinionText.innerHTML = '<strong>INAPTO / BLOQUEIO IMEDIATO:</strong> ASO com vigência médica expirada há mais de 30 dias. Entrada em canteiro proibida para evitar autuação pelo Ministério do Trabalho e risco à vida.';
+        document.getElementById('ctaWppBtn').href = 'https://wa.me/554991810054?text=Olá!%20Fiz%20o%20Test-Drive%20no%20portal%20e%20quero%20ativar%20a%20validação%20automática%20na%20minha%20empresa.';
       } else if (type === 'cnd_alerta') {
         title.innerText = customName || 'Certificado de Regularidade FGTS (CRF)';
         badge.classList.add('yellow');
@@ -696,6 +714,7 @@
         validade.innerText = '28/10/2026 (Resta 5d)';
         normas.innerText = 'Lei 8.036/1990 (Caixa)';
         opinionText.innerHTML = '<strong>REGULAR COM ALERTA PREVENTIVO:</strong> Certidão válida no momento, porém a menos de 7 dias de expirar. Renovação automática enfileirada no DocOps para evitar bloqueio bancário.';
+        document.getElementById('ctaWppBtn').href = 'https://wa.me/554991810054?text=Olá!%20Fiz%20o%20Test-Drive%20no%20portal%20e%20quero%20ativar%20a%20validação%20automática%20na%20minha%20empresa.';
       }
 
       resultCard.style.display = 'block';
