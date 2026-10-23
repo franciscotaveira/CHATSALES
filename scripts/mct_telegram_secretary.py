@@ -409,6 +409,21 @@ def handle_monofasicos():
         
     return f"💰 *AUDITORIA DE MONOFÁSICOS:*\n\n```\n{res.stdout.strip()[:1500]}\n```"
 
+def handle_cnpj(text):
+    raw = text.replace("/empresa", "").replace("/cnpj", "").strip()
+    if not raw:
+        return (
+            "⚠️ *Informe o CNPJ para auditoria 360º.*\n"
+            "Use: `/cnpj 00.000.000/0001-91`\n\n"
+            "*Exemplo real:*\n"
+            "`/cnpj 00000000000191`"
+        )
+    cmd = ["python3", str(BASE_DIR / "mct_cross_data_engine.py"), "empresa", raw]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    if res.returncode != 0:
+        return f"❌ Erro ao auditar CNPJ:\n`{res.stderr.strip()}`"
+    return res.stdout.strip()
+
 def handle_doacao(text):
     # Formato: /doacao [Doador] | [CPF] | [Valor] | [Finalidade]
     raw = text.replace("/doacao", "").strip()
@@ -517,9 +532,12 @@ def get_master_panel_inline_keyboard():
                 {"text": "📋 Fechamento M02B", "callback_data": "panel_m02b"},
                 {"text": "🤖 Modelo Hermes IA", "callback_data": "panel_modelo"}
             ],
-            # Bloco 6: Atalhos Rápidos & Repositório
+            # Bloco 6: Consultas 360º & Atalhos
             [
-                {"text": "📜 Emitir Recibo", "callback_data": "panel_form_doacao"},
+                {"text": "🔍 Dossiê CNPJ 360º", "callback_data": "panel_form_cnpj"},
+                {"text": "📜 Emitir Recibo", "callback_data": "panel_form_doacao"}
+            ],
+            [
                 {"text": "📋 Formulário FICI", "callback_data": "panel_form_fici"},
                 {"text": "🖥️ VPS Status", "callback_data": "panel_vps"},
                 {"text": "📁 Drive Master", "callback_data": "panel_drive"}
@@ -654,6 +672,19 @@ def process_callback(chat_id, user_id, data, message_id):
         )
         edit_message_text(chat_id, message_id, txt, reply_markup=back_kb)
 
+    elif data == "panel_form_cnpj":
+        txt = (
+            "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n"
+            "┃  🔍 *CONSULTA DOSSIÊ CNPJ 360º*     ┃\n"
+            "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n\n"
+            "Para auditar qualquer empresa em tempo real (Receita Federal + CNDs + Potencial PIS/COFINS Monofásico), envie:\n\n"
+            "`/cnpj <NUMERO_CNPJ>`\n\n"
+            "*Exemplo real:*\n"
+            "`/cnpj 00.000.000/0001-91`\n\n"
+            "💡 *Meta-REA:* Cruzamento automático BrasilAPI + CND Sentinel."
+        )
+        edit_message_text(chat_id, message_id, txt, reply_markup=back_kb)
+
     elif data == "panel_drive":
         txt = (
             "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n"
@@ -726,6 +757,12 @@ def process_command(chat_id, user_id, text):
     elif cmd in ["/monofasicos", "/pis", "/cofins"] or text in ["💰 PIS/COFINS Monofásico", "💰 PIS/COFINS", "💰 pis/cofins", "💰 monofasicos"]:
         send_message(chat_id, "💰 *Auditando XMLs de notas fiscais para PIS/COFINS Monofásicos...*")
         reply = handle_monofasicos()
+        send_message(chat_id, reply, reply_markup=back_kb)
+
+    # 5.1. Dossiê CNPJ 360º (Meta-REA Cross-Data)
+    elif cmd.startswith("/cnpj") or cmd.startswith("/empresa"):
+        send_message(chat_id, "🔍 *Consultando BrasilAPI e gerando Dossiê 360º com Meta-REA...*")
+        reply = handle_cnpj(text)
         send_message(chat_id, reply, reply_markup=back_kb)
 
     # 6. Sentinela de Frotas & NIC

@@ -8,6 +8,7 @@ MCT OS v2.0 | Francisco Rios | Chapecó, SC
 
 import os
 import sys
+import re
 import json
 import datetime
 import urllib.request
@@ -117,6 +118,9 @@ def fetch_pncp_opportunities(days_back=3, uf_filter="SUL", keywords=None, modali
                     
                     opportunities.append({
                         "orgao": razao_orgao,
+                        "cnpj": cnpj_orgao,
+                        "ano": ano,
+                        "seq": seq,
                         "municipio": f"{municipio}/{uf}",
                         "uf": uf.upper(),
                         "modalidade": modalidade_nome,
@@ -195,6 +199,20 @@ def generate_radar_report(uf="SUL", custom_keywords=None):
     lines.append("💡 *Engenharia B2G:* Use `/leiloes` para ver leilões governamentais de frotas e bens.")
     return "\n".join(lines)
 
+def fetch_pncp_arquivos(cnpj, ano, seq):
+    """Consulta os arquivos oficiais anexados ao edital no PNCP."""
+    if not (cnpj and ano and seq):
+        return []
+    clean_cnpj = re.sub(r"\D", "", str(cnpj))
+    url = f"https://pncp.gov.br/api/pncp/v1/orgaos/{clean_cnpj}/compras/{ano}/{seq}/arquivos"
+    req = urllib.request.Request(url, headers={"User-Agent": "MCT-Sovereign-OS/2.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            data = json.loads(resp.read().decode())
+            return data if isinstance(data, list) else []
+    except Exception:
+        return []
+
 def generate_leiloes_report(uf="SUL"):
     """
     Relatório executivo especializado em Leilões Públicos e Arbitragem de Bens Inservíveis.
@@ -228,12 +246,17 @@ def generate_leiloes_report(uf="SUL"):
         resumo_obj = l['objeto'][:140] + ("..." if len(l['objeto']) > 140 else "")
         valor_fmt = f"R$ {l['valor']:,.2f}" if l['valor'] > 0 else "Valor de avaliação no edital"
         
+        arqs = fetch_pncp_arquivos(l.get("cnpj"), l.get("ano"), l.get("seq"))
+        pdf_url = arqs[0].get("url") if arqs else None
+        pdf_line = f"│ 📄 [Baixar Edital & Anexos em PDF]({pdf_url})\n" if pdf_url else ""
+
         card = (
             f"┌ 🔨 *{l['orgao']}* ({l['municipio']})\n"
             f"│ 🏷️ *Modalidade:* Leilão Público (Art. 28, II Lei 14.133)\n"
             f"│ 💰 *Avaliação / Lance Mínimo:* `{valor_fmt}`\n"
             f"│ 📦 *Lote/Objeto:* _{resumo_obj}_\n"
             f"│ 📈 *Potencial:* Compra governamental com deságio patrimonial\n"
+            f"{pdf_line}"
             f"└ 🔗 [Acessar Lote & Regras do Leilão no PNCP]({l['link']})\n"
         )
         lines.append(card)
