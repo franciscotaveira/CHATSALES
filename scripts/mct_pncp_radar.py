@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-MCT Radar Soberano de Licitações & Dispensas Eletrônicas (PNCP)
-Monitoramento autônomo de compras governamentais da Lei 14.133/2021 com auditoria de CNDs
+MCT Radar Soberano de Licitações, Dispensas e Leilões PNCP (Lei 14.133/2021)
+Monitoramento B2G para Santa Catarina (SC), Paraná (PR) e Rio Grande do Sul (RS)
+Engenharia de Arbitragem em Leilões Públicos e Auditoria Preventiva de CNDs
 MCT OS v2.0 | Francisco Rios | Chapecó, SC
 """
 
@@ -33,25 +34,34 @@ ADMIN_USER_ID = os.environ.get("TELEGRAM_ADMIN_ID", "6485261630")
 
 PNCP_BASE_URL = "https://pncp.gov.br/api/consulta/v1/contratacoes/publicacao"
 
-# Catálogo padrão de interesse da MCT e empresas parceiras
+# Estados da Região Sul
+UFS_SUL = ["SC", "PR", "RS"]
+
+# Catálogo de interesse da MCT e parceiros
 KEYWORDS_PADRAO = [
     "reforma", "construcao", "eletric", "manutencao", "portaria", 
     "vigilancia", "software", "informatica", "transporte", "locacao", 
-    "material", "alimentacao", "limpeza", "engenharia"
+    "material", "alimentacao", "limpeza", "engenharia", "veiculo", "caminhao"
 ]
 
-def fetch_pncp_opportunities(days_back=2, uf_filter="SC", keywords=None):
+KEYWORDS_LEILAO = [
+    "veiculo", "caminhao", "trator", "maquina", "sucata", "imovel", 
+    "alienacao", "lote", "leilao", "frota", "equipamento", "pesada", "retro"
+]
+
+def fetch_pncp_opportunities(days_back=3, uf_filter="SUL", keywords=None, modalidades=None):
     if keywords is None:
         keywords = KEYWORDS_PADRAO
+    if modalidades is None:
+        modalidades = [8, 6] # 8 = Dispensa, 6 = Pregão
     
     today = datetime.date.today()
     start_date = (today - datetime.timedelta(days=days_back)).strftime("%Y%m%d")
     end_date = today.strftime("%Y%m%d")
     
-    # Código 8 = Dispensa de Licitação, Código 6 = Pregão Eletrônico
     opportunities = []
     
-    for modalidade in [8, 6]:
+    for modalidade in modalidades:
         url = f"{PNCP_BASE_URL}?dataInicial={start_date}&dataFinal={end_date}&codigoModalidadeContratacao={modalidade}&pagina=1"
         req = urllib.request.Request(url, headers={
             "User-Agent": "MCT-Sovereign-Radar/2.0 (Hostinger KVM 4)"
@@ -65,10 +75,16 @@ def fetch_pncp_opportunities(days_back=2, uf_filter="SC", keywords=None):
                     unidade = item.get("unidadeOrgao", {})
                     uf = unidade.get("ufSigla", "")
                     
-                    # Filtro por estado (SC preferencial, ou Sul se vazio)
-                    if uf_filter and uf.upper() != uf_filter.upper():
-                        continue
-                        
+                    # Filtro por estado: "SUL" (SC, PR, RS) ou estado específico
+                    if uf_filter:
+                        uf_up = uf_filter.upper()
+                        if uf_up in ["SUL", "TODOS"]:
+                            if uf.upper() not in UFS_SUL:
+                                continue
+                        else:
+                            if uf.upper() != uf_up:
+                                continue
+                                
                     objeto = item.get("objetoCompra", "")
                     objeto_lower = objeto.lower()
                     
@@ -81,7 +97,19 @@ def fetch_pncp_opportunities(days_back=2, uf_filter="SC", keywords=None):
                     razao_orgao = item.get("orgaoEntidade", {}).get("razaoSocial", "Órgão Público")
                     municipio = unidade.get("municipioNome", "N/D")
                     valor = item.get("valorTotalEstimado") or item.get("valorTotalHomologado") or 0.0
-                    modalidade_nome = "Dispensa Eletrônica" if modalidade == 8 else "Pregão Eletrônico"
+                    
+                    if modalidade == 8:
+                        modalidade_nome = "Dispensa Eletrônica"
+                        badge_tipo = "⚡ DISPENSA"
+                    elif modalidade == 6:
+                        modalidade_nome = "Pregão Eletrônico"
+                        badge_tipo = "🏷️ PREGÃO"
+                    elif modalidade == 7:
+                        modalidade_nome = "Leilão Público"
+                        badge_tipo = "🔨 LEILÃO"
+                    else:
+                        modalidade_nome = "Edital de Licitação"
+                        badge_tipo = "📋 EDITAL"
                     
                     ano = item.get("anoCompra")
                     seq = item.get("sequencialCompra")
@@ -90,7 +118,9 @@ def fetch_pncp_opportunities(days_back=2, uf_filter="SC", keywords=None):
                     opportunities.append({
                         "orgao": razao_orgao,
                         "municipio": f"{municipio}/{uf}",
+                        "uf": uf.upper(),
                         "modalidade": modalidade_nome,
+                        "badge": badge_tipo,
                         "objeto": objeto.strip(),
                         "valor": float(valor),
                         "palavras_chave": matched_kw,
@@ -104,40 +134,112 @@ def fetch_pncp_opportunities(days_back=2, uf_filter="SC", keywords=None):
     opportunities.sort(key=lambda x: x["valor"], reverse=True)
     return opportunities
 
-def generate_radar_report(uf="SC", custom_keywords=None):
-    opps = fetch_pncp_opportunities(days_back=3, uf_filter=uf, keywords=custom_keywords)
-    
-    # Checagem de CND preventiva para a empresa padrão
+def fetch_pncp_leiloes(days_back=15, uf_filter="SUL"):
+    """
+    Busca específica para Leilões Públicos (Modalidade 7 da Lei 14.133/2021)
+    Foco em veículos, frotas, maquinários pesados, sucatas e imóveis.
+    """
+    return fetch_pncp_opportunities(
+        days_back=days_back,
+        uf_filter=uf_filter,
+        keywords=KEYWORDS_LEILAO,
+        modalidades=[7]
+    )
+
+def generate_radar_report(uf="SUL", custom_keywords=None):
+    """
+    Relatório executivo de Licitações e Dispensas com Alta Ergonomia Visual (Card-Based).
+    """
+    uf_label = "Região Sul (SC • PR • RS)" if uf.upper() in ["SUL", "TODOS"] else f"Estado de {uf.upper()}"
+    opps = fetch_pncp_opportunities(days_back=4, uf_filter=uf, keywords=custom_keywords, modalidades=[8, 6])
     cnd = simulate_cnd_check("69.553.990/0001-91", "MCT LTDA")
     
     now_str = datetime.datetime.now().strftime("%d/%m/%Y às %H:%M")
+    
     lines = [
-        f"🏛️ *MCT RADAR B2G: LICITAÇÕES & DISPENSAS PNCP*",
-        f"📍 Estado: *{uf}* | Atualizado em: {now_str}",
-        "━━━━━━━━━━━━━━━━━━━━━━",
-        f"🛡️ *Status de Habilitação do CNPJ:*",
-        f"  • FGTS (Caixa): *{cnd['fgts']['status']}* (Validade: {cnd['fgts']['validade']})",
-        f"  • CNDT (Trabalhista): *{cnd['cndt']['status']}* (Validade: {cnd['cndt']['validade']})",
-        f"  • Receita Federal: *{cnd['receita_federal']['status']}* (Validade: {cnd['receita_federal']['validade']})",
-        "  👉 *Selo de Habilitação Imediata: REGULAR*",
-        "━━━━━━━━━━━━━━━━━━━━━━"
+        "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓",
+        "┃  📡 *RADAR B2G • LICITAÇÕES & DISPENSAS* ┃",
+        "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛",
+        f"📍 *Abrangência:* {uf_label}",
+        f"⏱️ *Varredura:* {now_str}",
+        "─────────────────────────────────────",
+        "🛡️ *Habilitação Preventiva (MCT LTDA):*",
+        f"├ Caixa FGTS: `{cnd['fgts']['status']}` ({cnd['fgts']['validade']})",
+        f"├ CNDT Trabalhista: `{cnd['cndt']['status']}` ({cnd['cndt']['validade']})",
+        f"└ Receita Federal: `{cnd['receita_federal']['status']}` ({cnd['receita_federal']['validade']})",
+        "👉 *Status Jurídico:* `🟢 APTO PARA HABILITAÇÃO IMEDIATA`",
+        "─────────────────────────────────────"
     ]
     
     if not opps:
-        # Fallback de demonstração com dados reais recentes se não houver registros nas últimas 24h
-        lines.append("\n💡 Nenhuma nova publicação encontrada nas últimas 48h para os filtros especificados.")
-        lines.append("Acompanhamento contínuo ativo via cron na VPS.")
+        lines.append("\n💡 *Nenhuma nova publicação encontrada nos últimos dias.*")
+        lines.append("_Dica: Experimente expandir o filtro para a Região Sul com `/licitacoes Sul`._")
         return "\n".join(lines)
         
-    lines.append(f"\n🎯 *Oportunidades em Destaque ({len(opps[:5])} de {len(opps)} encontradas):*\n")
+    lines.append(f"\n🎯 *Oportunidades em Destaque ({len(opps[:6])} de {len(opps)} encontradas):*\n")
     
-    for idx, op in enumerate(opps[:5], 1):
-        lines.append(f"*{idx}. {op['orgao']}* ({op['municipio']})")
-        lines.append(f"📦 *Objeto:* {op['objeto'][:160]}...")
-        lines.append(f"💰 *Valor:* R$ {op['valor']:,.2f} | *Tipo:* {op['modalidade']}")
-        lines.append(f"🔗 [Acessar Edital/Dispensa no PNCP]({op['link']})\n")
+    for idx, op in enumerate(opps[:6], 1):
+        resumo_obj = op['objeto'][:130] + ("..." if len(op['objeto']) > 130 else "")
+        valor_fmt = f"R$ {op['valor']:,.2f}" if op['valor'] > 0 else "Valor sob consulta"
         
-    lines.append("💡 _Todas as certidões estão aptas para habilitação imediata sem bloqueios._")
+        card = (
+            f"┌ {op['badge']} • *{op['orgao']}*\n"
+            f"│ 📍 *Local:* {op['municipio']}\n"
+            f"│ 💰 *Valor Estimado:* `{valor_fmt}`\n"
+            f"│ 📦 *Objeto:* _{resumo_obj}_\n"
+            f"└ 🔗 [Acessar Edital Oficial no PNCP]({op['link']})\n"
+        )
+        lines.append(card)
+        
+    lines.append("─────────────────────────────────────")
+    lines.append("💡 *Engenharia B2G:* Use `/leiloes` para ver leilões governamentais de frotas e bens.")
+    return "\n".join(lines)
+
+def generate_leiloes_report(uf="SUL"):
+    """
+    Relatório executivo especializado em Leilões Públicos e Arbitragem de Bens Inservíveis.
+    """
+    uf_label = "Região Sul (SC • PR • RS)" if uf.upper() in ["SUL", "TODOS"] else f"Estado de {uf.upper()}"
+    leiloes = fetch_pncp_leiloes(days_back=20, uf_filter=uf)
+    now_str = datetime.datetime.now().strftime("%d/%m/%Y às %H:%M")
+
+    lines = [
+        "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓",
+        "┃    🔨 *RADAR DE LEILÕES PÚBLICOS B2G*   ┃",
+        "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛",
+        "🎯 *Mercado Oculto de Alienação de Ativos Governamentais*",
+        f"📍 *Abrangência:* {uf_label}",
+        f"⏱️ *Atualizado em:* {now_str}",
+        "─────────────────────────────────────",
+        "💡 *Tese de Arbitragem MCT:*",
+        "> Aquisição com deságio de 30% a 70% sobre avaliação comercial.",
+        "> Foco em frotas municipais, caminhões, maquinário amarelo e sucatas.",
+        "─────────────────────────────────────"
+    ]
+
+    if not leiloes:
+        lines.append("\n💡 *Nenhum leilão público ativo encontrado na janela recente para esta região.*")
+        lines.append("Varredura diária mantida ativa na VPS.")
+        return "\n".join(lines)
+
+    lines.append(f"\n🏷️ *Lotes & Leilões Identificados ({len(leiloes[:5])} disponíveis):*\n")
+
+    for idx, l in enumerate(leiloes[:5], 1):
+        resumo_obj = l['objeto'][:140] + ("..." if len(l['objeto']) > 140 else "")
+        valor_fmt = f"R$ {l['valor']:,.2f}" if l['valor'] > 0 else "Valor de avaliação no edital"
+        
+        card = (
+            f"┌ 🔨 *{l['orgao']}* ({l['municipio']})\n"
+            f"│ 🏷️ *Modalidade:* Leilão Público (Art. 28, II Lei 14.133)\n"
+            f"│ 💰 *Avaliação / Lance Mínimo:* `{valor_fmt}`\n"
+            f"│ 📦 *Lote/Objeto:* _{resumo_obj}_\n"
+            f"│ 📈 *Potencial:* Compra governamental com deságio patrimonial\n"
+            f"└ 🔗 [Acessar Lote & Regras do Leilão no PNCP]({l['link']})\n"
+        )
+        lines.append(card)
+
+    lines.append("─────────────────────────────────────")
+    lines.append("📲 _Para cadastrar clientes arrematantes, acione o Tavibot com o comando correspondente._")
     return "\n".join(lines)
 
 def send_telegram(text):
@@ -160,10 +262,23 @@ def send_telegram(text):
         return False
 
 if __name__ == "__main__":
-    uf_arg = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith("--") else "SC"
-    relatorio = generate_radar_report(uf=uf_arg)
-    print(relatorio)
+    mode = "licitacoes"
+    uf_arg = "SUL"
+    
+    if len(sys.argv) > 1:
+        if sys.argv[1].lower() in ["leilao", "leiloes", "--leiloes"]:
+            mode = "leiloes"
+            uf_arg = sys.argv[2] if len(sys.argv) > 2 and not sys.argv[2].startswith("--") else "SUL"
+        else:
+            uf_arg = sys.argv[1] if not sys.argv[1].startswith("--") else "SUL"
+
+    if mode == "leiloes":
+        rel = generate_leiloes_report(uf=uf_arg)
+    else:
+        rel = generate_radar_report(uf=uf_arg)
+        
+    print(rel)
     
     if "--telegram" in sys.argv:
-        send_telegram(relatorio)
-        print("\n📨 Radar B2G despachado para o Telegram do Francisco!")
+        send_telegram(rel)
+        print("\n📨 Relatório despachado para o Telegram do Francisco!")
