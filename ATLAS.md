@@ -4,6 +4,8 @@
 > Filosofia: Poder invisível, simplicidade visível. Truth in Data.  
 > Hierarquia: P0 (Kernel Soberano) > P1 (Atlas & CODEBASE) > P2 (Agentes & Skills).
 
+> **Estado operacional — 22/10/2026:** a VPS `/opt/chat-sales-v3` é a referência de produção; o checkout local contém alterações não reconciliadas. O runtime observado tem 17 containers em quatro ilhas. Este Atlas conserva decisões e marcos históricos; confira o [dossiê de retomada da VPS](sos-vendas-codex-handover.md) para estado atual, evidências e pendências. Nunca sincronize a árvore local inteira.
+
 ---
 
 ## 1. Topologia de Infraestrutura Soberana
@@ -149,17 +151,37 @@
 - **Emissão Automática de Nota Fiscal (NFS-e):** Formalizada como **Módulo Adicional sob Demanda**, contratado à parte de acordo com o município da empresa (devido à fragmentação de provedores municipais ABRASF/DSF/Betha/Ginfes, certificado digital A1 e custos por requisição de API).
 - **Transparência Contratual:** A MCT LTDA emite nota fiscal da assinatura SaaS do SOS Vendas para o cliente; a emissão fiscal de notas de venda para clientes finais é provida pelo módulo adicional. Módulos adicionais também cobrem Meta WABA Oficial e Conectores ERP (Bling, Tiny, Omie).
 
-### 2.15 Banco de Modelos Canônicos (37 templates atualmente no contrato)
-- **Repositório Central de Modelos:** `packages/contracts/src/template-library.ts` (37 modelos em 13 segmentos; contagem estática verificada). A importação cria rascunho local, não aprovação Meta.
-- **Divergência P0:** o dossiê declara 70+ modelos. A biblioteca atual não cumpre essa quantidade; não afirmar 70+ até acrescentar e validar os modelos restantes com atualização controlada do manifesto.
+### 2.15 Banco de Modelos Canônicos (70 modelos no contrato local revisado em 24/10/2026)
+- **Repositório Central de Modelos:** `packages/contracts/src/template-library.ts` (70 modelos únicos em 13 segmentos; teste direcionado e compilação dos contratos passaram). A importação cria rascunho local, não aprovação Meta.
+- **Estado de publicação:** expansão editorial aditiva acrescentou 33 modelos, preservando os 37 anteriores. A fonte e os bundles de API/Web foram atualizados na VPS após backup seletivo; saúde técnica passou, mas não houve validação autenticada da jornada de importação em produção.
 - **Cockpit Comercial & Landing Page:** Aba nativa no Cockpit (`TemplatesPage.tsx` / `TemplateLibrarySection.tsx`) com busca e importação em 1-clique, e vitrine visual interativa na Landing Page (`#modelos`) com previews em formato de balão WhatsApp.
-- **Produção na VPS:** Imagens Docker compiladas e rodando na Hostinger Cloud KVM 4 (`chat.automatizaprocessos.tech` e `automatizaprocessos.tech`).
+- **Produção na VPS:** imagens Docker compiladas e rodando na Hostinger Cloud KVM 4 (`chat.automatizaprocessos.tech` e `automatizaprocessos.tech`). O estado do catálogo em produção deve ser lido da seção de publicação deste documento, não inferido da fonte local.
 
 ### 2.16 PLX Automações: Módulo M02B Checklist Recorrente & Modo Sombra Governança
 - **Módulo M02B em Operação:** Implementado o motor autônomo de checklist contábil periódico via PostgreSQL Data Tables (`plx_checklist_regras_v1` e `plx_checklist_execucoes_v1`), integrando diretamente com os 104 documentos organizados no Google Drive em `plx_v3_documentos`.
 - **Governança de Modo Sombra (P0):** Regras de cobrança operando com `send_enabled = false`, garantindo zero envio de mensagens no WhatsApp durante o período de homologação assistida da PLX Contabilidade (`120363430175893546@g.us`).
 - **Engine Soberano:** Utilitário Python `/opt/plx-documentos/app/scripts/plx_checklist_engine.py` com rotinas de seed, materialização de competência, reconciliação automatizada e relatórios executivos de auditoria.
 - **Automação Diária:** Cronjob configurado no host às 07:00 AM para reconciliação contínua da competência ativa.
+
+### 2.17 Sinergia Soberana: B2G Cockpit ➔ Atlas Copiloto (Tesouraria Ativa & Swing Trade)
+- **Topologia de Ilhas Conectadas:**
+  - **Ilha 3 — Atlas Copiloto:** Porta interna `18080`, Caddy TLS `https://atlas.automatizaprocessos.tech`.
+  - **Ilha 4 — B2G Cockpit:** Porta interna `8096`, Caddy TLS `https://b2g.automatizaprocessos.tech`.
+- **Princípio Inviolável de Segregação Patrimonial (P0):**
+  - **Float de Fornecedor (Passivo Circulante):** Capital de terceiros retido entre o pagamento do órgão público e o vencimento do boleto do distribuidor (D+15 a D+45). Fica 100% blindado em Renda Fixa de Liquidez Diária (CDB 100% CDI / Tesouro Selic). Zero risco de mercado.
+  - **Lucro Líquido Real MCT (Capital Próprio Livre):** Alimenta a esteira de Swing Trade da B3 (`VALE3`, `WEGE3`, `PETR4`, `BBAS3`, `ITUB4`, `BOVA11`) pelo `TradingSignalsScanner`, operando assimetrias técnicas com Risco:Retorno mínimo de 1:2.5.
+- **Rastreabilidade Contábil no Ledger:**
+  - Boleta de execução e transações no SQLite WAL (`transactions`) recebem os campos auditáveis `origem_capital: "LUCRO_B2G"` e `b2g_opportunity_id`.
+  - Vinculação de ponta a ponta entre a licitação pública municipal e a compra de ativos negociados na B3.
+- **Demonstrativo Contábil do Balanço Soberano (Hermes Appraiser):**
+  - Ingestão contínua do `b2g_pipeline` no método `calculate_sovereign_balance()`.
+  - Ativo Circulante incorpora os empenhos e o rendimento acumulado de CDI do float; Passivo Circulante contabiliza as obrigações a liquidar com distribuidores.
+- **Segurança Bancária 2FA (RFC 6238 TOTP / BACEN Res. 85):**
+  - Motor nativo em Python (`security_2fa.py`) sem dependências externas; liquidação de ordens exige código de 6 dígitos via Google Authenticator / Apple Keychain.
+- **Evidências de Homologação em Produção (24/10/2026):**
+  - 122 testes automatizados aprovados (114 Python + 8 Node.js).
+  - Webhook de disparo testado com sucesso a partir do B2G Cockpit (Dispensa Pneus Chapecó/SC: R$ 24k contrato, R$ 18.2k float no CDI e R$ 4.96k lucro em esteira de Swing Trade).
+  - Ordem de compra de `ITUB4` executada e registrada com sucesso no Ledger Contábil em produção.
 
 ---
 
@@ -169,3 +191,25 @@
 - **Autenticação Segura:** Sessões de usuário autenticadas por JWT HS256 criptograficamente seguro via `JwtIdentityProvider`.
 - **Mascaramento de PII:** Ausência de telefone e segredos em texto puro em logs de aplicação e despacho.
 - **Firewall UFW Ativo:** Apenas portas 22 (SSH restrito a chaves), 80 (HTTP) e 443 (HTTPS) expostas. Portas de banco e Redis estritamente confinadas à rede interna Docker.
+
+
+## Estado da IA assistida contextual — 24/10/2026
+
+O modo assistido agora tem caminho de fonte explícito: ação manual do atendente → versão guiada `assist` aprovada/publicada → contexto textual mínimo e limitado por tenant → sugestão revisada no composer. A API não executa ações nem envia; só retorna texto com revisão e mensagem de origem. Mensagens do cliente são conteúdo não confiável; mudanças de contexto durante inferência descartam o resultado. Fonte sincronizada seletivamente na VPS e imagens de validação temporárias compiladas com sucesso. Runtime ativo permanece inalterado; falta uma publicação deliberada e homologação com configuração de empresa autorizada, sem inferir que o modelo real foi validado.
+
+## Proteção de artefatos estáticos da landing — 24/10/2026
+
+O Caddy compartilhado bloqueia nomes AppleDouble e arquivos de backup no host público antes do `file_server`, com rota explicitamente ordenada. O Caddyfile ativo em `/opt/sos-sales/Caddyfile` foi validado e recarregado; os artefatos encontrados foram preservados em `/opt/sos-sales/backups/public-landing-audit-20261024T081816Z/`. O filesystem servido de `/var/www/landing` é somente leitura e não possui bind mount observado. Evidência detalhada em `docs/auditorias/2026-10-20-sos-vendas/LANDING-BACKUP-EXPOSURE-2026-10-24.md`.
+
+
+## Revisão financeira AbacatePay no cockpit — 24/10/2026
+
+`PixSection.tsx` agora diferencia erro de leitura da fila vazia, valida o resultado da resolução e pede confirmação humana antes de registrar recebimento. Quatro testes focados e typecheck passaram. Build canônico limitado ao Web foi publicado; API e worker não foram recriados. Healthcheck interno do Web e acesso pelo Caddy passaram; health HTTPS público não foi confirmado por timeout. Relatório completo: `docs/auditorias/2026-10-20-sos-vendas/ABACATEPAY-SETTLEMENT-REVIEW-UI-2026-10-24.md`.
+
+### 3.10 Acesso mínimo do worker à cobrança Pix após confirmação — migration 088
+
+`createPixCharge()` lê três dados do workspace para montar o BR Code local: `default_pix_key`, `default_pix_merchant_name` e `default_pix_merchant_city`. Após a revogação do SELECT amplo pela migration 084, esses campos precisam de grants de coluna específicos. A migration aditiva 088 concede somente essa projeção ao `sos_worker_user`; RLS/FORCE RLS filtram pelo workspace configurado na transação, e as chaves/segredos AbacatePay continuam negados. Em produção, o SQL foi aplicado em transação após backup e conferido com `SET ROLE`; contexto ausente retornou zero linhas. Testes PostgreSQL 16 isolado: ACL 1/1 e fluxo funcional 31/31. Sem restart ou deploy de aplicação. Aplicação manual não comprova a ordem do journal, que não foi encontrado. Rollback e hashes estão em `docs/auditorias/2026-10-20-sos-vendas/COBERTURA.md`.
+
+### Refund/dispute transparente — migration 089
+
+Readback VPS confirma a função de contenção `public.pause_pix_confirmation_for_lifecycle(uuid,uuid,text)`. `transparent.refunded` e `transparent.disputed` preservam estados financeiros terminais; a disputa gera revisão humana e não suspende workspace, refund não suspende a assinatura SaaS. A função pausa notificação de confirmação Pix pendente ou em processamento, não fulfillment externo genérico. Testes em PG16 descartável: ciclo 5/5 e auditoria funcional 33/33. Webhook real não foi recebido. Evidência e limites: `docs/auditorias/2026-10-20-sos-vendas/ABACATEPAY-TRANSPARENT-LIFECYCLE-IMPLEMENTATION-2026-10-24.md`.
