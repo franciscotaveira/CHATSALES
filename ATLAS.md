@@ -183,6 +183,22 @@
   - Webhook de disparo testado com sucesso a partir do B2G Cockpit (Dispensa Pneus Chapecó/SC: R$ 24k contrato, R$ 18.2k float no CDI e R$ 4.96k lucro em esteira de Swing Trade).
   - Ordem de compra de `ITUB4` executada e registrada com sucesso no Ledger Contábil em produção.
 
+### 2.18 Mesa Quantitativa Soberana & Motor de Correção de Vieses (Meta-REA no Atlas)
+- **Engenharia Reversa Aplicada (8 Repositórios de Trading):**
+  - **Time Machine Monte Carlo (`backend/time_machine.py`):** 10.000 iterações bootstrap da distribuição empírica real (últimas 60 sessões B3) para cálculo de odds de alvo/stop, $EV$ e ORB 15m.
+  - **Exposure Coach & Market Breadth (`backend/exposure_coach.py`):** Monitoramento das 20 maiores ações do Ibovespa (> MM200 / > MM50). Calibragem do teto de risco patrimonial (`EXPANSAO_TOTAL`: 100%, `DIVERGENCIA_MODERADA`: 50%, `REDUCE_ONLY_DEFENSIVO`: 0% com veto de compras).
+  - **Position Sizer & Gestão de Risco (`backend/quant_desk.py`):** Half-Kelly, ATR Wilder (14p), Drawdown Guard e cap duro de 1% de risco financeiro patrimonial por trade.
+  - **Copycat 13F & BDRs B3 (`backend/copycat.py`):** Espelhamento institucional SEC EDGAR (Buffett, Burry, Dalio) com mapeamento direto para BDRs da B3 e trades do Congresso Americano (STOCK Act).
+  - **Oráculo Polymarket & Brier Score (`backend/prediction_oracle.py`):** Gamma API com sentimento real de apostas macro/eleições e calibração contínua por Brier Score em SQLite.
+  - **Simulador Cego OPAL (`backend/backtest_simulator.py`):** Treino visual barra a barra com futuro oculto.
+  - **Motor de Correção de Vieses (`backend/bias_engine.py`):**
+    * *Viés de Confirmação:* Exigência obrigatória do Advogado do Diabo (Bear Case) e gatilho de invalidação.
+    * *Viés de Recência (FOMO):* Detecção de preço esticado ($Z > 2.0$ acima da MM200 ou RSI > 72) com corte de 50% no lote sugerido.
+    * *Viés de Excesso de Confiança:* Calibração bayesiana (Shrinkage) de probabilidades infladas pelo Brier Score.
+    * *Custo Afundado & Ancoragem:* Trava de Stop Loss Ratchet (proibição de afrouxar stops), Teste da Folha em Branco e custo de oportunidade do CDI.
+    * *Defasagem de 13F:* Alerta de precificação prévia quando o ativo subiu $> 20\%$ antes do reporte.
+- **Homologação:** 177 testes automatizados passando 100% OK e jornada humana validada em produção.
+
 ---
 
 ## 3. Diretrizes de Segurança e Isolamento
