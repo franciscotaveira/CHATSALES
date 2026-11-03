@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCT Seguro Garantia — Emissão Expressa para Licitações e Contratos Públicos</title>
+  <meta name="description" content="Emita o Seguro Garantia Contratual (Art. 96 Lei 14.133/2021) em até 4 horas. Preserve 98,5% do seu capital de giro sem travar limites bancários. Parceria oficial com as maiores seguradoras do Brasil.">
+  <meta name="theme-color" content="#070B14">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="MCT Seguro Garantia Sovereign">
+  <meta property="og:title" content="MCT Seguro Garantia — Caução de Licitações sem Travar Caixa">
+  <meta property="og:description" content="Substitua depósitos em dinheiro e fiança bancária cara. Apólices com 100% de aceitação no setor público municipal, estadual e federal.">
+  <meta property="og:image" content="../assets/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070B14;
+      --bg-surface: #0E1626;
+      --bg-card: rgba(15, 23, 42, 0.75);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(56, 189, 248, 0.3);
+      --primary: #38BDF8;
+      --primary-light: #7DD3FC;
+      --emerald: #10B981;
+      --amber: #F59E0B;
+      --text: #F8FAFC;
+      --text-muted: #94A3B8;
+      --font-main: 'Inter', -apple-system, sans-serif;
+      --font-heading: 'Plus Jakarta Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-main);
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* HEADER */
+    header {
+      padding: 18px 0;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(7, 11, 20, 0.92);
+      backdrop-filter: blur(14px);
+      z-index: 100;
+    }
+    .header-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #fff;
+      font-family: var(--font-heading);
+      font-weight: 800;
+      font-size: 1.25rem;
+    }
+    .brand-tag {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--primary-light);
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: #fff; }
+    .btn-header {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-header:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    /* HERO */
+    .hero {
+      padding: 80px 0 60px;
+      text-align: center;
+      position: relative;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 450px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.12) 0%, rgba(7, 11, 20, 0) 70%);
+      z-index: -1;
+      pointer-events: none;
+    }
+    .pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 6px 16px;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--primary-light);
+      margin-bottom: 24px;
+    }
+    .pill-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--primary);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--primary);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.9); }
+    }
+    .hero h1 {
+      font-family: var(--font-heading);
+      font-size: clamp(2.3rem, 5vw, 3.8rem);
+      font-weight: 900;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 24px;
+      max-width: 980px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .hero h1 span.gradient {
+      background: linear-gradient(135deg, #38BDF8 0%, #818CF8 50%, #34D399 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-desc {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      max-width: 760px;
+      margin: 0 auto 36px;
+      line-height: 1.7;
+    }
+    .hero-ctas {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+      color: #fff;
+      font-weight: 700;
+      padding: 16px 32px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-size: 1rem;
+      box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.4);
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 30px -5px rgba(2, 132, 199, 0.55);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: #fff;
+      font-weight: 600;
+      padding: 16px 28px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* STATS / HIGHLIGHTS */
+    .highlights-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+      margin-top: 60px;
+    }
+    .hl-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      text-align: left;
+      backdrop-filter: blur(8px);
+    }
+    .hl-number {
+      font-family: var(--font-heading);
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--primary-light);
+      margin-bottom: 6px;
+    }
+    .hl-label {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .hl-sub {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* COMPARISON SECTION */
+    .section {
+      padding: 90px 0;
+      border-top: 1px solid var(--border);
+    }
+    .section-header {
+      text-align: center;
+      max-width: 780px;
+      margin: 0 auto 50px;
+    }
+    .section-subtitle {
+      color: var(--primary);
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: block;
+    }
+    .section-title {
+      font-family: var(--font-heading);
+      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+    .section-desc {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+    }
+
+    .compare-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: var(--bg-surface);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      margin-top: 30px;
+    }
+    .compare-table th, .compare-table td {
+      padding: 20px 24px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .compare-table th {
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .compare-table th.highlight-col, .compare-table td.highlight-col {
+      background: rgba(56, 189, 248, 0.08);
+      border-left: 1px solid var(--border-accent);
+      border-right: 1px solid var(--border-accent);
+    }
+    .compare-table th.highlight-col {
+      color: var(--primary-light);
+      font-weight: 700;
+    }
+    .badge-bad {
+      display: inline-block;
+      background: rgba(239, 68, 68, 0.15);
+      color: #F87171;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-good {
+      display: inline-block;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--emerald);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    /* SIMULATOR CARD */
+    .sim-container {
+      background: linear-gradient(145deg, rgba(14, 22, 38, 0.9), rgba(15, 23, 42, 0.95));
+      border: 1px solid var(--border-accent);
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .sim-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      align-items: center;
+    }
+    @media (max-width: 768px) {
+      .sim-grid { grid-template-columns: 1fr; }
+      .sim-container { padding: 24px; }
+    }
+    .input-group {
+      margin-bottom: 20px;
+    }
+    .input-label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .input-box {
+      width: 100%;
+      background: rgba(7, 11, 20, 0.8);
+      border: 1px solid var(--border);
+      color: #fff;
+      font-size: 1.1rem;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .input-box:focus {
+      border-color: var(--primary);
+    }
+    .select-box {
+      width: 100%;
+      background: rgba(7, 11, 20, 0.8);
+      border: 1px solid var(--border);
+      color: #fff;
+      font-size: 1rem;
+      padding: 12px 16px;
+      border-radius: 8px;
+      outline: none;
+    }
+    .result-box {
+      background: rgba(7, 11, 20, 0.7);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+    .result-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.95rem;
+    }
+    .result-item:last-child {
+      border-bottom: none;
+      padding-top: 16px;
+    }
+    .result-val {
+      font-family: var(--font-mono);
+      font-weight: 700;
+    }
+    .result-val.highlight {
+      color: var(--emerald);
+      font-size: 1.3rem;
+    }
+
+    /* SEGURADORAS PARCEIRAS */
+    .partners-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 36px;
+      flex-wrap: wrap;
+      margin-top: 40px;
+    }
+    .partner-pill {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 28px;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #E2E8F0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .partner-sub {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    /* MODALIDADES LEGAIS */
+    .mod-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+    .mod-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 30px;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .mod-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+    .mod-icon {
+      width: 48px;
+      height: 48px;
+      background: rgba(56, 189, 248, 0.12);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      color: var(--primary);
+      margin-bottom: 20px;
+    }
+    .mod-card h3 {
+      font-family: var(--font-heading);
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #fff;
+    }
+    .mod-card p {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      line-height: 1.6;
+    }
+
+    /* CTA FINAL */
+    .cta-banner {
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.15) 0%, rgba(14, 22, 38, 0.95) 100%);
+      border: 1px solid var(--border-accent);
+      border-radius: 20px;
+      padding: 60px 40px;
+      text-align: center;
+      margin: 80px 0;
+    }
+    .cta-banner h2 {
+      font-family: var(--font-heading);
+      font-size: clamp(2rem, 3.5vw, 2.6rem);
+      font-weight: 800;
+      margin-bottom: 18px;
+    }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 0;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="wrap header-inner">
+      <a href="../index.html" class="brand">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        <span>MCT <span style="color: #38BDF8;">Seguro Garantia</span></span>
+        <span class="brand-tag">Art. 96 Lei 14.133</span>
+      </a>
+
+      <div class="nav-links">
+        <a href="#comparativo">Comparativo</a>
+        <a href="#simulador">Simulador</a>
+        <a href="#seguradoras">Seguradoras</a>
+        <a href="../b2g/index.html">Mesa B2G</a>
+        <a href="https://wa.me/5549988760152?text=Ol%C3%A1%2C%20gostaria%20de%20cotar%20um%20Seguro%20Garantia%20para%20contrato%20p%C3%BAblico." target="_blank" class="btn-header">Falar com Especialista</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <main>
+    <section class="hero">
+      <div class="wrap">
+        <div class="pill-badge">
+          <div class="pill-dot"></div>
+          Nova Lei de Licitações (Lei nº 14.133/2021)
+        </div>
+
+        <h1>
+          Emita seu <span class="gradient">Seguro Garantia Contratual</span> em até 4 horas sem travar seu caixa.
+        </h1>
+
+        <p class="hero-desc">
+          Ganhou uma licitação de obras ou serviços no Sul do Brasil? Não desembolse 5% a 10% do seu contrato em dinheiro e nem gaste limite bancário. Emita a caução oficial com aprovação expressa e preserve <strong>98,5% do seu capital de giro livre</strong>.
+        </p>
+
+        <div class="hero-ctas">
+          <a href="#simulador" class="btn-primary">
+            Simular Capital Preservado
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </a>
+          <a href="https://wa.me/5549988760152?text=Ol%C3%A1%2C%20tenho%20um%20contrato%20homologado%20e%20preciso%20da%20ap%C3%B3lice%20de%20Seguro%20Garantia." target="_blank" class="btn-secondary">
+            Solicitar Cotação no WhatsApp
+          </a>
+        </div>
+
+        <!-- HIGHLIGHTS -->
+        <div class="highlights-grid">
+          <div class="hl-card">
+            <div class="hl-number">4h</div>
+            <div class="hl-label">Emissão Expressa</div>
+            <div class="hl-sub">Aprovação algorítmica para contratos com órgãos públicos municipais, estaduais e federais.</div>
+          </div>
+          <div class="hl-card">
+            <div class="hl-number">98,5%</div>
+            <div class="hl-label">Caixa Preservado</div>
+            <div class="hl-sub">Você paga apenas o prêmio anual da apólice (~1,35% da garantia) em vez de imobilizar 100% da caução.</div>
+          </div>
+          <div class="hl-card">
+            <div class="hl-number">0 R$</div>
+            <div class="hl-label">Limite Bancário Preservado</div>
+            <div class="hl-sub">Diferente da fiança bancária, o seguro garantia não compromete suas linhas de crédito no banco.</div>
+          </div>
+          <div class="hl-card">
+            <div class="hl-number">100%</div>
+            <div class="hl-label">Aceitação no Setor Público</div>
+            <div class="hl-sub">Apólices emitidas conforme as exigências da SUSEP e da Nova Lei 14.133/2021.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMPARISON -->
+    <section id="comparativo" class="section">
+      <div class="wrap">
+        <div class="section-header">
+          <span class="section-subtitle">Inteligência Financeira para Construtoras</span>
+          <h2 class="section-title">Por que você nunca deve dar caução em dinheiro ou fiança bancária?</h2>
+          <p class="section-desc">Entenda a diferença brutal no fluxo de caixa da sua empresa para um contrato público de R$ 1.000.000,00.</p>
+        </div>
+
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th>Critério Operacional</th>
+              <th>Caução em Dinheiro</th>
+              <th>Fiança Bancária</th>
+              <th class="highlight-col">MCT Seguro Garantia</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Impacto no Caixa</strong></td>
+              <td><span class="badge-bad">R$ 50.000,00 travados</span> na conta judicial/prefeitura</td>
+              <td>Gera taxa de abertura + reciprocidade</td>
+              <td class="highlight-col"><span class="badge-good">Apenas ~R$ 675,00</span> de prêmio anual</td>
+            </tr>
+            <tr>
+              <td><strong>Limite Bancário Livre</strong></td>
+              <td>Prejudica liquidez imediata</td>
+              <td><span class="badge-bad">Consome limite de crédito</span> para compras/giro</td>
+              <td class="highlight-col"><span class="badge-good">100% Livre</span> (sem vínculo com o banco)</td>
+            </tr>
+            <tr>
+              <td><strong>Tempo de Obtenção</strong></td>
+              <td>Imediato, mas sangra o caixa</td>
+              <td>3 a 10 dias úteis de comitê de crédito</td>
+              <td class="highlight-col"><span class="badge-good">2 a 4 horas</span> com envio digital</td>
+            </tr>
+            <tr>
+              <td><strong>Devolução / Baixa</strong></td>
+              <td>Meses de burocracia com a prefeitura</td>
+              <td>Processo demorado com o banco</td>
+              <td class="highlight-col"><span class="badge-good">Baixa automática</span> no termo de recebimento definitivo</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SIMULATOR -->
+    <section id="simulador" class="section" style="background: rgba(14, 22, 38, 0.4);">
+      <div class="wrap">
+        <div class="section-header">
+          <span class="section-subtitle">Simulador em Tempo Real</span>
+          <h2 class="section-title">Calcule o Capital de Giro Preservado no seu Contrato</h2>
+          <p class="section-desc">Insira o valor da sua obra ou serviço e veja a economia em segundos.</p>
+        </div>
+
+        <div class="sim-container">
+          <div class="sim-grid">
+            <div>
+              <div class="input-group">
+                <label class="input-label" for="sim-val">Valor Total do Contrato Homologado (R$)</label>
+                <input type="text" id="sim-val" class="input-box" value="1.000.000,00" oninput="calcularGarantia()">
+              </div>
+
+              <div class="input-group">
+                <label class="input-label" for="sim-pct">Percentual de Garantia Exigido no Edital</label>
+                <select id="sim-pct" class="select-box" onchange="calcularGarantia()">
+                  <option value="5">5% do Contrato (Padrão Obras/Serviços Contínuos)</option>
+                  <option value="10">10% do Contrato (Obras de Alta Complexidade)</option>
+                  <option value="2">2% do Contrato (Garantia de Proposta / Bid Bond)</option>
+                </select>
+              </div>
+
+              <div style="margin-top: 24px;">
+                <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.5;">
+                  * Estimativa balizada na taxa padrão média de 1,35% a.a. sobre o valor da garantia garantida pelas seguradoras homologadas.
+                </p>
+              </div>
+            </div>
+
+            <div class="result-box">
+              <div class="result-item">
+                <span style="color: var(--text-muted);">Garantia Exigida no Edital:</span>
+                <span class="result-val" id="res-garantia">R$ 50.000,00</span>
+              </div>
+              <div class="result-item">
+                <span style="color: var(--text-muted);">Depósito em Dinheiro (Trava Caixa):</span>
+                <span class="result-val" style="color: #F87171;" id="res-trava">R$ 50.000,00</span>
+              </div>
+              <div class="result-item">
+                <span style="color: var(--text-muted);">Custo da Apólice Seguro Garantia:</span>
+                <span class="result-val" style="color: var(--primary);" id="res-premio">R$ 675,00</span>
+              </div>
+              <div class="result-item">
+                <span style="font-weight: 700; color: #fff;">Capital Preservado Livre:</span>
+                <span class="result-val highlight" id="res-preservado">R$ 49.325,00</span>
+              </div>
+
+              <a id="btn-whatsapp-sim" href="https://wa.me/5549988760152?text=Ol%C3%A1%2C%20simulei%20no%20site%20um%20contrato%20de%20R%24%201.000.000%2C00%20com%20garantia%20de%20R%24%2050.000%2C00.%20Gostaria%20de%20emitir%20a%20minuta." target="_blank" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 20px;">
+                Emitir Minuta para Meu Contrato
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SEGURADORAS PARCEIRAS -->
+    <section id="seguradoras" class="section">
+      <div class="wrap">
+        <div class="section-header">
+          <span class="section-subtitle">Multi-Quoter Inteligente</span>
+          <h2 class="section-title">Cotamos com as 3 maiores seguradoras de garantia do país</h2>
+          <p class="section-desc">Seu contrato passa simultaneamente pela esteira das seguradoras líderes para garantir a menor taxa e aprovação sem exigências desnecessárias.</p>
+        </div>
+
+        <div class="partners-row">
+          <div class="partner-pill">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            <div>
+              Junto Seguros
+              <span class="partner-sub">Maior autoridade pública (ex-J.Malucelli)</span>
+            </div>
+          </div>
+
+          <div class="partner-pill">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <div>
+              Pottencial Seguradora
+              <span class="partner-sub">Fast-track por inteligência algorítmica</span>
+            </div>
+          </div>
+
+          <div class="partner-pill">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            <div>
+              Avla Seguros
+              <span class="partner-sub">Flexibilidade PME com garantia societária</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mod-grid" style="margin-top: 50px;">
+          <div class="mod-card">
+            <div class="mod-icon">📋</div>
+            <h3>Garantia do Executante (Performance Bond)</h3>
+            <p>Garante que as obrigações contratuais de obras, fornecimentos contínuos e serviços perante prefeituras e autarquias sejam 100% cumpridas sem que você desembolse caixa.</p>
+          </div>
+          <div class="mod-card">
+            <div class="mod-icon">⚖️</div>
+            <h3>Garantia de Proposta (Bid Bond)</h3>
+            <p>Substitui a caução provisória de 1% a 2% exigida no momento do credenciamento ou da entrega da proposta em editais de alta complexidade.</p>
+          </div>
+          <div class="mod-card">
+            <div class="mod-icon">🏛️</div>
+            <h3>Garantia Judicial / Fiscal</h3>
+            <p>Substitui o depósito judicial em dinheiro em execuções fiscais e litígios cíveis ou trabalhistas, desbloqueando valores já penhorados no BacenJud.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DOCUMENTATION NEEDED -->
+    <section class="section" style="background: rgba(14, 22, 38, 0.4);">
+      <div class="wrap">
+        <div class="section-header">
+          <span class="section-subtitle">Sem Burocracia</span>
+          <h2 class="section-title">O que você precisa para emitir hoje?</h2>
+          <p class="section-desc">Para apólices de até R$ 500 mil de garantia, a análise é expressa e dispensa balanço patrimonial.</p>
+        </div>
+
+        <div style="max-width: 680px; margin: 0 auto; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px; padding: 30px;">
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 16px;">
+            <li style="display: flex; gap: 14px; align-items: flex-start;">
+              <span style="color: var(--primary); font-weight: 700; font-family: var(--font-mono);">01</span>
+              <div><strong>Minuta do Contrato ou Edital + Termo de Homologação:</strong> O documento que comprova a vitória no certame ou a exigência de caução.</div>
+            </li>
+            <li style="display: flex; gap: 14px; align-items: flex-start;">
+              <span style="color: var(--primary); font-weight: 700; font-family: var(--font-mono);">02</span>
+              <div><strong>Cartão CNPJ Atualizado da Empresa:</strong> Dados cadastrais do tomador.</div>
+            </li>
+            <li style="display: flex; gap: 14px; align-items: flex-start;">
+              <span style="color: var(--primary); font-weight: 700; font-family: var(--font-mono);">03</span>
+              <div><strong>CND Federal Conjunta (Receita Federal / PGFN):</strong> Regularidade fiscal básica.</div>
+            </li>
+            <li style="display: flex; gap: 14px; align-items: flex-start;">
+              <span style="color: var(--primary); font-weight: 700; font-family: var(--font-mono);">04</span>
+              <div><strong>Documento dos Sócios (RG / CNH):</strong> Identificação do representante legal.</div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <section class="wrap">
+      <div class="cta-banner">
+        <h2>Pronto para assinar seu contrato público sem queimar seu caixa?</h2>
+        <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 640px; margin: 0 auto 30px;">
+          Nossa equipe emite a minuta da sua apólice em até 4 horas com validação jurídica completa perante o órgão contratante.
+        </p>
+        <a href="https://wa.me/5549988760152?text=Ol%C3%A1%2C%20preciso%20de%20uma%20ap%C3%B3lice%20de%20Seguro%20Garantia%20para%20assinar%20um%20contrato%20p%C3%BAblico." target="_blank" class="btn-primary" style="font-size: 1.1rem; padding: 18px 36px;">
+          Falar com Francisco no WhatsApp
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="wrap">
+      <p>© 2026 MCT LTDA — Mesa de Compras Técnicas & Garantias Governamentais. Chapecó - SC, Brasil.</p>
+      <p style="margin-top: 6px; font-size: 0.78rem; color: #64748B;">Operação em conformidade com o Art. 96 da Lei 14.133/2021 e Circulares SUSEP. Todos os direitos reservados.</p>
+    </div>
+  </footer>
+
+  <script>
+    function parseBrl(str) {
+      return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
+    }
+
+    function formatBrl(val) {
+      return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function calcularGarantia() {
+      const valInput = document.getElementById('sim-val').value;
+      const pctInput = parseFloat(document.getElementById('sim-pct').value) || 5.0;
+      
+      const contrato = parseBrl(valInput);
+      const garantia = contrato * (pctInput / 100.0);
+      const premio = Math.max(600, garantia * 0.0135);
+      const preservado = Math.max(0, garantia - premio);
+
+      document.getElementById('res-garantia').innerText = formatBrl(garantia);
+      document.getElementById('res-trava').innerText = formatBrl(garantia);
+      document.getElementById('res-premio').innerText = formatBrl(premio);
+      document.getElementById('res-preservado').innerText = formatBrl(preservado);
+
+      const msg = encodeURIComponent(`Olá Francisco, simulei no site um contrato de ${formatBrl(contrato)} com garantia de ${formatBrl(garantia)} (${pctInput}%). Gostaria de cotar o Seguro Garantia.`);
+      document.getElementById('btn-whatsapp-sim').href = `https://wa.me/5549988760152?text=${msg}`;
+    }
+  </script>
+</body>
+</html>
