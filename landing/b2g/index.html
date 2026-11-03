@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCT B2G — Venda para o Governo com Co-Gestão Turnkey no Êxito (Lei 14.133/2021)</title>
+  <meta name="description" content="Sua empresa fornecendo produtos e serviços para prefeituras e órgãos públicos no Sul do Brasil. Cuidamos de 100% dos editais, propostas e disputas. Você só paga no êxito.">
+  <meta name="theme-color" content="#070B14">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="MCT B2G Turnkey">
+  <meta property="og:title" content="MCT B2G — Venda para o Governo com Co-Gestão Turnkey no Êxito">
+  <meta property="og:description" content="Diretoria de licitações terceirizada para prestadores e distribuidores no Sul do Brasil. 100% no Êxito.">
+  <meta property="og:image" content="../assets/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070B14;
+      --bg-surface: #0E1626;
+      --bg-card: rgba(15, 23, 42, 0.75);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(56, 189, 248, 0.3);
+      --primary: #38BDF8;
+      --primary-light: #7DD3FC;
+      --accent: #10B981;
+      --amber: #F59E0B;
+      --text: #F8FAFC;
+      --text-muted: #94A3B8;
+      --font-main: 'Inter', -apple-system, sans-serif;
+      --font-heading: 'Plus Jakarta Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-main);
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    header {
+      padding: 18px 0;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(7, 11, 20, 0.92);
+      backdrop-filter: blur(14px);
+      z-index: 100;
+    }
+    .header-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #fff;
+      font-family: var(--font-heading);
+      font-weight: 800;
+      font-size: 1.25rem;
+    }
+    .brand-tag {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--primary-light);
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border-accent);
+      font-family: var(--font-mono);
+      font-weight: 600;
+    }
+    .desktop-nav {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .desktop-nav a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.92rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .desktop-nav a:hover { color: #fff; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #38BDF8, #0284C7);
+      color: #fff;
+      box-shadow: 0 0 24px rgba(56, 189, 248, 0.35);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 35px rgba(56, 189, 248, 0.55);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { background: rgba(255, 255, 255, 0.1); }
+
+    .hero {
+      padding: 80px 0 60px;
+      text-align: center;
+      position: relative;
+    }
+    .hero-glow {
+      position: absolute;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 750px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.18) 0%, rgba(16, 185, 129, 0.08) 50%, transparent 70%);
+      pointer-events: none;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 100px;
+      color: var(--primary-light);
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+    .pill .dot {
+      width: 8px;
+      height: 8px;
+      background: var(--primary);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--primary);
+    }
+    h1 {
+      font-family: var(--font-heading);
+      font-size: 3.2rem;
+      line-height: 1.15;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+    }
+    h1 span.gradient {
+      background: linear-gradient(135deg, #38BDF8, #10B981);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-lead {
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      max-width: 820px;
+      margin: 0 auto 36px;
+    }
+    .hero-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+    }
+
+    .assurances {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 30px 0;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .assurances-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 24px;
+      text-align: center;
+    }
+    .assurance-item strong {
+      display: block;
+      font-size: 1.5rem;
+      font-family: var(--font-heading);
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .assurance-item span {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+
+    .section { padding: 80px 0; }
+    .section-kicker {
+      text-align: center;
+      color: var(--primary-light);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+    .section-title {
+      font-family: var(--font-heading);
+      font-size: 2.3rem;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .section-sub {
+      text-align: center;
+      color: var(--text-muted);
+      max-width: 720px;
+      margin: 0 auto 50px;
+      font-size: 1.05rem;
+    }
+
+    .compare-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+    .compare-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+    }
+    .compare-card.mct {
+      border-color: rgba(56, 189, 248, 0.4);
+      background: linear-gradient(180deg, rgba(14, 22, 38, 0.95), rgba(7, 11, 20, 0.95));
+      box-shadow: 0 10px 40px rgba(56, 189, 248, 0.08);
+    }
+    .compare-card h3 {
+      font-family: var(--font-heading);
+      font-size: 1.3rem;
+      margin-bottom: 20px;
+      color: #fff;
+    }
+    .compare-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .compare-list li {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .compare-list li strong { color: #fff; }
+
+    .niches-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+    .niche-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 30px;
+      transition: all 0.25s ease;
+    }
+    .niche-card:hover {
+      border-color: rgba(56, 189, 248, 0.4);
+      transform: translateY(-3px);
+    }
+    .niche-card h4 {
+      font-family: var(--font-heading);
+      font-size: 1.25rem;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+    .niche-card p {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      line-height: 1.6;
+    }
+
+    .cta-banner {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(16, 185, 129, 0.08));
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 20px;
+      padding: 50px 36px;
+      text-align: center;
+      margin-top: 40px;
+    }
+    .cta-banner h3 {
+      font-family: var(--font-heading);
+      font-size: 2rem;
+      color: #fff;
+      margin-bottom: 14px;
+    }
+    .cta-banner p {
+      color: var(--text-muted);
+      max-width: 680px;
+      margin: 0 auto 30px;
+      font-size: 1.05rem;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 0 24px;
+      background: #04060A;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+    }
+    .footer-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      h1 { font-size: 2.2rem; }
+      .desktop-nav { display: none; }
+      .compare-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="wrap header-inner">
+      <a href="/" class="brand">
+        MCT B2G
+        <span class="brand-tag">Contratos Governamentais</span>
+      </a>
+      <nav class="desktop-nav">
+        <a href="/">Hub Principal</a>
+        <a href="#modelo">Como Funciona o Turnkey</a>
+        <a href="#setores">Setores Mapeados</a>
+        <a href="#vantagens">Vantagens</a>
+        <a href="https://b2g.automatizaprocessos.tech" target="_blank" style="color: var(--primary-light); font-weight: 700;">Cockpit ao Vivo ⚡</a>
+      </nav>
+      <div>
+        <a href="https://wa.me/554988447562?text=Olá,%20gostaria%20de%20avaliar%20oportunidades%20do%20Governo%20para%20minha%20empresa" target="_blank" rel="noreferrer" class="btn btn-primary">
+          Atendimento no WhatsApp
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-glow"></div>
+    <div class="wrap">
+      <div class="pill">
+        <span class="dot"></span>
+        CO-GESTÃO TURNKEY B2G • REMUNERAÇÃO 100% NO ÊXITO (LEI 14.133/2021)
+      </div>
+      <h1>Sua empresa fornecendo para o Governo. <span class="gradient">Sem burocracia, 100% no êxito.</span></h1>
+      <p class="hero-lead">
+        A MCT assume 100% da inteligência de compras públicas: garimpamos os editais na nossa região, montamos a proposta técnica, cuidamos das certidões e operamos a disputa oficial. Sua empresa entra exclusivamente como executora e fornecedora técnica, com margem de lucro protegida.
+      </p>
+      <div class="hero-buttons">
+        <a href="https://wa.me/554988447562?text=Olá,%20quero%20apresentar%20minha%20empresa%20para%20fornecer%20em%20compras%20públicas%20da%20região" target="_blank" rel="noreferrer" class="btn btn-primary" style="padding: 14px 30px; font-size: 1.05rem;">
+          Mapear Oportunidades do Meu Setor
+        </a>
+        <a href="https://b2g.automatizaprocessos.tech" target="_blank" class="btn btn-secondary" style="padding: 14px 28px; font-size: 1.05rem;">
+          Acessar Cockpit de Licitações →
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ASSURANCES -->
+  <section class="assurances">
+    <div class="wrap assurances-grid">
+      <div class="assurance-item">
+        <strong>Zero Mensalidade</strong>
+        <span>Sem custo de setup, taxa de adesão ou cobrança fixa.</span>
+      </div>
+      <div class="assurance-item">
+        <strong>Sucesso Garantido</strong>
+        <span>Remuneração (Success Fee) apenas após o órgão pagar sua nota fiscal.</span>
+      </div>
+      <div class="assurance-item">
+        <strong>Margem Líquida Protegida</strong>
+        <span>Você define seu piso de lucro; travamos os lances para nunca operar com prejuízo.</span>
+      </div>
+      <div class="assurance-item">
+        <strong>Turnkey Completo</strong>
+        <span>Nós fazemos todo o trabalho burocrático, do edital à homologação.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- O MODELO TURNKEY -->
+  <section class="section" id="modelo">
+    <div class="wrap">
+      <p class="section-kicker">Divisão Inteligente de Trabalho</p>
+      <h2 class="section-title">Como funciona a Co-Gestão B2G</h2>
+      <p class="section-sub">Uma parceria ganha-ganha onde cada um faz o que faz de melhor:</p>
+
+      <div class="compare-grid">
+        <div class="compare-card mct">
+          <h3>🏛️ O Que a MCT Assume por Você</h3>
+          <ul class="compare-list">
+            <li><span>🔍 <strong>Varredura diária no PNCP:</strong> Monitoramento contínuo de dispensas e pregões em SC, PR e RS.</span></li>
+            <li><span>📑 <strong>Análise pericial de editais:</strong> Leitura completa de termos de referência para vetar pegadinhas e exigências descabidas.</span></li>
+            <li><span>📊 <strong>Engenharia de propostas:</strong> Formulação da documentação jurídica e declarações obrigatórias.</span></li>
+            <li><span>🎯 <strong>Operação de disputa oficial:</strong> Participação em tempo real no portal público com governança e trava de preço.</span></li>
+            <li><span>💰 <strong>Remuneração no êxito:</strong> Cobramos apenas uma comissão sobre o valor efetivamente liquidado pelo órgão.</span></li>
+          </ul>
+        </div>
+
+        <div class="compare-card">
+          <h3>🛠️ O Que a Sua Empresa Faz</h3>
+          <ul class="compare-list">
+            <li><span>🏷️ <strong>Estipula o Piso Líquido:</strong> Você nos passa o seu preço mínimo com seu lucro de serviço protegido.</span></li>
+            <li><span>📋 <strong>Envia os documentos cadastrais:</strong> Contrato social e certidões de praxe da empresa.</span></li>
+            <li><span>🚗 <strong>Executa o serviço / entrega:</strong> Quando o contrato for vencido e empenhado, sua equipe realiza a entrega ou o serviço.</span></li>
+            <li><span>🏦 <strong>Recebe o dinheiro do órgão:</strong> A prefeitura deposita o valor integral diretamente na conta bancária da sua empresa.</span></li>
+            <li><span>🤝 <strong>Repassa o fee de sucesso:</strong> Em até 5 dias úteis após a liquidação do pagamento.</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SETORES ATENDIDOS -->
+  <section class="section" id="setores" style="background: rgba(255, 255, 255, 0.015); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="wrap">
+      <p class="section-kicker">Setores com Alta Demanda no Sul</p>
+      <h2 class="section-title">Demandas públicas frequentes na nossa região</h2>
+      <p class="section-sub">Prefeituras, câmaras municipais, consórcios intermunicipais e secretarias demandam continuamente:</p>
+
+      <div class="niches-grid">
+        <div class="niche-card">
+          <h4>Películas, Insulfilm & Proteção de Frotas</h4>
+          <p>Aplicação de películas térmicas, antivandalismo e prediais em frotas municipais de saúde, viaturas, ambulâncias e prédios públicos.</p>
+        </div>
+        <div class="niche-card">
+          <h4>Climatização & Refrigeração</h4>
+          <p>Manutenção preventiva, corretiva e instalação de ar condicionado em escolas, postos de saúde e secretarias municipais.</p>
+        </div>
+        <div class="niche-card">
+          <h4>Pneus, Troca de Óleo & Autopeças</h4>
+          <p>Fornecimento de insumos pesados para caminhões de coleta, retroescavadeiras, patrolas e frotas de transporte escolar.</p>
+        </div>
+        <div class="niche-card">
+          <h4>Materiais Elétricos & Hidráulicos</h4>
+          <p>Fornecimento de cabeamento, lâmpadas LED para iluminação pública, disjuntores e tubulações para manutenções prediais.</p>
+        </div>
+        <div class="niche-card">
+          <h4>Reformas & Obras de Manutenção</h4>
+          <p>Pequenas reformas prediais, pintura, coberturas e reparos emergenciais em equipamentos públicos municipais.</p>
+        </div>
+        <div class="niche-card">
+          <h4>Segurança, CFTV & Informática</h4>
+          <p>Instalação de câmeras de segurança, cabeamento estruturado e computadores para a administração pública.</p>
+        </div>
+      </div>
+
+      <!-- CTA BANNER -->
+      <div class="cta-banner">
+        <h3>Sua empresa tem capacidade técnica para atender?</h3>
+        <p>Agende uma conversa de 10 minutos. Nós mostramos os editais e certames abertos neste exato momento para o seu setor.</p>
+        <a href="https://wa.me/554988447562?text=Olá,%20quero%20conhecer%20as%20oportunidades%20B2G%20abertas%20para%20meu%20setor" target="_blank" rel="noreferrer" class="btn btn-primary" style="padding: 14px 32px; font-size: 1.05rem;">
+          Conversar com Diretor de Contratos B2G
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="wrap footer-content">
+      <div>
+        <strong style="color: #fff; font-size: 1rem; display: block; margin-bottom: 4px;">MCT LTDA — Inteligência em Contratos Públicos B2G</strong>
+        <span>CNPJ: 69.553.990/0001-91 • Chapecó - SC</span>
+      </div>
+      <div>
+        <a href="/" style="color: var(--text-muted); text-decoration: none; margin-right: 16px;">Hub Principal</a>
+        <a href="https://wa.me/554988447562" target="_blank" rel="noreferrer" style="color: var(--primary-light); text-decoration: none; font-weight: 600;">WhatsApp: (49) 98844-7562</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCT Tax — Recuperação de Créditos Tributários com Risco Zero (Gain-Share)</title>
+  <meta name="description" content="Recupere tributos pagos a mais nos últimos 5 anos de forma 100% administrativa e segura perante a Receita Federal. Modelo de êxito: você só paga após o valor estar na sua conta.">
+  <meta name="theme-color" content="#070B14">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="MCT Tax Sovereign">
+  <meta property="og:title" content="MCT Tax — Recuperação Tributária Administrativa com Risco Zero">
+  <meta property="og:description" content="Auditoria pericial dos últimos 60 meses para empresas do Simples Nacional e Lucro Presumido no Sul do Brasil. 100% no Êxito.">
+  <meta property="og:image" content="../assets/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070B14;
+      --bg-surface: #0E1626;
+      --bg-card: rgba(15, 23, 42, 0.75);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(16, 185, 129, 0.3);
+      --primary: #10B981;
+      --primary-light: #34D399;
+      --sky: #38BDF8;
+      --amber: #F59E0B;
+      --text: #F8FAFC;
+      --text-muted: #94A3B8;
+      --font-main: 'Inter', -apple-system, sans-serif;
+      --font-heading: 'Plus Jakarta Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-main);
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* HEADER */
+    header {
+      padding: 18px 0;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(7, 11, 20, 0.92);
+      backdrop-filter: blur(14px);
+      z-index: 100;
+    }
+    .header-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #fff;
+      font-family: var(--font-heading);
+      font-weight: 800;
+      font-size: 1.25rem;
+    }
+    .brand-tag {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--primary-light);
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border-accent);
+      font-family: var(--font-mono);
+      font-weight: 600;
+    }
+    .desktop-nav {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .desktop-nav a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.92rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .desktop-nav a:hover { color: #fff; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #10B981, #059669);
+      color: #fff;
+      box-shadow: 0 0 24px rgba(16, 185, 129, 0.35);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 35px rgba(16, 185, 129, 0.55);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* HERO */
+    .hero {
+      padding: 80px 0 60px;
+      text-align: center;
+      position: relative;
+    }
+    .hero-glow {
+      position: absolute;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 750px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.18) 0%, rgba(56, 189, 248, 0.08) 50%, transparent 70%);
+      pointer-events: none;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      border-radius: 100px;
+      color: var(--primary-light);
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+    .pill .dot {
+      width: 8px;
+      height: 8px;
+      background: var(--primary);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--primary);
+    }
+    h1 {
+      font-family: var(--font-heading);
+      font-size: 3.2rem;
+      line-height: 1.15;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+    }
+    h1 span.gradient {
+      background: linear-gradient(135deg, #10B981, #38BDF8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-lead {
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      max-width: 820px;
+      margin: 0 auto 36px;
+    }
+    .hero-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+    }
+
+    /* STATS / ASSURANCES */
+    .assurances {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 30px 0;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .assurances-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 24px;
+      text-align: center;
+    }
+    .assurance-item strong {
+      display: block;
+      font-size: 1.5rem;
+      font-family: var(--font-heading);
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .assurance-item span {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+
+    /* SECTIONS */
+    .section {
+      padding: 80px 0;
+    }
+    .section-kicker {
+      text-align: center;
+      color: var(--primary-light);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+    .section-title {
+      font-family: var(--font-heading);
+      font-size: 2.3rem;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .section-sub {
+      text-align: center;
+      color: var(--text-muted);
+      max-width: 720px;
+      margin: 0 auto 50px;
+      font-size: 1.05rem;
+    }
+
+    /* NICHES GRID */
+    .niches-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 24px;
+    }
+    .niche-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .niche-card:hover {
+      border-color: rgba(16, 185, 129, 0.4);
+      transform: translateY(-4px);
+      box-shadow: 0 10px 30px rgba(16, 185, 129, 0.1);
+    }
+    .niche-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      display: inline-block;
+      margin-bottom: 16px;
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--primary-light);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+    .niche-card h3 {
+      font-family: var(--font-heading);
+      font-size: 1.35rem;
+      margin-bottom: 12px;
+      color: #fff;
+    }
+    .niche-card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    .niche-opportunity {
+      background: rgba(56, 189, 248, 0.08);
+      border-left: 3px solid var(--sky);
+      padding: 10px 14px;
+      border-radius: 4px;
+      margin-bottom: 24px;
+      font-size: 0.88rem;
+      color: #E2E8F0;
+    }
+
+    /* STEP FLOW */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+    .step-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      position: relative;
+    }
+    .step-number {
+      font-family: var(--font-mono);
+      font-size: 2rem;
+      font-weight: 800;
+      color: rgba(16, 185, 129, 0.4);
+      margin-bottom: 10px;
+    }
+    .step-card h4 {
+      font-family: var(--font-heading);
+      font-size: 1.15rem;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .step-card p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    /* CTA BANNER */
+    .cta-banner {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(56, 189, 248, 0.08));
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 20px;
+      padding: 50px 36px;
+      text-align: center;
+      margin-top: 40px;
+    }
+    .cta-banner h3 {
+      font-family: var(--font-heading);
+      font-size: 2rem;
+      color: #fff;
+      margin-bottom: 14px;
+    }
+    .cta-banner p {
+      color: var(--text-muted);
+      max-width: 680px;
+      margin: 0 auto 30px;
+      font-size: 1.05rem;
+    }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 0 24px;
+      background: #04060A;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+    }
+    .footer-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      h1 { font-size: 2.2rem; }
+      .desktop-nav { display: none; }
+      .niches-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="wrap header-inner">
+      <a href="/" class="brand">
+        MCT Tax
+        <span class="brand-tag">Inteligência Fiscal</span>
+      </a>
+      <nav class="desktop-nav">
+        <a href="/">Hub Principal</a>
+        <a href="#como-funciona">Como Funciona</a>
+        <a href="#setores">Setores Elegíveis</a>
+        <a href="#seguranca">Blindagem e Segurança</a>
+        <a href="https://b2g.automatizaprocessos.tech/tributario.html" target="_blank" style="color: var(--primary-light); font-weight: 700;">Simulador Online ⚡</a>
+      </nav>
+      <div>
+        <a href="https://wa.me/554988447562?text=Olá,%20gostaria%20de%20uma%20análise%20gratuita%20de%20recuperação%20tributária%20para%20minha%20empresa" target="_blank" rel="noreferrer" class="btn btn-primary">
+          Auditoria Gratuita no WhatsApp
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-glow"></div>
+    <div class="wrap">
+      <div class="pill">
+        <span class="dot"></span>
+        MODELO 100% VARIÁVEL NO ÊXITO • ZERO CUSTO DE ENTRADA
+      </div>
+      <h1>Recupere impostos pagos a mais nos últimos 5 anos. <span class="gradient">Direto no caixa da sua empresa.</span></h1>
+      <p class="hero-lead">
+        Identificamos valores bi-tributados e pagos indevidamente por empresas do Simples Nacional e Lucro Presumido. Todo o processo é 100% administrativo perante a Receita Federal, sem processos judiciais e sem alterar sua contabilidade de confiança.
+      </p>
+      <div class="hero-buttons">
+        <a href="https://wa.me/554988447562?text=Olá,%20quero%20solicitar%20o%20diagnóstico%20gratuito%20de%20créditos%20tributários%20dos%20últimos%205%20anos" target="_blank" rel="noreferrer" class="btn btn-primary" style="padding: 14px 30px; font-size: 1.05rem;">
+          Solicitar Diagnóstico Gratuito
+        </a>
+        <a href="https://b2g.automatizaprocessos.tech/tributario.html" target="_blank" class="btn btn-secondary" style="padding: 14px 28px; font-size: 1.05rem;">
+          Ver Cockpit Interativo ao Vivo →
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ASSURANCES -->
+  <section class="assurances">
+    <div class="wrap assurances-grid">
+      <div class="assurance-item">
+        <strong>Risco Zero (Gain-Share)</strong>
+        <span>Você só paga honorários se e quando o dinheiro cair na sua conta.</span>
+      </div>
+      <div class="assurance-item">
+        <strong>100% Administrativo</strong>
+        <span>Procedimento formal via Receita Federal, sem disputas judiciais.</span>
+      </div>
+      <div class="assurance-item">
+        <strong>Sua Contabilidade Preservada</strong>
+        <span>Trabalhamos em conjunto com o seu contador atual, sem atrito.</span>
+      </div>
+      <div class="assurance-item">
+        <strong>Últimos 60 Meses</strong>
+        <span>Revisão retroativa completa com restituição em dinheiro ou compensação.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SETORES ELEGÍVEIS -->
+  <section class="section" id="setores">
+    <div class="wrap">
+      <p class="section-kicker">Quem Tem Direito</p>
+      <h2 class="section-title">Oportunidades mapeadas por setor</h2>
+      <p class="section-sub">A legislação brasileira prevê regras de tributação concentrada que os sistemas comuns de caixa não segregam. Veja onde está o seu dinheiro parado:</p>
+
+      <div class="niches-grid">
+
+        <!-- NICHO 1 -->
+        <div class="niche-card">
+          <div>
+            <span class="niche-badge">AUTOPEÇAS & TROCAS DE ÓLEO</span>
+            <h3>Comércio de Peças, Pneus e Lubrificantes</h3>
+            <p>
+              Óleos lubrificantes, filtros, aditivos e peças automotivas já têm seus tributos pagos antecipadamente na refinaria ou fábrica. Se sua empresa vendeu esses itens no Simples Nacional sem segregação, você pagou imposto em duplicidade.
+            </p>
+            <div class="niche-opportunity">
+              <strong>Solução:</strong> Devolução em conta bancária das parcelas de PIS e COFINS recolhidas indevidamente nas vendas dos últimos 5 anos.
+            </div>
+          </div>
+          <a href="https://wa.me/554988447562?text=Olá,%20sou%20de%20Autopeças/Troca%20de%20Óleo%20e%20quero%20auditar%20meus%20créditos" target="_blank" rel="noreferrer" class="btn btn-secondary">
+            Auditar Autopeças →
+          </a>
+        </div>
+
+        <!-- NICHO 2 -->
+        <div class="niche-card">
+          <div>
+            <span class="niche-badge">TRANSPORTADORAS & FROTAS</span>
+            <h3>Empresas de Transporte Rodoviário de Cargas</h3>
+            <p>
+              Pneus novos, recapagens, filtros e óleos lubrificantes são considerados pela jurisprudência pacificada dos tribunais superiores como insumos essenciais à atividade-fim do transporte de cargas.
+            </p>
+            <div class="niche-opportunity">
+              <strong>Solução:</strong> Aproveitamento de créditos tributários integrais sobre insumos de rodagem e redução de carga futura da frota.
+            </div>
+          </div>
+          <a href="https://wa.me/554988447562?text=Olá,%20sou%20de%20Transportadora%20e%20quero%20auditar%20os%20créditos%20da%20minha%20frota" target="_blank" rel="noreferrer" class="btn btn-secondary">
+            Auditar Transportadora →
+          </a>
+        </div>
+
+        <!-- NICHO 3 -->
+        <div class="niche-card">
+          <div>
+            <span class="niche-badge">CLÍNICAS MÉDICAS & ODONTOLÓGICAS</span>
+            <h3>Consultórios com Procedimentos Cirúrgicos</h3>
+            <p>
+              Clínicas odontológicas e médicas que realizam procedimentos cirúrgicos ou invasivos e possuem alvará sanitário regular têm direito à base de cálculo reduzida de IRPJ no Lucro Presumido (Equiparação Hospitalar).
+            </p>
+            <div class="niche-opportunity">
+              <strong>Solução:</strong> Redução da base de presunção do IRPJ de 32% para 8%, cortando mais da metade dos tributos federais devidos.
+            </div>
+          </div>
+          <a href="https://wa.me/554988447562?text=Olá,%20sou%20de%20Clínica%20Médica/Odonto%20e%20quero%20avaliar%20a%20Equiparação%20Hospitalar" target="_blank" rel="noreferrer" class="btn btn-secondary">
+            Auditar Clínica →
+          </a>
+        </div>
+
+        <!-- NICHO 4 -->
+        <div class="niche-card">
+          <div>
+            <span class="niche-badge">CONSTRUÇÃO CIVIL & PAVIMENTAÇÃO</span>
+            <h3>Construtoras, Obras e Locadoras de Máquinas</h3>
+            <p>
+              Materiais de construção civil aplicados na execução de obras não sofrem incidência de ICMS-ST ou DIFAL interestadual. Além disso, a locação pura de maquinário pesado para obras possui 0% de incidência de ISS.
+            </p>
+            <div class="niche-opportunity">
+              <strong>Solução:</strong> Eliminação de cobranças indevidas em compras de cimento, aço e tubos, além de segregação correta de locação de equipamentos.
+            </div>
+          </div>
+          <a href="https://wa.me/554988447562?text=Olá,%20sou%20de%20Construtora/Engenharia%20e%20quero%20analisar%20meus%20custos%20tributários" target="_blank" rel="noreferrer" class="btn btn-secondary">
+            Auditar Construtora →
+          </a>
+        </div>
+
+        <!-- NICHO 5 -->
+        <div class="niche-card">
+          <div>
+            <span class="niche-badge">SUPERMERCADOS & DISTRIBUIDORAS</span>
+            <h3>Varejo de Alimentos, Bebidas e Cosméticos</h3>
+            <p>
+              Centenas de itens vendidos em supermercados (bebidas frias, água, cervejas, cosméticos e produtos de higiene) possuem tributação concentrada na indústria e não devem recolher PIS e COFINS na ponta final de venda.
+            </p>
+            <div class="niche-opportunity">
+              <strong>Solução:</strong> Recuperação dos valores recolhidos indevidamente nos últimos 60 meses e correção cadastral de saída no sistema.
+            </div>
+          </div>
+          <a href="https://wa.me/554988447562?text=Olá,%20sou%20de%20Supermercado/Atacado%20e%20quero%20auditar%20meus%20itens%20monofásicos" target="_blank" rel="noreferrer" class="btn btn-secondary">
+            Auditar Supermercado →
+          </a>
+        </div>
+
+        <!-- NICHO 6 -->
+        <div class="niche-card">
+          <div>
+            <span class="niche-badge">PARCERIA COM CONTABILIDADES</span>
+            <h3>Para Escritórios de Contabilidade & BPO</h3>
+            <p>
+              Apoiamos o seu escritório contábil na auditoria detalhada de itens monofásicos e teses dos seus clientes. Cuidamos da parte pericial e repassamos comissionamento de parceria sobre os honorários de êxito.
+            </p>
+            <div class="niche-opportunity">
+              <strong>Solução:</strong> Novo fluxo de receita para seu escritório sem aumentar a carga de trabalho manual da sua equipe.
+            </div>
+          </div>
+          <a href="https://wa.me/554988447562?text=Olá,%20sou%20Contador%20e%20gostaria%20de%20conhecer%20a%20parceria%20de%20Co-Working%20Tributário" target="_blank" rel="noreferrer" class="btn btn-secondary">
+            Parceria para Contadores →
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- COMO FUNCIONA -->
+  <section class="section" id="como-funciona" style="background: rgba(255, 255, 255, 0.015); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="wrap">
+      <p class="section-kicker">Passo a Passo Transparente</p>
+      <h2 class="section-title">Como funciona a jornada de recuperação</h2>
+      <p class="section-sub">Sem burocracia desnecessária. Do envio das notas até o dinheiro disponível para sua empresa:</p>
+
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-number">01</div>
+          <h4>Envio Amostral</h4>
+          <p>Você nos envia os arquivos fiscais (XMLs) ou chaves de acesso dos últimos meses para uma pré-auditoria sem compromisso.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">02</div>
+          <h4>Laudo de Viabilidade</h4>
+          <p>Nossos sistemas periciais cruzam cada nota emitida e apresentam um laudo detalhado demonstrando o valor exato a ser recuperado.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">03</div>
+          <h4>Validação & Formalização</h4>
+          <p>Apresentamos os números para você e seu contador. Formalizamos o contrato de êxito com certificação digital de segurança.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">04</div>
+          <h4>Crédito no Caixa</h4>
+          <p>Transmitimos o pedido formal perante a Receita Federal. O valor é creditado na conta bancária ou compensado nas guias vincendas.</p>
+        </div>
+      </div>
+
+      <!-- CTA BANNER -->
+      <div class="cta-banner">
+        <h3>Pronto para verificar quanto sua empresa tem a receber?</h3>
+        <p>Faça um teste cego sem nenhum custo. Se não encontrarmos créditos elegíveis, você não gasta absolutamente nada.</p>
+        <a href="https://wa.me/554988447562?text=Olá,%20quero%20fazer%20o%20teste%20cego%20gratuito%20de%20recuperação%20tributária" target="_blank" rel="noreferrer" class="btn btn-primary" style="padding: 14px 32px; font-size: 1.05rem;">
+          Falar no WhatsApp com o Especialista
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="wrap footer-content">
+      <div>
+        <strong style="color: #fff; font-size: 1rem; display: block; margin-bottom: 4px;">MCT LTDA — Inteligência Tributária & Fiscal</strong>
+        <span>CNPJ: 69.553.990/0001-91 • Chapecó - SC</span>
+      </div>
+      <div>
+        <a href="/" style="color: var(--text-muted); text-decoration: none; margin-right: 16px;">Hub Principal</a>
+        <a href="https://wa.me/554988447562" target="_blank" rel="noreferrer" style="color: var(--primary-light); text-decoration: none; font-weight: 600;">WhatsApp: (49) 98844-7562</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
